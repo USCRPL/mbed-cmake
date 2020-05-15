@@ -1,0 +1,13 @@
+
+# Ignore all extra features (cellular, encryption, storage) by default
+components/*
+features/*
+
+# Unignore block device library since it's a common utility (and is needed for USB)
+!features/storage/blockdevice/*
+
+# Uncomment to disable RTOS
+rtos/source/*
+
+# Uncomment to disable USB 
+drivers/source/usb/*

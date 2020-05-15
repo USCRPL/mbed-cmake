@@ -1,0 +1,52 @@
+project(mbed-os)
+
+# add command to preprocess linker script
+get_filename_component(LINKER_SCRIPT_FILENAME "${MBED_LINKER_SCRIPT}" NAME_WE)
+set(PREPROCESSED_LINKER_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/${LINKER_SCRIPT_FILENAME}_preprocessed.ld)
+
+# NOTE: clearly the linker script is not assembly!  We give -x assembler-with-cpp to force GCC to try and compile the file
+# as if it was assembly.  It only gets to the preprocessor stage because of -E, and everything works fine.
+# This is kind of a hack, but without it we would have to have a seperate facility for finding the preprocessor executable.
+# We also needed to pass the linker flags because they can include defines needed in the linker script
+add_custom_command(
+	OUTPUT ${PREPROCESSED_LINKER_SCRIPT}
+	COMMAND ${CMAKE_CXX_COMPILER} -x assembler-with-cpp -E -Wp,-P ${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/${MBED_LINKER_SCRIPT} -o ${PREPROCESSED_LINKER_SCRIPT}
+	MAIN_DEPENDENCY ${MBED_LINKER_SCRIPT}
+	COMMENT "Preprocessing linker script ${MBED_LINKER_SCRIPT} -> ${PREPROCESSED_LINKER_SCRIPT}")
+
+# add target so we can force this command to be run before mbed is compiled
+add_custom_target(
+	mbed-linker-script
+	DEPENDS ${PREPROCESSED_LINKER_SCRIPT})
+
+# force all compilations to include the compile definitions files
+# note: SHELL prefixes are a workaround for an annoying CMake issue: https://gitlab.kitware.com/cmake/cmake/issues/15826
+set(MBED_COMPILE_OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/config-headers/mbed_config.h" "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/config-headers/mbed_target_config.h")
+
+# disable some annoying warnings during the MBed build
+list(APPEND MBED_COMPILE_OPTIONS
+    -Wno-deprecated-declarations
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-reorder>
+    -Wno-unused-function
+    -Wno-unused-variable
+    -Wno-enum-compare
+    -Wno-attributes)
+
+# The file containing the wrappers has to be linked into the final application as a .o file, it can't be inside a .a
+# archive.  So we need to build it separately.
+set(ALLOC_WRAPPERS_SOURCES platform/source/mbed_alloc_wrappers.cpp)
+list(REMOVE_ITEM MBED_SOURCE_FILES ${ALLOC_WRAPPERS_SOURCES})
+
+add_library(mbed-alloc-wrappers-obj OBJECT ${ALLOC_WRAPPERS_SOURCES})
+target_compile_options(mbed-alloc-wrappers-obj PRIVATE ${MBED_COMPILE_OPTIONS})
+target_include_directories(mbed-alloc-wrappers-obj PRIVATE ${MBED_INCLUDE_DIRS})
+
+# create the library target
+add_library(mbed-os STATIC ${MBED_SOURCE_FILES})
+target_compile_options(mbed-os PUBLIC ${MBED_COMPILE_OPTIONS})
+target_include_directories(mbed-os PUBLIC ${MBED_INCLUDE_DIRS})
+target_link_libraries(mbed-os PUBLIC -T\"${PREPROCESSED_LINKER_SCRIPT}\" ${MBED_LINK_OPTIONS}) # add interface link flags
+target_sources(mbed-os INTERFACE $<TARGET_OBJECTS:mbed-alloc-wrappers-obj>)
+
+# make sure linker script gets built before anything trying to use mbed-os
+add_dependencies(mbed-os mbed-linker-script)
