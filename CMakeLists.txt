@@ -32,7 +32,7 @@ set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release)
 # -------------------------------------------------------------
 include(mbed_gcc_arm_toolchain)
 
-project(MicroDAQ C CXX ASM)
+project(mbed-cmake C CXX ASM)
 
 # Set config-specific flags
 # Note: unlike CMAKE_C_FLAGS etc, we need to set these AFTER the project() call in order to override CMake's default values for these flags.

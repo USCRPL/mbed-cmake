@@ -1,29 +1,4 @@
-# CMakeLists file to handle the different upload methods to the hamster board
-
-# Here's a list of currently added upload methods, and all the parameters they accept.
-# Things labeled as parameters should be set in your buildscript, as they will be constant for a given board.
-# However, things labeled options are things the user may need to configure at runtime and are created as cache variables.
-
-# MBED - Simple uploader that uploads code via an MBed device's semihosting USB port.
-#   Options:
-#     MBED_PATH - Drive letter or local path that the MBed is mounted to.  No default
-# JLINK - Uploader that connects via a J-Link JTAG box.  Supports both flashing and debugging.
-#   Parameters:
-#     JLINK_CPU_NAME - Name that your processor is known by to J-link.  These are listed here: https://www.segger.com/downloads/supported-devices.php
-#     JLINK_RESET_TARGET - Whether to reset the target after upload.
-#     JLINK_JTAG_SPEED - Clock speed of the JTAG connection.  Accepts either a speed in kHz or "adaptive" to automatically determine speed using the RTCK pin.
-#   Options:
-#     GDB_PORT - Network port that JLink gdbserver and gdb will be run on.
-# NXPPROG - Uploader that uses the bootloader on certain NXP 1XXX and 2XXX processors.  Requires ISP and reset pins to be connected to the serial port for automatic flashing.
-#           Specifically, a low on RESET should be triggered by a high on DTR, and a low on ISP should be triggered by a low on RTS.
-#   Options:
-#     NXP_COM_PORT - Serial port that the NXP processor is accessible on.
-#   Parameters:
-#     NXP_BAUD - Baudrate to talk to the bootloader over.
-#     NXP_OSCFREQ - The bootloader needs to be sent the chip's internal oscillator frequency in order to operate.  See datasheet for details.
-# PYOCD - Uploader that uses the pyOCD flashing and debugging program.
-#   Parameters:
-#     PYOCD_JTAG_SPEED - Clock speed of the JTAG connection.  Default is in Hz, but can use k and M suffixes for MHz and GHz
+# CMakeLists file to handle the different upload methods to mbed targets
 
 # Step 1: determine supported upload methods
 # -------------------------------------------------------------
@@ -67,6 +42,10 @@ if(NOT "${UPLOAD_METHOD}" IN_LIST SUPPORTED_UPLOAD_METHODS)
     message(FATAL_ERROR "The upload method ${UPLOAD_METHOD} cannot run on this system due to missing prerequisites.  See its docs for details.")
 endif()
 
+if((NOT "${UPLOAD_METHOD}" STREQUAL "NONE") AND (NOT "${${UPLOAD_METHOD}_UPLOAD_ENABLED}"))
+    message(FATAL_ERROR "The upload method ${UPLOAD_METHOD} is not enabled for this project.")
+endif()
+
 message(STATUS "Board upload method set to ${UPLOAD_METHOD}")
 
 
@@ -108,17 +87,12 @@ elseif("${UPLOAD_METHOD}" STREQUAL "JLINK")
 
     function(gen_upload_target TARGET_NAME BIN_FILE)
 
-        set(JLINK_RESET_COMMAND "")
-        if(JLINK_RESET_TARGET)
-            set(JLINK_RESET_COMMAND "r")
-        endif()
-
         # create command file for j-link
         set(COMMAND_FILE_PATH ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/flash-${TARGET_NAME}.jlink)
         file(GENERATE OUTPUT ${COMMAND_FILE_PATH} CONTENT
 "
 loadbin ${BIN_FILE}, 0x0
-${JLINK_RESET_COMMAND}
+r
 exit
 ")
         add_custom_target(flash-${TARGET_NAME}
@@ -153,8 +127,8 @@ exit
         COMMAND 
         "${JLINK_GDBSERVER}" 
         -Select USB 
-        -Device LPC1768 
-        -Speed 4000 
+        -Device ${JLINK_CPU_NAME}
+        -Speed ${JLINK_JTAG_SPEED}
         -endian little 
         -if JTAG 
         -JTAGConf -1,-1 
@@ -176,7 +150,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
             flash
             -v
             --no-wait
-            -t ${MBED_TARGET_NAME}
+            -t ${PYOCD_TARGET_NAME}
             ${BIN_FILE})
 
 
@@ -203,8 +177,8 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
         gdbserver
         -v
         --no-wait
-        -t ${MBED_TARGET_NAME}
-        -f 4000k
+        -t ${PYOCD_TARGET_NAME}
+        -f ${PYOCD_JTAG_SPEED}
         -p ${GDB_PORT}
         --persist
         --semihosting
@@ -213,11 +187,6 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
 elseif("${UPLOAD_METHOD}" STREQUAL "OPENOCD")
 
     set(GENERATE_GDBINIT TRUE)
-
-    set(OPENOCD_CHIP_CONFIG_COMMANDS
-        -f ${OpenOCD_SCRIPT_DIR}/interface/cmsis-dap.cfg
-        -f ${OpenOCD_SCRIPT_DIR}/target/lpc17xx.cfg
-        -c "gdb_memory_map disable")
 
     function(gen_upload_target TARGET_NAME BIN_FILE)
 
@@ -259,13 +228,13 @@ elseif("${UPLOAD_METHOD}" STREQUAL "OPENOCD")
 
 elseif("${UPLOAD_METHOD}" STREQUAL NXPPROG)
 
-    set(COM_PORT "" CACHE STRING "COM port for bootloader upload.  Should be \"COMXX\" on Windows, and /dev/ttyXX on Linux/Mac")
+    set(NXPPROG_COM_PORT "" CACHE STRING "COM port for bootloader upload.  Should be \"COMXX\" on Windows, and /dev/ttyXX on Linux/Mac")
 
-    message(STATUS "COM port for bootloader upload: ${COM_PORT}")
+    message(STATUS "COM port for bootloader upload: ${NXPPROG_COM_PORT}")
 
     function(gen_upload_target TARGET_NAME BIN_FILE)
 
-        if("${COM_PORT}" STREQUAL "")
+        if("${NXPPROG_COM_PORT}" STREQUAL "")
             add_custom_target(flash-${TARGET_NAME}
                     COMMAND ${CMAKE_COMMAND}
                     -E echo "ERROR: Cannot flash, no COM_PORT configured!")
@@ -274,9 +243,9 @@ elseif("${UPLOAD_METHOD}" STREQUAL NXPPROG)
                 COMMENT "Flashing ${TARGET_NAME} through bootloader..."
                 COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/nxpprog.py
                     --control
-                    --oscfreq=14748
-                    --baud=115200
-                    ${COM_PORT}
+                    --oscfreq=${NXPPROG_OSCFREQ}
+                    --baud=${NXPPROG_BAUD}
+                    ${NXPPROG_COM_PORT}
                     ${BIN_FILE})
         endif()
 

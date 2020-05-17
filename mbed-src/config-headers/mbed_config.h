@@ -60,7 +60,14 @@
 #define MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY                     0               // set by library:platform
 #define MBED_CONF_PLATFORM_USE_MPU                                        1               // set by library:platform
 #define MBED_CONF_RTOS_API_PRESENT                                        1               // set by library:rtos-api
-#define MBED_CONF_TARGET_BOOT_STACK_SIZE                                  0x1000          // set by target:Target
+#define MBED_CONF_RTOS_IDLE_THREAD_STACK_SIZE                             512             // set by library:rtos
+#define MBED_CONF_RTOS_IDLE_THREAD_STACK_SIZE_DEBUG_EXTRA                 0               // set by library:rtos
+#define MBED_CONF_RTOS_IDLE_THREAD_STACK_SIZE_TICKLESS_EXTRA              256             // set by library:rtos
+#define MBED_CONF_RTOS_MAIN_THREAD_STACK_SIZE                             4096            // set by library:rtos
+#define MBED_CONF_RTOS_PRESENT                                            1               // set by library:rtos
+#define MBED_CONF_RTOS_THREAD_STACK_SIZE                                  4096            // set by library:rtos
+#define MBED_CONF_RTOS_TIMER_THREAD_STACK_SIZE                            768             // set by library:rtos
+#define MBED_CONF_TARGET_BOOT_STACK_SIZE                                  0x400           // set by library:rtos[*]
 #define MBED_CONF_TARGET_CONSOLE_UART                                     1               // set by target:Target
 #define MBED_CONF_TARGET_DEEP_SLEEP_LATENCY                               0               // set by target:Target
 #define MBED_CONF_TARGET_INIT_US_TICKER_AT_BOOT                           0               // set by target:Target
@@ -70,5 +77,7 @@
 #define MBED_CONF_TARGET_US_TICKER_TIMER                                  3               // set by target:LPC1768
 #define MBED_CONF_TARGET_XIP_ENABLE                                       0               // set by target:Target
 #define MBED_STACK_DUMP_ENABLED                                           0               // set by library:platform
+// Macros
+#define _RTE_                                                                             // defined by library:rtos
 
 #endif

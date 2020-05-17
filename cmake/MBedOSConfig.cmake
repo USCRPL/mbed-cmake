@@ -27,10 +27,10 @@ set(MCU_COMPILE_OPTIONS
    -mthumb
    -DMBED_ROM_START=0x0
    -DMBED_ROM_SIZE=0x80000
-   -DMBED_RAM1_START=0x2007c000
-   -DMBED_RAM1_SIZE=0x8000
    -DMBED_RAM_START=0x10000000
-   -DMBED_RAM_SIZE=0x8000)
+   -DMBED_RAM_SIZE=0x8000
+   -DMBED_RAM1_START=0x2007c000
+   -DMBED_RAM1_SIZE=0x8000)
 
 set(MCU_LINK_OPTIONS
    -Wl,--gc-sections
@@ -47,11 +47,11 @@ set(MCU_LINK_OPTIONS
    -mthumb
    -DMBED_ROM_START=0x0
    -DMBED_ROM_SIZE=0x80000
-   -DMBED_RAM1_START=0x2007c000
-   -DMBED_RAM1_SIZE=0x8000
    -DMBED_RAM_START=0x10000000
    -DMBED_RAM_SIZE=0x8000
-   -DMBED_BOOT_STACK_SIZE=4096
+   -DMBED_RAM1_START=0x2007c000
+   -DMBED_RAM1_SIZE=0x8000
+   -DMBED_BOOT_STACK_SIZE=1024
    -DXIP_ENABLE=0)
 
 set(MBED_LINKER_SCRIPT
@@ -79,6 +79,15 @@ set(MBED_INCLUDE_DIRS
    platform/source/TARGET_CORTEX_M
    platform/source/minimal-printf
    rtos
+   rtos/source
+   rtos/source/TARGET_CORTEX
+   rtos/source/TARGET_CORTEX/rtx4
+   rtos/source/TARGET_CORTEX/rtx5
+   rtos/source/TARGET_CORTEX/rtx5/Include
+   rtos/source/TARGET_CORTEX/rtx5/RTX
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Config
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Include
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source
    targets/TARGET_NXP
    targets/TARGET_NXP/TARGET_LPC176X
    targets/TARGET_NXP/TARGET_LPC176X/TARGET_MBED_LPC1768
@@ -87,6 +96,7 @@ set(MBED_INCLUDE_DIRS
 
 set(MBED_SOURCE_FILES
    platform/source/TARGET_CORTEX_M/TOOLCHAIN_GCC/except.S
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/TOOLCHAIN_GCC/TARGET_M3/irq_cm3.S
    targets/TARGET_NXP/TARGET_LPC176X/device/TOOLCHAIN_GCC_ARM/startup_LPC17xx.S
    cmsis/TARGET_CORTEX_M/mbed_tz_context.c
    events/source/equeue.c
@@ -123,6 +133,27 @@ set(MBED_SOURCE_FILES
    platform/source/minimal-printf/mbed_printf_armlink_overrides.c
    platform/source/minimal-printf/mbed_printf_implementation.c
    platform/source/minimal-printf/mbed_printf_wrapper.c
+   rtos/source/TARGET_CORTEX/TOOLCHAIN_GCC_ARM/mbed_boot_gcc_arm.c
+   rtos/source/TARGET_CORTEX/mbed_boot.c
+   rtos/source/TARGET_CORTEX/mbed_rtos_rtx.c
+   rtos/source/TARGET_CORTEX/mbed_rtx_handlers.c
+   rtos/source/TARGET_CORTEX/rtx4/cmsis_os1.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Config/RTX_Config.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_delay.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_evflags.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_evr.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_kernel.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_lib.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_memory.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_mempool.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_msgqueue.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_mutex.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_semaphore.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_system.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_thread.c
+   rtos/source/TARGET_CORTEX/rtx5/RTX/Source/rtx_timer.c
+   rtos/source/TARGET_CORTEX/rtx5/Source/os_systick.c
+   rtos/source/TARGET_CORTEX/rtx5/Source/os_tick_ptim.c
    targets/TARGET_NXP/TARGET_LPC176X/analogin_api.c
    targets/TARGET_NXP/TARGET_LPC176X/analogout_api.c
    targets/TARGET_NXP/TARGET_LPC176X/can_api.c
@@ -178,6 +209,24 @@ set(MBED_SOURCE_FILES
    drivers/source/TimerEvent.cpp
    drivers/source/UARTSerial.cpp
    drivers/source/Watchdog.cpp
+   drivers/source/usb/AsyncOp.cpp
+   drivers/source/usb/ByteBuffer.cpp
+   drivers/source/usb/EndpointResolver.cpp
+   drivers/source/usb/LinkedListBase.cpp
+   drivers/source/usb/OperationListBase.cpp
+   drivers/source/usb/PolledQueue.cpp
+   drivers/source/usb/TaskBase.cpp
+   drivers/source/usb/USBAudio.cpp
+   drivers/source/usb/USBCDC.cpp
+   drivers/source/usb/USBCDC_ECM.cpp
+   drivers/source/usb/USBDevice.cpp
+   drivers/source/usb/USBHID.cpp
+   drivers/source/usb/USBKeyboard.cpp
+   drivers/source/usb/USBMIDI.cpp
+   drivers/source/usb/USBMSD.cpp
+   drivers/source/usb/USBMouse.cpp
+   drivers/source/usb/USBMouseKeyboard.cpp
+   drivers/source/usb/USBSerial.cpp
    events/source/EventQueue.cpp
    events/source/equeue_mbed.cpp
    events/source/mbed_shared_queues.cpp
@@ -216,6 +265,15 @@ set(MBED_SOURCE_FILES
    platform/source/mbed_rtc_time.cpp
    platform/source/mbed_thread.cpp
    platform/source/mbed_wait_api_rtos.cpp
+   rtos/source/ConditionVariable.cpp
+   rtos/source/EventFlags.cpp
+   rtos/source/Kernel.cpp
+   rtos/source/Mutex.cpp
+   rtos/source/RtosTimer.cpp
+   rtos/source/Semaphore.cpp
+   rtos/source/TARGET_CORTEX/mbed_rtx_idle.cpp
+   rtos/source/ThisThread.cpp
+   rtos/source/Thread.cpp
    targets/TARGET_NXP/USBHAL_LPC17.cpp)
 
 set(MCU_COMPILE_OPTIONS_RELWITHDEBINFO
@@ -225,14 +283,14 @@ set(MCU_COMPILE_OPTIONS_RELWITHDEBINFO
 
 set(MCU_COMPILE_OPTIONS_DEBUG
    -DMBED_DEBUG
+   -Og
    -g3
-   -DMBED_TRAP_ERRORS_ENABLED=1
-   -Og)
+   -DMBED_TRAP_ERRORS_ENABLED=1)
 
 set(MCU_COMPILE_OPTIONS_RELEASE
    -Os
-   -g
-   -DNDEBUG)
+   -DNDEBUG
+   -g)
 
 set(MCU_LINK_OPTIONS_RELWITHDEBINFO)
 

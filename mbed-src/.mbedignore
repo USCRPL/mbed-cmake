@@ -7,7 +7,7 @@ features/*
 !features/storage/blockdevice/*
 
 # Uncomment to disable RTOS
-rtos/source/*
+# rtos/source/*
 
 # Uncomment to disable USB 
-drivers/source/usb/*
+# drivers/source/usb/*
