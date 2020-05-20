@@ -7,6 +7,12 @@
 # set OUTPUT_VAR to whether PACKAGENAME was found
 function(check_python_package PACKAGENAME OUTPUT_VAR)
 
+    # can't have Python packages without Python!
+    if(NOT Python3_FOUND)
+        set(${OUTPUT_VAR} FALSE PARENT_SCOPE)
+        return()
+    endif()
+
     set(NEED_TO_RUN_CHECK TRUE)
 
     if(DEFINED ${OUTPUT_VAR})

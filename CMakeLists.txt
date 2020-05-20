@@ -49,21 +49,11 @@ endforeach()
 
 find_package(Python3_Backported COMPONENTS Interpreter)
 
-if(NOT Python3_FOUND)
-	message(FATAL_ERROR "Python 3 is required to run build tooling.")
-endif()
 
-# needed for memory map script
-verify_python_package(intelhex)
-verify_python_package(prettytable)
-
-# needed for bootloader uploader
-
-
-# load the MBed toolchain
+# load the MBed CMake functions
 # -------------------------------------------------------------
 
-include(mbed)
+include(MBedExecutable)
 
 # Configure upload methods
 # -------------------------------------------------------------
