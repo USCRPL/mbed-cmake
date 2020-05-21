@@ -1,4 +1,13 @@
-# MBed-cmake
+```
+ _       _    ____      ______   ___                      ____    _       _         _        _      _   ______ 
+| \     / |  /  _  \   /  ____) /  _ \_                 / ____)  | \     / |       / \      / \    / | /  ____)
+|  \   /  |  | |_|  |  | |____  | | \_ \    ______    /  /       |  \   /  |      / _ \     | |   / /  | |____ 
+|   \ /   |  |     /   |  ____) | |   | |  (______)  |  |        |   \ /   |     / /_\ \    |  _ / /   |  ____)
+| |\ - /| |  |  _   \  | |      | |  _| |             \  \       | |\ - /| |    / _____ \   |  _  \    | |     
+| | \_/ | |  | |_|   | | |____  | |_/ _/                \ \___   | | \_/ | |   / /     \ \  | |  \ \   | |____ 
+\_/     \_/  \_____ /  \______) \___ /                   \____)  \_/     \_/  |_/       \_| \_/   \_/  \______)
+```
+
 MBed-cmake is a build system template that lets you use the descriptive power of CMake to create build systems that use MBed OS.  
 
 MBed-cmake was designed to optimize the common case of embedded development: where a program and an environment are configured once for a specific processor, and then left in that configuration forever.  Normally, MBed OS's build system forces you to reconfigure things like the target, the toolchain, and the ignore files each time a project is set up, as MBed OS and all of its dependencies are downloaded by the build system on your computer at build time.  In contrast, MBed-cmake allows you to check the entire OS and configuration into version control.  This makes builds easy, repeatable, and dependable as there are no external dependencies.
