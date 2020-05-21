@@ -27,9 +27,6 @@ function(check_python_package PACKAGENAME OUTPUT_VAR)
     endif()
 
     if(NEED_TO_RUN_CHECK)
-
-        message("${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python_packagecheck.py ${PACKAGENAME}")
-
         set(PY_INTERP_FOR_${OUTPUT_VAR} ${Python3_EXECUTABLE} CACHE INTERNAL "The python interpreter used to run the ${OUTPUT_VAR} check" FORCE)
 
 
@@ -39,9 +36,9 @@ function(check_python_package PACKAGENAME OUTPUT_VAR)
         test(HAVE_PACKAGE ${PACKAGECHECK_RESULT} EQUAL 0)
 
         if(HAVE_PACKAGE)
-            message("Checking for Python package ${PACKAGENAME} -- found")
+            message(STATUS "Checking for Python package ${PACKAGENAME} -- found")
         else()
-            message("Checking for Python package ${PACKAGENAME} -- not found")
+            message(STATUS "Checking for Python package ${PACKAGENAME} -- not found")
         endif()
 
         set(${OUTPUT_VAR} ${HAVE_PACKAGE} CACHE BOOL "Whether the Python package ${PACKAGENAME} was found" FORCE)

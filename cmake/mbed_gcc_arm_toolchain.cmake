@@ -43,11 +43,6 @@ foreach(BUILD_TYPE ${CMAKE_CONFIGURATION_TYPES})
     endforeach()
 endforeach()
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_EXTENSIONS TRUE)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_EXTENSIONS TRUE)
-
 #note: these initialize the cache variables on first configure
 set(CMAKE_C_FLAGS_INIT "${CHIP_FLAGS}")
 set(CMAKE_CXX_FLAGS_INIT "${CHIP_FLAGS} -Wvla -fno-exceptions -fno-rtti")

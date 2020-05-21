@@ -32,17 +32,22 @@ set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release)
 # -------------------------------------------------------------
 include(mbed_gcc_arm_toolchain)
 
-project(mbed-cmake C CXX ASM)
+project(mbed-cmake LANGUAGES C CXX ASM)
 
 # Set config-specific flags
 # Note: unlike CMAKE_C_FLAGS etc, we need to set these AFTER the project() call in order to override CMake's default values for these flags.
-# CMAKE_C_FLAGS_INIT needs to be set BEFORE the project() call so that it's used when CMake scans compiler properties.
+# CMAKE_C_FLAGS_INIT etc need to be set BEFORE the project() call so that it's used when CMake scans compiler properties.
 foreach(BUILD_TYPE RELWITHDEBINFO DEBUG RELEASE)
 	list_to_space_separated(CMAKE_C_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
 	list_to_space_separated(CMAKE_CXX_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
 	list_to_space_separated(CMAKE_ASM_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
 endforeach()
 
+# Set language standard
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_EXTENSIONS TRUE)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_EXTENSIONS TRUE)
 
 # find python
 # -------------------------------------------------------------
@@ -70,8 +75,10 @@ include(UploadMethods)
 # -------------------------------------------------------------
 
 add_subdirectory(mbed-src) #first get MBed standard library
-add_subdirectory(libraries)
 
+# Add other subdirectories here
+
+# demo hello world program -- remove this once your builds and uploads are tested and working
 add_mbed_executable(hello_world HelloWorld.cpp)
 
 # build report
