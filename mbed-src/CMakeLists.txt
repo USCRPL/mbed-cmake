@@ -41,12 +41,20 @@ add_library(mbed-alloc-wrappers-obj OBJECT ${ALLOC_WRAPPERS_SOURCES})
 target_compile_options(mbed-alloc-wrappers-obj PRIVATE ${MBED_COMPILE_OPTIONS})
 target_include_directories(mbed-alloc-wrappers-obj PRIVATE ${MBED_INCLUDE_DIRS})
 
-# create the library target
-add_library(mbed-os STATIC ${MBED_SOURCE_FILES})
-target_compile_options(mbed-os PUBLIC ${MBED_COMPILE_OPTIONS})
-target_include_directories(mbed-os PUBLIC ${MBED_INCLUDE_DIRS})
-target_link_libraries(mbed-os PUBLIC -T\"${PREPROCESSED_LINKER_SCRIPT}\" ${MBED_LINK_OPTIONS}) # add interface link flags
-target_sources(mbed-os INTERFACE $<TARGET_OBJECTS:mbed-alloc-wrappers-obj>)
+# create the static library for the rest of the source files
+add_library(mbed-os-static STATIC ${MBED_SOURCE_FILES})
+target_compile_options(mbed-os-static PUBLIC ${MBED_COMPILE_OPTIONS})
+target_include_directories(mbed-os-static PUBLIC ${MBED_INCLUDE_DIRS})
 
 # make sure linker script gets built before anything trying to use mbed-os
-add_dependencies(mbed-os mbed-linker-script)
+add_dependencies(mbed-os-static mbed-linker-script)
+
+# create final library target (wraps actual library target in -Wl,--whole-archive [which is needed for weak symbols to work])
+add_library(mbed-os INTERFACE)
+target_link_libraries(mbed-os INTERFACE
+	-Wl,--whole-archive
+	mbed-os-static
+	-Wl,--no-whole-archive
+	-T\"${PREPROCESSED_LINKER_SCRIPT}\"
+	${MBED_LINK_OPTIONS})
+target_sources(mbed-os INTERFACE $<TARGET_OBJECTS:mbed-alloc-wrappers-obj>)
