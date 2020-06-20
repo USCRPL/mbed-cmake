@@ -76,11 +76,6 @@ include(UploadMethods)
 
 add_subdirectory(mbed-src) #first get MBed standard library
 
-# Add other subdirectories here
-
-# demo hello world program -- remove this once your builds and uploads are tested and working
-add_mbed_executable(hello_world HelloWorld.cpp)
-
 # build report
 # -------------------------------------------------------------
 
