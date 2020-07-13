@@ -4,6 +4,7 @@ import argparse
 import traceback
 import re
 import json
+import pathlib
 
 # import MBed's built-in tools library
 project_root_dir = os.path.dirname(__file__)
@@ -22,7 +23,7 @@ except ImportError:
     print("Be sure that you have installed all required python modules, see mbed-src/requirements.txt")
     traceback.print_exc()
     exit(1)
-    
+
 
 
 def write_target_header(target_header_path:str, symbol_list:list):
@@ -55,10 +56,10 @@ def write_target_header(target_header_path:str, symbol_list:list):
 
 def build_cmake_list(list_name:str, contents:list):
     """ Get a string containing CMake code for a list with the given name. """
-    
+
     list_string = f"set({list_name}"
     for string in contents:
-    
+
         # items containing spaces need to be quoted
         if " " in string:
             list_string += "\n   \"" + string + "\""
@@ -66,29 +67,29 @@ def build_cmake_list(list_name:str, contents:list):
             list_string += "\n   " + string
 
     list_string += ")\n\n"
-    
+
     return list_string
-    
+
 def build_cmake_path_list(list_name:str, paths:list):
     """ Build a CMake list of file paths.  Does extra conversion to prepare file paths for CMake."""
-    
+
     converted_paths = []
     for path in paths:
-        
+
         # paths should be relative to the mbed-src directory
         relative_path = os.path.relpath(path, mbed_os_dir)
-        
+
         # CMake always uses forward slashes, even on Windows
         converted_paths.append(relative_path.replace(os.path.sep, "/"))
 
     return build_cmake_list(list_name, converted_paths)
-    
-def write_cmake_config(cmake_config_path:str, mcu_compile_flags:list, mcu_link_flags:list, 
+
+def write_cmake_config(cmake_config_path:str, mcu_compile_flags:list, mcu_link_flags:list,
     linker_script:str, include_dirs:list, source_files:list, target_name:str, profile_flags:list,
     profile_link_flags:list, profile_names:list):
 
     """ Write the configuration file for CMake using info extracted from the Python scripts"""
-    
+
     cmake_config = open(cmake_config_path, "w")
     cmake_config.write(
     """# MBed OS CMake configuration file.
@@ -140,6 +141,7 @@ def print_config(print_descriptions:bool, toolchain):
 
 # Parse args
 # -------------------------------------------------------------------------
+GENERATED_DEFAULT_PATH = "../mbed-cmake-config/"
 
 parser = argparse.ArgumentParser(description="Configure mbed-cmake for a processor target.")
 
@@ -147,13 +149,15 @@ parser.add_argument('target', type=str, help="MBed target name to configure the 
 
 parser.add_argument('-l', '--list-config', action="store_true", help="List all the config options that MBed OS supports for your target")
 parser.add_argument('-c', '--print-config', action="store_true", help="Print all the config options that MBed OS supports for your target, with descriptions")
-
+parser.add_argument('-p', '--generated-path', default=GENERATED_DEFAULT_PATH,
+                    help="The relative path to the directory which will store the generated files")
 args = parser.parse_args()
 
 target_name=args.target
 toolchain_name="GCC_ARM" # Someday this can be made configurable, but for now we support GCC only.
 get_config=args.list_config or args.print_config
 verbose_config=args.print_config
+generated_rpath = args.generated_path
 
 # Perform the scan of the MBed OS dirs
 # -------------------------------------------------------------------------
@@ -172,7 +176,9 @@ print("Configuring build system for target " + target_name)
 
 # Can NOT be the current directory, or it screws up some internal regexes inside mbed tools.
 # That was a fun hour to debug...
-config_header_dir = os.path.join(mbed_os_dir, "config-headers")
+
+config_header_dir = os.path.join(project_root_dir, generated_rpath, "config-headers")
+pathlib.Path(config_header_dir).mkdir(parents=True, exist_ok=True) # create dir if not exists
 
 notifier = TerminalNotifier(True, False)
 
@@ -196,6 +202,8 @@ for profile_json_path in profile_jsons:
 toolchain = profile_toolchains[0]
 print("Generated config header: " + toolchain.get_config_header())
 
+# MBed's toolchain will create a file called mbed_config.h - rename to generated
+os.rename(os.path.join(config_header_dir, "mbed_config.h"),os.path.join(config_header_dir, "mbed_config_generated.h"))
 
 print("Using settings from these JSON files:\n " + "\n ".join(resources.get_file_paths(FileType.JSON)))
 
@@ -203,15 +211,17 @@ print("Using settings from these JSON files:\n " + "\n ".join(resources.get_file
 # Write target header
 # -------------------------------------------------------------------------
 
-target_header_path = os.path.join(config_header_dir, "mbed_target_config.h")
+target_header_path = os.path.join(config_header_dir, "mbed_target_config_generated.h")
 write_target_header(target_header_path, toolchain.get_symbols())
 print("Generated target config header: " + target_header_path)
 
 # Write CMake config file
 # -------------------------------------------------------------------------
 
-cmake_config_path = os.path.join(project_root_dir, "cmake", "MBedOSConfig.cmake")
+cmake_config_dir = os.path.join(project_root_dir, generated_rpath, "cmake", )
+pathlib.Path(cmake_config_dir).mkdir(parents=True, exist_ok=True) # create dir if not exists
 
+cmake_config_path = os.path.join(cmake_config_dir, "MBedOSConfig.cmake")
 # create include paths
 inc_paths = resources.get_file_paths(FileType.INC_DIR)
 inc_paths = set(inc_paths) # De-duplicate include paths
@@ -240,7 +250,7 @@ for profile_idx in range(0, len(profile_toolchains)):
     profile_flags.append(set(profile_toolchains[profile_idx].flags['common']) - common_flags)
     profile_link_flags.append(set(profile_toolchains[profile_idx].flags['ld']) - common_link_flags)
 
-write_cmake_config(cmake_config_path, 
+write_cmake_config(cmake_config_path,
     mcu_compile_flags=toolchain.flags['common'],
     mcu_link_flags=toolchain.flags['ld'],
     linker_script=resources.get_file_paths(FileType.LD_SCRIPT)[0],

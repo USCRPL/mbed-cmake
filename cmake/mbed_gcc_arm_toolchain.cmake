@@ -9,8 +9,13 @@ set(CMAKE_EXECUTABLE_SUFFIX elf)
 set(CMAKE_C_COMPILER arm-none-eabi-gcc)
 set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
 
-# read flags from configuration file
-include(${CMAKE_CURRENT_LIST_DIR}/MBedOSConfig.cmake)
+# read flags from generated configuration file
+# relative to CMakeLists.txt inside mbed-cmake
+if(NOT DEFINED MBED_CMAKE_GENERATED_CONFIG_PATH)
+    set(MBED_CMAKE_GENERATED_CONFIG_PATH "../mbed-cmake-config")
+endif()
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
 
 # remove some MBed flags that shouldn't be in build commands (CMake will handle these)
 list(REMOVE_ITEM MCU_COMPILE_OPTIONS -c -MMD)
