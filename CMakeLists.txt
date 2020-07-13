@@ -28,6 +28,12 @@ endif()
 # Allowed build types are Debug and Release
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release)
 
+# relative to CMakeLists.txt inside mbed-cmake
+if(NOT DEFINED MBED_CMAKE_GENERATED_CONFIG_RELPATH)
+	set(MBED_CMAKE_GENERATED_CONFIG_RELPATH "../mbed-cmake-config")
+endif()
+set(MBED_CMAKE_GENERATED_CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${MBED_CMAKE_GENERATED_CONFIG_RELPATH})
+
 # load compilers and flags
 # -------------------------------------------------------------
 include(mbed_gcc_arm_toolchain)
@@ -74,6 +80,7 @@ include(UploadMethods)
 # recurse to subdirectories
 # -------------------------------------------------------------
 
+set(MBED_CMAKE_CONFIG_HEADERS_PATH ${MBED_CMAKE_GENERATED_CONFIG_PATH}/config-headers)
 add_subdirectory(mbed-src) #first get MBed standard library
 
 # build report

@@ -21,7 +21,11 @@ add_custom_target(
 
 # force all compilations to include the compile definitions files
 # note: SHELL prefixes are a workaround for an annoying CMake issue: https://gitlab.kitware.com/cmake/cmake/issues/15826
-set(MBED_COMPILE_OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/config-headers/mbed_config.h" "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/config-headers/mbed_target_config.h")
+if(NOT DEFINED MBED_CMAKE_CONFIG_HEADERS_PATH)
+	set(MBED_CMAKE_CONFIG_HEADERS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config-headers)
+endif()
+
+set(MBED_COMPILE_OPTIONS "SHELL:-include ${MBED_CMAKE_CONFIG_HEADERS_PATH}/mbed_config.h" "SHELL:-include ${MBED_CMAKE_CONFIG_HEADERS_PATH}/mbed_target_config.h")
 
 # disable some annoying warnings during the MBed build
 list(APPEND MBED_COMPILE_OPTIONS
