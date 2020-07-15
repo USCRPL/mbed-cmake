@@ -31,11 +31,14 @@ MBed-cmake fixes this properly.  We've created an automatic scraper script that 
 
 ## Getting Started
 Interested in trying mbed-cmake?  Follow these steps:
-1. Clone or download this repository and rename it as your project folder.
+1. Clone [the example project](https://github.com/USCRPL/mbed-cmake-example-project): `git clone --recursive https://github.com/USCRPL/mbed-cmake-example-project.git`
+1. Update the mbed-cmake submodule to the latest version: `git submodule foreach git pull origin master`
 2. [Set up the toolchain and other dependencies on your machine](https://github.com/USCRPL/mbed-cmake/wiki/Toolchain-Setup).
 3. [Configure mbed-cmake for your processor target](https://github.com/USCRPL/mbed-cmake/wiki/Project-Configuration).
 4. [Set up the upload methods you need](https://github.com/USCRPL/mbed-cmake/wiki/Upload-Methods), then test them with the included hello world program.
 5. Add your own code and [write CMake buildfiles to build it](https://github.com/USCRPL/mbed-cmake/wiki/CMake-Cookbook).
+
+Note: mbed-cmake can be used either as a Git submodule, or by just downloading the files and including them directly in your repo.  If submodules aren't your thing, then just download this repo and the example repo as zips instead of the first two steps above.  Don't forget to check back here for updates!
 
 ## Example
 Simple MBed OS applications can be built with a single CMake command:
