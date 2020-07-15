@@ -69,7 +69,7 @@ set(CMAKE_C_EXTENSIONS TRUE)
 # find python (used for memap and several upload methods)
 # -------------------------------------------------------------
 
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
+find_package(Python3 COMPONENTS Interpreter)
 
 
 # load the MBed CMake functions
