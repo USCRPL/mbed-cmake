@@ -270,3 +270,10 @@ print("Generated CMake configuration file: " + cmake_config_path)
 if get_config:
     print("")
     print_config(verbose_config, toolchain)
+
+print("-----------------------------------------------")
+print("      mbed-cmake configuration complete.")
+print("")
+print("      MAKE SURE TO DELETE ANY OLD CMAKE")
+print("    BUILD DIRS BEFORE RUNNING CMAKE AGAIN")
+print("-----------------------------------------------")

@@ -38,12 +38,12 @@ endif()
 
 set(UPLOAD_METHOD "${UPLOAD_METHOD_DEFAULT}" CACHE STRING "Method for uploading programs to the mbed")
 
-if(NOT "${UPLOAD_METHOD}" IN_LIST SUPPORTED_UPLOAD_METHODS)
-    message(FATAL_ERROR "The upload method ${UPLOAD_METHOD} cannot run on this system due to missing prerequisites.  See its docs for details.")
-endif()
-
 if((NOT "${UPLOAD_METHOD}" STREQUAL "NONE") AND (NOT "${${UPLOAD_METHOD}_UPLOAD_ENABLED}"))
     message(FATAL_ERROR "The upload method ${UPLOAD_METHOD} is not enabled for this project.")
+endif()
+
+if(NOT "${UPLOAD_METHOD}" IN_LIST SUPPORTED_UPLOAD_METHODS)
+    message(FATAL_ERROR "The upload method ${UPLOAD_METHOD} cannot run on this system due to missing prerequisites.  See its docs for details.")
 endif()
 
 message(STATUS "Board upload method set to ${UPLOAD_METHOD}")

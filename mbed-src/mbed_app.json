@@ -1,7 +1,8 @@
 {
     "target_overrides": {
         "*": {
-            "platform.stdio-baud-rate": 115200
+            "platform.stdio-baud-rate": 115200,
+            "target.printf_lib": "std"
         }
     }
 }
