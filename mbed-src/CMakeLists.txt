@@ -36,14 +36,7 @@ list(APPEND MBED_COMPILE_OPTIONS
     -Wno-enum-compare
     -Wno-attributes)
 
-# The file containing the wrappers has to be linked into the final application as a .o file, it can't be inside a .a
-# archive.  So we need to build it separately.
-set(ALLOC_WRAPPERS_SOURCES platform/source/mbed_alloc_wrappers.cpp)
-list(REMOVE_ITEM MBED_SOURCE_FILES ${ALLOC_WRAPPERS_SOURCES})
 
-add_library(mbed-alloc-wrappers-obj OBJECT ${ALLOC_WRAPPERS_SOURCES})
-target_compile_options(mbed-alloc-wrappers-obj PRIVATE ${MBED_COMPILE_OPTIONS})
-target_include_directories(mbed-alloc-wrappers-obj PRIVATE ${MBED_INCLUDE_DIRS})
 
 # create the static library for the rest of the source files
 add_library(mbed-os-static STATIC ${MBED_SOURCE_FILES})
@@ -61,4 +54,3 @@ target_link_libraries(mbed-os INTERFACE
 	-Wl,--no-whole-archive
 	-T\"${PREPROCESSED_LINKER_SCRIPT}\"
 	${MBED_LINK_OPTIONS})
-target_sources(mbed-os INTERFACE $<TARGET_OBJECTS:mbed-alloc-wrappers-obj>)
