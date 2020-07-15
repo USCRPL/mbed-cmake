@@ -54,14 +54,7 @@ extern "C" {
 #define LWIP_PROVIDE_ERRNO
 #endif
 
-#if defined(__arm__) && defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 6010050)
-    /* Keil uVision4 tools */
-    #define PACK_STRUCT_BEGIN __packed
-    #define PACK_STRUCT_STRUCT
-    #define PACK_STRUCT_END
-    #define PACK_STRUCT_FIELD(fld) fld
-    #define ALIGNED(n)  __align(n)
-#elif defined (__IAR_SYSTEMS_ICC__)
+#if defined (__IAR_SYSTEMS_ICC__)
     /* IAR Embedded Workbench tools */
     #define PACK_STRUCT_BEGIN __packed
     #define PACK_STRUCT_STRUCT
@@ -133,15 +126,7 @@ void trace_to_ascii_hex_dump(char* prefix, int len, char *data);
 
 /* Define the memory area for the lwip's memory pools */
 #ifndef MEMP_SECTION
-#if defined(TARGET_LPC4088) || defined(TARGET_LPC4088_DM)
-#  if defined (__ICCARM__)
-#     define MEMP_SECTION
-#  elif defined(TOOLCHAIN_GCC_CR)
-#     define MEMP_SECTION __attribute__((section(".data.$RamPeriph32")))
-#  else
-#     define MEMP_SECTION __attribute__((section("AHBSRAM0"),aligned))
-#  endif
-#elif defined(TARGET_LPC1768)
+#if defined(TARGET_LPC1768)
 #  if defined (__ICCARM__)
 #     define MEMP_SECTION
 #  elif defined(TOOLCHAIN_GCC_CR)

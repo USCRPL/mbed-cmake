@@ -25,9 +25,13 @@ extern uint16_t test_pan_size_override;
 
 void ws_bbr_seconds_timer(protocol_interface_info_entry_t *cur, uint32_t seconds);
 
+void ws_bbr_pan_version_increase(protocol_interface_info_entry_t *cur);
+
 uint16_t ws_bbr_pan_size(protocol_interface_info_entry_t *cur);
 
-void ws_bbr_rpl_config(uint8_t imin, uint8_t doubling, uint8_t redundancy, uint16_t dag_max_rank_increase, uint16_t min_hop_rank_increase);
+void ws_bbr_rpl_config(protocol_interface_info_entry_t *cur, uint8_t imin, uint8_t doubling, uint8_t redundancy, uint16_t dag_max_rank_increase, uint16_t min_hop_rank_increase);
+
+void ws_bbr_dhcp_address_lifetime_set(protocol_interface_info_entry_t *cur, uint32_t dhcp_address_lifetime);
 
 bool ws_bbr_ready_to_start(protocol_interface_info_entry_t *cur);
 
@@ -35,8 +39,10 @@ bool ws_bbr_ready_to_start(protocol_interface_info_entry_t *cur);
 #else
 
 #define ws_bbr_seconds_timer( cur, seconds)
+#define ws_bbr_pan_version_increase(cur)
 #define ws_bbr_pan_size(cur) 0
-#define ws_bbr_rpl_config( imin, doubling, redundancy, dag_max_rank_increase, min_hop_rank_increase)
+#define ws_bbr_rpl_config( cur, imin, doubling, redundancy, dag_max_rank_increase, min_hop_rank_increase)
+#define ws_bbr_dhcp_address_lifetime_set(cur, dhcp_address_lifetime)
 #define ws_bbr_ready_to_start(cur) true
 
 #endif //HAVE_WS_BORDER_ROUTER

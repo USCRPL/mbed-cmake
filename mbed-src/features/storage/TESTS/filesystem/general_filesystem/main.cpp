@@ -20,17 +20,20 @@
 #include "FileSystem.h"
 
 #include <stdlib.h>
+#include "LittleFileSystem.h"
+
 #if COMPONENT_SPIF
 #include "SPIFBlockDevice.h"
-#include "LittleFileSystem.h"
+#elif COMPONENT_QSPIF
+#include "QSPIFBlockDevice.h"
+#elif COMPONENT_OSPIF
+#include "OSPIFBlockDevice.h"
 #elif COMPONENT_SD
 #include "SDBlockDevice.h"
-#include "FATFileSystem.h"
 #else
 #error [NOT_SUPPORTED] storage test not supported on this platform
 #endif
 
-#if COMPONENT_SPIF || COMPONENT_SD
 using namespace utest::v1;
 using namespace mbed;
 
@@ -41,8 +44,8 @@ static const size_t test_files = 2;
 
 FILE *fd[test_files];
 
-BlockDevice *bd = BlockDevice::get_default_instance();
-FileSystem  *fs = FileSystem::get_default_instance();
+BlockDevice *bd;
+FileSystem  *fs;
 const char *bd_type;
 
 /*----------------help functions------------------*/
@@ -73,6 +76,9 @@ static void deinit()
 //init the blockdevice and reformat the filesystem
 static void bd_init_fs_reformat()
 {
+    bd = BlockDevice::get_default_instance();
+    fs = FileSystem::get_default_instance();
+
     bd_type = bd->get_type();
     init();
 }
@@ -317,7 +323,7 @@ static void FS_fwrite_with_fopen_r_mode()
 }
 
 /*----------------fread()------------------*/
-
+#if !defined(__MICROLIB)
 //fread with size zero
 static void FS_fread_size_zero()
 {
@@ -344,6 +350,7 @@ static void FS_fread_size_zero()
     res = remove("/default/" "filename");
     TEST_ASSERT_EQUAL(0, res);
 }
+#endif
 
 //fread with nmemb zero
 static void FS_fread_nmemb_zero()
@@ -789,13 +796,14 @@ static void FS_fgets_with_fopen_w_mode()
 
 /*----------------fflush()------------------*/
 
+#if !defined(__MICROLIB)
 //fflush with null
 static void FS_fflush_null_stream()
 {
     int res = fflush(NULL);
     TEST_ASSERT_EQUAL(0, res);
 }
-
+#endif
 
 //fflush valid flow
 static void FS_fflush_valid_flow()
@@ -1027,9 +1035,11 @@ static void FS_fseek_beyond_empty_file_seek_set()
 
     int read_sz = fread(read_buf, sizeof(char), sizeof(read_buf), fd[0]);
     TEST_ASSERT_EQUAL(0, read_sz);
-
+#if !defined(__MICROLIB)
+    // feof() always returns 0 because the EOF indicator is not supported by Microlib
     res = feof(fd[0]);
     TEST_ASSERT_NOT_EQUAL(0, res);
+#endif
 
     res = fclose(fd[0]);
     TEST_ASSERT_EQUAL(0, res);
@@ -1062,8 +1072,11 @@ static void FS_fseek_beyond_non_empty_file_seek_set()
     int read_sz = fread(read_buf, sizeof(char), sizeof(read_buf), fd[0]);
     TEST_ASSERT_EQUAL(0, read_sz);
 
+#if !defined(__MICROLIB)
+    // feof() always returns 0 because the EOF indicator is not supported by Microlib
     res = feof(fd[0]);
     TEST_ASSERT_NOT_EQUAL(0, res);
+#endif
 
     res = fclose(fd[0]);
     TEST_ASSERT_EQUAL(0, res);
@@ -1147,8 +1160,11 @@ static void FS_fseek_beyond_empty_file_seek_cur()
     int read_sz = fread(read_buf, sizeof(char), sizeof(read_buf), fd[0]);
     TEST_ASSERT_EQUAL(0, read_sz);
 
+#if !defined(__MICROLIB)
+    // feof() always returns 0 because the EOF indicator is not supported by Microlib
     res = feof(fd[0]);
     TEST_ASSERT_NOT_EQUAL(0, res);
+#endif
 
     res = fclose(fd[0]);
     TEST_ASSERT_EQUAL(0, res);
@@ -1181,8 +1197,11 @@ static void FS_fseek_beyond_non_empty_file_seek_cur()
     int read_sz = fread(read_buf, sizeof(char), sizeof(read_buf), fd[0]);
     TEST_ASSERT_EQUAL(0, read_sz);
 
+#if !defined(__MICROLIB)
+    // feof() always returns 0 because the EOF indicator is not supported by Microlib
     res = feof(fd[0]);
     TEST_ASSERT_NOT_EQUAL(0, res);
+#endif
 
     res = fclose(fd[0]);
     TEST_ASSERT_EQUAL(0, res);
@@ -1266,8 +1285,11 @@ static void FS_fseek_beyond_empty_file_seek_end()
     int read_sz = fread(read_buf, sizeof(char), sizeof(read_buf), fd[0]);
     TEST_ASSERT_EQUAL(0, read_sz);
 
+#if !defined(__MICROLIB)
+    // feof() always returns 0 because the EOF indicator is not supported by Microlib
     res = feof(fd[0]);
     TEST_ASSERT_NOT_EQUAL(0, res);
+#endif
 
     res = fclose(fd[0]);
     TEST_ASSERT_EQUAL(0, res);
@@ -1300,8 +1322,11 @@ static void FS_fseek_beyond_non_empty_file_seek_end()
     int read_sz = fread(read_buf, sizeof(char), sizeof(read_buf), fd[0]);
     TEST_ASSERT_EQUAL(0, read_sz);
 
+#if !defined(__MICROLIB)
+    // feof() always returns 0 because the EOF indicator is not supported by Microlib
     res = feof(fd[0]);
     TEST_ASSERT_NOT_EQUAL(0, res);
+#endif
 
     res = fclose(fd[0]);
     TEST_ASSERT_EQUAL(0, res);
@@ -1879,7 +1904,10 @@ static void FS_append_non_empty_file()
 
     res = !((fd[0] = fopen("/default/" "filename", "a+")) != NULL);
     TEST_ASSERT_EQUAL(0, res);
-
+#if defined(__MICROLIB)
+    // Microlib does not support opening a file in an append mode.
+    fseek(fd[0], 0L, SEEK_END);
+#endif
     write_sz = fwrite(rewrite_buf, sizeof(char), sizeof(rewrite_buf), fd[0]);
     TEST_ASSERT_EQUAL(sizeof(write_buf), write_sz);
 
@@ -2017,8 +2045,9 @@ Case cases[] = {
     Case("FS_fwrite_nmemb_zero", FS_fwrite_nmemb_zero),
     Case("FS_fwrite_valid_flow", FS_fwrite_valid_flow),
     Case("FS_fwrite_with_fopen_r_mode", FS_fwrite_with_fopen_r_mode),
-
+#if !defined(__MICROLIB)
     Case("FS_fread_size_zero", FS_fread_size_zero),
+#endif
     Case("FS_fread_nmemb_zero", FS_fread_nmemb_zero),
     Case("FS_fread_with_fopen_w_mode", FS_fread_with_fopen_w_mode),
     Case("FS_fread_to_fwrite_file", FS_fread_to_fwrite_file),
@@ -2038,8 +2067,9 @@ Case cases[] = {
     Case("FS_fgets_valid_flow", FS_fgets_valid_flow),
     Case("FS_fgets_new_line", FS_fgets_new_line),
     Case("FS_fgets_with_fopen_w_mode", FS_fgets_with_fopen_w_mode),
-
+#if !defined(__MICROLIB)
     Case("FS_fflush_null_stream", FS_fflush_null_stream),
+#endif
     Case("FS_fflush_valid_flow", FS_fflush_valid_flow),
     Case("FS_fflush_twice", FS_fflush_twice),
 
@@ -2107,4 +2137,3 @@ int main()
     return !Harness::run(specification);
 }
 
-#endif // COMPONENT_SPIF || COMPONENT_SD

@@ -1,5 +1,6 @@
 /* ESP8266 implementation of NetworkInterfaceAPI
  * Copyright (c) 2015 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +18,7 @@
 #ifndef ESP8266_INTERFACE_H
 #define ESP8266_INTERFACE_H
 
-#if DEVICE_SERIAL && DEVICE_INTERRUPTIN && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_PRESENT)
+#if DEVICE_SERIAL && DEVICE_INTERRUPTIN && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_API_PRESENT)
 #include "drivers/DigitalOut.h"
 #include "drivers/Timer.h"
 #include "ESP8266/ESP8266.h"
@@ -30,13 +31,16 @@
 #include "features/netsocket/WiFiAccessPoint.h"
 #include "features/netsocket/WiFiInterface.h"
 #include "platform/Callback.h"
+#include "platform/mbed_chrono.h"
+#if MBED_CONF_RTOS_PRESENT
 #include "rtos/ConditionVariable.h"
+#endif
 #include "rtos/Mutex.h"
 
 #define ESP8266_SOCKET_COUNT 5
 
-#define ESP8266_INTERFACE_CONNECT_INTERVAL_MS (5000)
-#define ESP8266_INTERFACE_CONNECT_TIMEOUT_MS (2 * ESP8266_CONNECT_TIMEOUT + ESP8266_INTERFACE_CONNECT_INTERVAL_MS)
+#define ESP8266_INTERFACE_CONNECT_INTERVAL 5s
+#define ESP8266_INTERFACE_CONNECT_TIMEOUT (2 * ESP8266_CONNECT_TIMEOUT + ESP8266_INTERFACE_CONNECT_INTERVAL)
 
 #ifdef TARGET_FF_ARDUINO
 #ifndef MBED_CONF_ESP8266_TX
@@ -129,6 +133,12 @@ public:
      */
     virtual int set_channel(uint8_t channel);
 
+    /** @copydoc NetworkInterface::set_network */
+    virtual nsapi_error_t set_network(const SocketAddress &ip_address, const SocketAddress &netmask, const SocketAddress &gateway);
+
+    /** @copydoc NetworkInterface::dhcp */
+    virtual nsapi_error_t set_dhcp(bool dhcp);
+
     /** Stop the interface
      *  @return             0 on success, negative on failure
      */
@@ -138,9 +148,6 @@ public:
      *  @return             IP address of the interface or null if not yet connected
      */
     virtual nsapi_error_t get_ip_address(SocketAddress *address);
-
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    virtual const char *get_ip_address();
 
     /** Get the internally stored MAC address
      *  @return             MAC address of the interface
@@ -166,6 +173,15 @@ public:
 
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
     virtual const char *get_netmask();
+
+    /** Get the current time.
+     *
+     *  @retval          NSAPI_ERROR_UNSUPPORTED if the function is not supported
+     *  @retval          NSAPI_ERROR_OK on success
+     *
+     *  @note esp8266.sntp-enable must be set to true in mbed_app.json.
+     */
+    nsapi_error_t get_time(std::tm *t);
 
     /** Get the network interface name
      *
@@ -210,7 +226,8 @@ public:
      *               see @a nsapi_error
      */
     virtual int scan(WiFiAccessPoint *res, unsigned count, scan_mode mode = SCANMODE_PASSIVE,
-                     unsigned t_max = 0, unsigned t_min = 0);
+                     mbed::chrono::milliseconds_u32 t_max = mbed::chrono::milliseconds_u32(0),
+                     mbed::chrono::milliseconds_u32 t_min = mbed::chrono::milliseconds_u32(0));
 
     /** Translates a hostname to an IP address with specific version
      *
@@ -226,14 +243,25 @@ public:
      *                  version is chosen by the stack (defaults to NSAPI_UNSPEC)
      *  @return         0 on success, negative error code on failure
      */
+#if MBED_CONF_ESP8266_BUILT_IN_DNS
+    nsapi_error_t gethostbyname(const char *name, SocketAddress *address, nsapi_version_t version, const char *interface_name);
+#else
     using NetworkInterface::gethostbyname;
+#endif
+
+    using NetworkInterface::gethostbyname_async;
+    using NetworkInterface::gethostbyname_async_cancel;
 
     /** Add a domain name server to list of servers to query
      *
      *  @param addr     Destination for the host address
      *  @return         0 on success, negative error code on failure
      */
+#if MBED_CONF_ESP8266_BUILT_IN_DNS
+    nsapi_error_t add_dns_server(const SocketAddress &address, const char *interface_name);
+#else
     using NetworkInterface::add_dns_server;
+#endif
 
     /** @copydoc NetworkStack::setsockopt
      */
@@ -452,7 +480,9 @@ private:
     struct _channel_info _ch_info;
 
     bool _if_blocking; // NetworkInterface, blocking or not
+#if MBED_CONF_RTOS_PRESENT
     rtos::ConditionVariable _if_connected;
+#endif
 
     // connect status reporting
     nsapi_error_t _conn_status_to_error();
@@ -496,7 +526,8 @@ private:
     void _connect_async();
     void _disconnect_async();
     rtos::Mutex _cmutex; // Protect asynchronous connection logic
-    esp_connection_software_status_t _software_conn_stat ;
+    esp_connection_software_status_t _software_conn_stat;
+    bool _dhcp;
 
 };
 #endif

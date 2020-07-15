@@ -3,10 +3,18 @@
  * @version  V1.00
  * @brief    USPI register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __USPI_REG_H__
 #define __USPI_REG_H__
+
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 
 /*---------------------- SPI Mode of USCI Controller -------------------------*/
@@ -652,6 +660,7 @@ typedef struct
 
 /**@}*/ /* USPI_CONST */
 /**@}*/ /* end of USPI register group */
+/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __USPI_REG_H__ */

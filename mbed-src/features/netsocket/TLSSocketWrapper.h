@@ -29,10 +29,25 @@
 #include "mbedtls/ssl.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
+#include "mbedtls/hmac_drbg.h"
 #include "mbedtls/error.h"
 
 // This class requires Mbed TLS SSL/TLS client code
 #if defined(MBEDTLS_SSL_CLI_C) || defined(DOXYGEN_ONLY)
+
+#if defined(MBEDTLS_CTR_DRBG_C)
+#define DRBG_CTX mbedtls_ctr_drbg_context
+#define DRBG_INIT mbedtls_ctr_drbg_init
+#define DRBG_RANDOM mbedtls_ctr_drbg_random
+#define DRBG_FREE mbedtls_ctr_drbg_free
+#elif defined(MBEDTLS_HMAC_DRBG_C)
+#define DRBG_CTX mbedtls_hmac_drbg_context
+#define DRBG_INIT mbedtls_hmac_drbg_init
+#define DRBG_RANDOM mbedtls_hmac_drbg_random
+#define DRBG_FREE mbedtls_hmac_drbg_free
+#else
+#error "CTR or HMAC must be defined for TLSSocketWrapper!"
+#endif
 
 /**
  * TLSSocket is a wrapper around Socket for interacting with TLS servers.
@@ -63,9 +78,12 @@ public:
      *
      *  Closes socket wrapper if the socket wrapper is still open.
      */
-    virtual ~TLSSocketWrapper();
+    ~TLSSocketWrapper() override;
 
     /** Set hostname.
+     *
+     * @note Implementation is inside following defines:
+     * #if defined(MBEDTLS_X509_CRT_PARSE_C) && !defined(MBEDTLS_X509_REMOVE_HOSTNAME_VERIFICATION)
      *
      * TLSSocket requires hostname used to verify the certificate.
      * If hostname is not given in constructor, this function must be used before
@@ -92,6 +110,9 @@ public:
      * @note Must be called before calling connect()
      *
      * @param root_ca_pem Root CA Certificate in PEM format.
+     * @retval NSAPI_ERROR_OK on success.
+     * @retval NSAPI_ERROR_NO_MEMORY in case there is not enough memory to allocate certificate.
+     * @retval NSAPI_ERROR_PARAMETER in case the provided root_ca parameter failed parsing.
      */
     nsapi_error_t set_root_ca_cert(const char *root_ca_pem);
 
@@ -130,7 +151,7 @@ public:
      *  @retval         NSAPI_ERROR_DEVICE_ERROR in case of tls-related errors.
      *                  See @ref mbedtls_ssl_write.
      */
-    virtual nsapi_error_t send(const void *data, nsapi_size_t size);
+    nsapi_error_t send(const void *data, nsapi_size_t size) override;
 
     /** Receive data over a TLS socket.
      *
@@ -148,10 +169,10 @@ public:
      *  @return         0 if no data is available to be received
      *                  and the peer has performed an orderly shutdown.
      */
-    virtual nsapi_size_or_error_t recv(void *data, nsapi_size_t size);
+    nsapi_size_or_error_t recv(void *data, nsapi_size_t size) override;
 
     /* = Functions inherited from Socket = */
-    virtual nsapi_error_t close();
+    nsapi_error_t close() override;
     /**
      *  Connect the transport socket and start handshake.
      *
@@ -160,19 +181,19 @@ public:
      *
      *  See @ref Socket::connect and @ref start_handshake
      */
-    virtual nsapi_error_t connect(const SocketAddress &address = SocketAddress());
-    virtual nsapi_size_or_error_t sendto(const SocketAddress &address, const void *data, nsapi_size_t size);
-    virtual nsapi_size_or_error_t recvfrom(SocketAddress *address,
-                                           void *data, nsapi_size_t size);
-    virtual nsapi_error_t bind(const SocketAddress &address);
-    virtual void set_blocking(bool blocking);
-    virtual void set_timeout(int timeout);
-    virtual void sigio(mbed::Callback<void()> func);
-    virtual nsapi_error_t setsockopt(int level, int optname, const void *optval, unsigned optlen);
-    virtual nsapi_error_t getsockopt(int level, int optname, void *optval, unsigned *optlen);
-    virtual Socket *accept(nsapi_error_t *error = NULL);
-    virtual nsapi_error_t listen(int backlog = 1);
-    virtual nsapi_error_t getpeername(SocketAddress *address);
+    nsapi_error_t connect(const SocketAddress &address = SocketAddress()) override;
+    nsapi_size_or_error_t sendto(const SocketAddress &address, const void *data, nsapi_size_t size) override;
+    nsapi_size_or_error_t recvfrom(SocketAddress *address,
+                                   void *data, nsapi_size_t size) override;
+    nsapi_error_t bind(const SocketAddress &address) override;
+    void set_blocking(bool blocking) override;
+    void set_timeout(int timeout) override;
+    void sigio(mbed::Callback<void()> func) override;
+    nsapi_error_t setsockopt(int level, int optname, const void *optval, unsigned optlen) override;
+    nsapi_error_t getsockopt(int level, int optname, void *optval, unsigned *optlen) override;
+    Socket *accept(nsapi_error_t *error = NULL) override;
+    nsapi_error_t listen(int backlog = 1) override;
+    nsapi_error_t getpeername(SocketAddress *address) override;
 
 #if defined(MBEDTLS_X509_CRT_PARSE_C) || defined(DOXYGEN_ONLY)
     /** Get own certificate directly from Mbed TLS.
@@ -238,7 +259,7 @@ protected:
      *  @retval       NSAPI_ERROR_IN_PROGRESS if the first call did not complete the request.
      *  @retval       NSAPI_ERROR_NO_SOCKET in case the transport socket was not created correctly.
      *  @retval       NSAPI_ERROR_AUTH_FAILURE in case of tls-related authentication errors.
-     *                See @ref mbedtls_ctr_drbg_seed, @ref mbedtls_ssl_setup. @ref mbedtls_ssl_handshake.
+     *                See @ref mbedtls_ctr_drbg_seed or @ref mbedtls_hmac_drbg_seed, @ref mbedtls_ssl_setup. @ref mbedtls_ssl_handshake.
      */
     nsapi_error_t start_handshake(bool first_call);
 
@@ -287,19 +308,21 @@ private:
 #ifdef MBEDTLS_X509_CRT_PARSE_C
     mbedtls_pk_context _pkctx;
 #endif
-    mbedtls_ctr_drbg_context _ctr_drbg;
+
+    DRBG_CTX _drbg;
+
     mbedtls_entropy_context _entropy;
 
     rtos::EventFlags _event_flag;
     mbed::Callback<void()> _sigio;
     Socket *_transport;
-    int _timeout;
+    int _timeout = -1;
 
 #ifdef MBEDTLS_X509_CRT_PARSE_C
-    mbedtls_x509_crt *_cacert;
-    mbedtls_x509_crt *_clicert;
+    mbedtls_x509_crt *_cacert = nullptr;
+    mbedtls_x509_crt *_clicert = nullptr;
 #endif
-    mbedtls_ssl_config *_ssl_conf;
+    mbedtls_ssl_config *_ssl_conf = nullptr;
 
     bool _connect_transport: 1;
     bool _close_transport: 1;

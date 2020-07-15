@@ -20,8 +20,9 @@
 #include "PinNames.h"
 #include "AT_CellularNetwork.h"
 #include "rtos/ThisThread.h"
-#include "UARTSerial.h"
+#include "drivers/BufferedSerial.h"
 
+using namespace std::chrono;
 using namespace mbed;
 using namespace rtos;
 using namespace events;
@@ -46,7 +47,12 @@ using namespace events;
 #define MBED_CONF_QUECTEL_EC2X_POLARITY    1 // active high
 #endif
 
-static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
+#if !defined(MBED_CONF_QUECTEL_EC2X_START_TIMEOUT)
+#define MBED_CONF_QUECTEL_EC2X_START_TIMEOUT    15000
+#endif
+
+
+static const intptr_t cellular_properties[AT_CellularDevice::PROPERTY_MAX] = {
     AT_CellularNetwork::RegistrationModeLAC,    // C_EREG
     AT_CellularNetwork::RegistrationModeLAC,    // C_GREG
     AT_CellularNetwork::RegistrationModeLAC,    // C_REG
@@ -61,7 +67,12 @@ static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
     1,  // PROPERTY_IPV6_STACK
     1,  // PROPERTY_IPV4V6_STACK
     0,  // PROPERTY_NON_IP_PDP_TYPE
-    1,  // PROPERTY_AT_CGEREP
+    1,  // PROPERTY_AT_CGEREP,
+    1,  // PROPERTY_AT_COPS_FALLBACK_AUTO
+    0,  // PROPERTY_SOCKET_COUNT
+    0,  // PROPERTY_IP_TCP
+    0,  // PROPERTY_IP_UDP
+    0,  // PROPERTY_AT_SEND_DELAY
 };
 
 QUECTEL_EC2X::QUECTEL_EC2X(FileHandle *fh, PinName pwr, bool active_high, PinName rst)
@@ -70,15 +81,15 @@ QUECTEL_EC2X::QUECTEL_EC2X(FileHandle *fh, PinName pwr, bool active_high, PinNam
       _pwr_key(pwr, !_active_high),
       _rst(rst, !_active_high)
 {
-    AT_CellularBase::set_cellular_properties(cellular_properties);
+    set_cellular_properties(cellular_properties);
 }
 
 #if MBED_CONF_QUECTEL_EC2X_PROVIDE_DEFAULT
 CellularDevice *CellularDevice::get_default_instance()
 {
-    static UARTSerial serial(MBED_CONF_QUECTEL_EC2X_TX,
-                             MBED_CONF_QUECTEL_EC2X_RX,
-                             MBED_CONF_QUECTEL_EC2X_BAUDRATE);
+    static BufferedSerial serial(MBED_CONF_QUECTEL_EC2X_TX,
+                                 MBED_CONF_QUECTEL_EC2X_RX,
+                                 MBED_CONF_QUECTEL_EC2X_BAUDRATE);
 #if defined(MBED_CONF_QUECTEL_EC2X_RTS) && defined(MBED_CONF_QUECTEL_EC2X_CTS)
     serial.set_flow_control(SerialBase::RTSCTS, MBED_CONF_QUECTEL_EC2X_RTS, MBED_CONF_QUECTEL_EC2X_CTS);
 #endif
@@ -90,44 +101,46 @@ CellularDevice *CellularDevice::get_default_instance()
 }
 #endif
 
-nsapi_error_t QUECTEL_EC2X::press_power_button(uint32_t timeout)
+nsapi_error_t QUECTEL_EC2X::press_power_button(duration<uint32_t, std::milli> timeout)
 {
-    _pwr_key = _active_high;
-    ThisThread::sleep_for(timeout);
-    _pwr_key = !_active_high;
-    ThisThread::sleep_for(100);
+    if (_pwr_key.is_connected()) {
+        _pwr_key = _active_high;
+        ThisThread::sleep_for(timeout);
+        _pwr_key = !_active_high;
+        ThisThread::sleep_for(100ms);
+    }
 
     return NSAPI_ERROR_OK;
 }
 
 nsapi_error_t QUECTEL_EC2X::hard_power_on()
 {
-    return press_power_button(600);
+    return press_power_button(600ms);
 }
 
 nsapi_error_t QUECTEL_EC2X::hard_power_off()
 
 {
-    return press_power_button(750);
+    return press_power_button(750ms);
 }
 
 nsapi_error_t QUECTEL_EC2X::soft_power_on()
 {
     if (_rst.is_connected()) {
         _rst = _active_high;
-        ThisThread::sleep_for(460);
+        ThisThread::sleep_for(460ms);
         _rst = !_active_high;
-        ThisThread::sleep_for(100);
+        ThisThread::sleep_for(100ms);
 
-        _at->lock();
+        _at.lock();
 
-        _at->set_at_timeout(5000);
-        _at->resp_start();
-        _at->set_stop_tag("RDY");
-        bool rdy = _at->consume_to_stop_tag();
-        _at->set_stop_tag(OK);
+        _at.set_at_timeout(milliseconds(MBED_CONF_QUECTEL_EC2X_START_TIMEOUT));
+        _at.resp_start();
+        _at.set_stop_tag("RDY");
+        bool rdy = _at.consume_to_stop_tag();
+        _at.set_stop_tag(OK);
 
-        _at->unlock();
+        _at.unlock();
 
         if (!rdy) {
             return NSAPI_ERROR_DEVICE_ERROR;

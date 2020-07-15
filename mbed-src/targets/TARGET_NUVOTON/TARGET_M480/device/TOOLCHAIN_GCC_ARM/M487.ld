@@ -1,14 +1,26 @@
 /*
+ * Copyright (c) 2015-2016, Nuvoton Technology Corporation
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Nuvoton M487 GCC linker script file
  */
 
-#if !defined(MBED_APP_START)
-  #define MBED_APP_START 0x00000000
-#endif
-
-#if !defined(MBED_APP_SIZE)
-  #define MBED_APP_SIZE 0x00080000
-#endif 
+#include "../M480_mem.h"
 
 #if !defined(MBED_BOOT_STACK_SIZE)
   #define MBED_BOOT_STACK_SIZE      0x400
@@ -16,14 +28,12 @@
 
 M_CRASH_DATA_RAM_SIZE = 0x100;
 StackSize = MBED_BOOT_STACK_SIZE;
-SPIM_CCM_START = 0x20020000;
-SPIM_CCM_END = 0x20028000;
 
 MEMORY
 {
   VECTORS (rx)          : ORIGIN = MBED_APP_START, LENGTH = 0x00000400
   FLASH (rx)            : ORIGIN = MBED_APP_START + 0x400, LENGTH = MBED_APP_SIZE - 0x00000400
-  RAM_INTERN (rwx)      : ORIGIN = 0x20000000, LENGTH = 0x00028000 - 0x00000000
+  RAM_INTERN (rwx)      : ORIGIN = MBED_RAM_APP_START, LENGTH = MBED_RAM_APP_SIZE
 }
 
 /**

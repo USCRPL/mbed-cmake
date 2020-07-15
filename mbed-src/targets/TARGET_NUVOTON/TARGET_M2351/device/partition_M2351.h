@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020, Nuvoton Technology Corporation
+ * Copyright (c) 2018-2019, Nuvoton Technology Corporation
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -21,48 +21,31 @@
 
 #include "partition_M2351_mem.h"
 
-#define NU_TZ_SECURE_FLASH_SIZE     NU_ROM_SIZE_S
-#define NU_TZ_SECURE_SRAM_SIZE      NU_RAM_SIZE_S
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#if defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__ARMCC_VERSION)
 
-extern int Load$$LR$$LR_IROM_NSC$$Base;
-extern int Load$$LR$$LR_IROM_NSC$$Length;
-
-#define NU_TZ_NSC_REGION_START  ((uint32_t) &Load$$LR$$LR_IROM_NSC$$Base)
-#define NU_TZ_NSC_REGION_SIZE   ((uint32_t) &Load$$LR$$LR_IROM_NSC$$Length)
+extern int Image$$ER_IROM_NSC$$Base;
+#define NU_TZ_NSC_REGION_START  ((uint32_t) &Image$$ER_IROM_NSC$$Base)
+#define NU_TZ_NSC_REGION_SIZE   (NU_TZ_NSC_SIZE)
 
 #elif defined(__ICCARM__)
 
-extern int __NU_TZ_NSC_start__;
-extern int __NU_TZ_NSC_size__;
-
-#define NU_TZ_NSC_REGION_START  ((uint32_t) &__NU_TZ_NSC_start__)
-#define NU_TZ_NSC_REGION_SIZE   ((uint32_t) &__NU_TZ_NSC_size__)
+extern int Image$$ER_IROM_NSC$$Base;
+#define NU_TZ_NSC_REGION_START  ((uint32_t) &Image$$ER_IROM_NSC$$Base)
+#define NU_TZ_NSC_REGION_SIZE   (NU_TZ_NSC_SIZE)
 
 #elif defined(__GNUC__)
 
-extern int __nu_tz_nsc_start;
-extern int __nu_tz_nsc_size;
-
-#define NU_TZ_NSC_REGION_START  ((uint32_t) &__nu_tz_nsc_start)
-#define NU_TZ_NSC_REGION_SIZE   ((uint32_t) &__nu_tz_nsc_size)
+extern int Image$$ER_IROM_NSC$$Base;
+#define NU_TZ_NSC_REGION_START  ((uint32_t) &Image$$ER_IROM_NSC$$Base)
+#define NU_TZ_NSC_REGION_SIZE   (NU_TZ_NSC_SIZE)
 
 #endif
 
-/* Check relevant macros have been defined */
-#if (! defined(NU_TZ_SECURE_FLASH_SIZE))
-#error("NU_TZ_SECURE_FLASH_SIZE not defined")
-#endif
-#if (! defined(NU_TZ_SECURE_SRAM_SIZE))
-#error("NU_TZ_SECURE_SRAM_SIZE not defined")
-#endif
-#if (! defined(NU_TZ_NSC_REGION_START))
-#error("NU_TZ_NSC_REGION_START not defined")
-#endif
-#if (! defined(NU_TZ_NSC_REGION_SIZE))
-#error("NU_TZ_NSC_REGION_SIZE not defined")
-#endif
 
 /*
 //-------- <<< Use Configuration Wizard in Context Menu >>> -----------------
@@ -88,7 +71,7 @@ extern int __nu_tz_nsc_size;
 //                                         <0x16000=> 88KB
 //                                         <0x18000=> 96KB
 */
-#define SCU_SECURE_SRAM_SIZE      NU_TZ_SECURE_SRAM_SIZE
+#define SCU_SECURE_SRAM_SIZE    NU_RAM_SIZE_S
 #define NON_SECURE_SRAM_BASE    (0x30000000 + SCU_SECURE_SRAM_SIZE)
 
 
@@ -100,60 +83,12 @@ extern int __nu_tz_nsc_size;
 */
 #define FMC_INIT_NSBA          1
 /*
-//     <o>Secure Flash ROM Size <0x800-0x7FFFF:0x800>
+//     <o>Secure Flash ROM Size <0x800-0x80000:0x800>
 */
 
-#define FMC_SECURE_ROM_SIZE      NU_TZ_SECURE_FLASH_SIZE
+#define FMC_SECURE_ROM_SIZE      NU_ROM_SIZE_S
 
 #define FMC_NON_SECURE_BASE     (0x10000000 + FMC_SECURE_ROM_SIZE)
-
-__STATIC_INLINE void FMC_NSBA_Setup(void)
-{
-    /* Skip NSBA Setupt according config */
-    if(FMC_INIT_NSBA == 0)
-        return;
-
-    /* Check if NSBA value with current active NSBA */
-    if(SCU->FNSADDR != FMC_SECURE_ROM_SIZE)
-    {
-        /* Unlock Protected Register */
-        SYS_UnlockReg();
-
-        /* Enable ISP and config update */
-        FMC->ISPCTL = FMC_ISPCTL_ISPEN_Msk | FMC_ISPCTL_CFGUEN_Msk;
-
-        /* Config Base of NSBA */
-        FMC->ISPADDR = 0x200800;
-
-        /* Read Non-secure base address config */
-        FMC->ISPCMD = FMC_ISPCMD_READ;
-        FMC->ISPTRG = FMC_ISPTRG_ISPGO_Msk;
-        while(FMC->ISPTRG);
-
-        /* Setting NSBA when it is empty */
-        if(FMC->ISPDAT == 0xfffffffful)
-        {
-            FMC->ISPDAT = FMC_SECURE_ROM_SIZE;
-            FMC->ISPCMD = FMC_ISPCMD_PROGRAM;
-            FMC->ISPTRG = FMC_ISPTRG_ISPGO_Msk;
-            while(FMC->ISPTRG);
-
-            /* Force Chip Reset to valid new setting */
-            SYS->IPRST0 = SYS_IPRST0_CHIPRST_Msk;
-        }
-
-        /* Fatal Error:
-           FMC NSBA setting is different to FMC_INIT_NSBA_VAL.
-           User must double confirm which one is wrong.
-
-           If user need to change NSBA config of FMC, user must do Mess-erase by
-           ISP or ICP.
-        */
-        while(1);
-    }
-
-}
-
 
 /*--------------------------------------------------------------------------------------------------------*/
 
@@ -300,35 +235,6 @@ __STATIC_INLINE void FMC_NSBA_Setup(void)
 // </h>
 */
 
-
-
-/**
-  \brief   Setup SCU Configuration Unit
-  \details
-
- */
-__STATIC_INLINE void SCU_Setup(void)
-{
-    int32_t i;
-
-    SCU->PNSSET[0] = SCU_INIT_PNSSET0_VAL;
-    SCU->PNSSET[1] = SCU_INIT_PNSSET1_VAL;
-    SCU->PNSSET[2] = SCU_INIT_PNSSET2_VAL;
-    SCU->PNSSET[3] = SCU_INIT_PNSSET3_VAL;
-    SCU->PNSSET[4] = SCU_INIT_PNSSET4_VAL;
-    SCU->PNSSET[5] = SCU_INIT_PNSSET5_VAL;
-    SCU->PNSSET[6] = SCU_INIT_PNSSET6_VAL;
-
-    SCU->IONSSET = SCU_INIT_IONSSET_VAL;
-
-    /* Set Non-secure SRAM */
-    for(i = 11; i >= SCU_SECURE_SRAM_SIZE / 8192; i--)
-    {
-        SCU->SRAMNSSET |= (1U << i);
-    }
-
-
-}
 
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -598,164 +504,6 @@ __STATIC_INLINE void SCU_Setup(void)
 // </e>
 */
 
-
-/*
-// <h>Assign Interrupt to Secure or Non-secure Vector
-*/
-
-
-/*
-    Initialize ITNS 0 (Interrupts 0..31)
-*/
-#define NVIC_INIT_ITNS0    1
-/*
-// BODOUT       Always secure
-// IRC          Always secure
-// PWRWU_       Always secure
-// SRAM_PERR    Always secure
-// CLKFAIL      Always secure
-
-//   <o.6>  RTC                   <0=> Secure <1=> Non-Secure
-//   <o.7>  TAMPER                <0=> Secure <1=> Non-Secure
-// WDT  Always secure
-// WWDT Always secure
-//   <h> EINT
-//   <o.10> EINT0                 <0=> Secure <1=> Non-Secure
-//   <o.11> EINT1                 <0=> Secure <1=> Non-Secure
-//   <o.12> EINT2                 <0=> Secure <1=> Non-Secure
-//   <o.13> EINT3                 <0=> Secure <1=> Non-Secure
-//   <o.14> EINT4                 <0=> Secure <1=> Non-Secure
-//   <o.15> EINT5                 <0=> Secure <1=> Non-Secure
-//   </h>
-//   <h> GPIO
-//   <o.16> GPA                   <0=> Secure <1=> Non-Secure
-//   <o.17> GPB                   <0=> Secure <1=> Non-Secure
-//   <o.18> GPC                   <0=> Secure <1=> Non-Secure
-//   <o.19> GPD                   <0=> Secure <1=> Non-Secure
-//   <o.20> GPE                   <0=> Secure <1=> Non-Secure
-//   <o.21> GPF               <0=> Secure <1=> Non-Secure
-//   </h>
-//   <o.22> QSPI0              <0=> Secure <1=> Non-Secure
-//   <o.23> SPI0              <0=> Secure <1=> Non-Secure
-//   <h> EPWM
-//   <o.24> BRAKE0            <0=> Secure <1=> Non-Secure
-//   <o.25> EPWM0_P0          <0=> Secure <1=> Non-Secure
-//   <o.26> EPWM0_P1          <0=> Secure <1=> Non-Secure
-//   <o.27> EPWM0_P2          <0=> Secure <1=> Non-Secure
-//   <o.28> BRAKE1            <0=> Secure <1=> Non-Secure
-//   <o.29> EPWM1_P0          <0=> Secure <1=> Non-Secure
-//   <o.30> EPWM1_P1          <0=> Secure <1=> Non-Secure
-//   <o.31> EPWM1_P2          <0=> Secure <1=> Non-Secure
-//   </h>
-//
-*/
-#define NVIC_INIT_ITNS0_VAL      0xFFFFFFBF
-
-/*
-    Initialize ITNS 1 (Interrupts 0..31)
-*/
-#define NVIC_INIT_ITNS1    1
-/*
-//   <h> TIMER
-// TMR0 Always secure
-// TMR1 Always secure
-//   <o.2>  TMR2              <0=> Secure <1=> Non-Secure
-//   <o.3>  TMR3              <0=> Secure <1=> Non-Secure
-//   </h>
-//   <o.4>  UART0             <0=> Secure <1=> Non-Secure
-//   <o.5>  UART1             <0=> Secure <1=> Non-Secure
-//   <o.6>  I2C0              <0=> Secure <1=> Non-Secure
-//   <o.7>  I2C1              <0=> Secure <1=> Non-Secure
-// PDMA0 is secure only
-//   <o.9>  DAC               <0=> Secure <1=> Non-Secure
-//   <o.10> EADC0             <0=> Secure <1=> Non-Secure
-//   <o.11> EADC1             <0=> Secure <1=> Non-Secure
-//   <o.12> ACMP01            <0=> Secure <1=> Non-Secure
-
-//   <o.14> EADC2             <0=> Secure <1=> Non-Secure
-//   <o.15> EADC3             <0=> Secure <1=> Non-Secure
-//   <o.16> UART2             <0=> Secure <1=> Non-Secure
-//   <o.17> UART3             <0=> Secure <1=> Non-Secure
-
-//   <o.19> SPI1              <0=> Secure <1=> Non-Secure
-//   <o.20> SPI2              <0=> Secure <1=> Non-Secure
-//   <o.21> USBD              <0=> Secure <1=> Non-Secure
-//   <o.22> USBH              <0=> Secure <1=> Non-Secure
-//   <o.23> USBOTG            <0=> Secure <1=> Non-Secure
-//   <o.24> CAN0              <0=> Secure <1=> Non-Secure
-
-//   <h> Smart Card
-//   <o.26> SC0               <0=> Secure <1=> Non-Secure
-//   <o.27> SC1               <0=> Secure <1=> Non-Secure
-//   <o.28> SC2               <0=> Secure <1=> Non-Secure
-//   </h>
-
-//   <o.30> SPI3              <0=> Secure <1=> Non-Secure
-
-//
-*/
-#define NVIC_INIT_ITNS1_VAL      0xFFFFFEFC
-
-/*
-    Initialize ITNS 2 (Interrupts 0..31)
-*/
-#define NVIC_INIT_ITNS2    1
-/*
-//   <o.0>  SDH0              <0=> Secure <1=> Non-Secure
-
-
-
-//   <o.4>  I2S0              <0=> Secure <1=> Non-Secure
-
-//
-//   <o.7>  CRYPTO                <0=> Secure <1=> Non-Secure
-//   <o.8>  GPG               <0=> Secure <1=> Non-Secure
-//   <o.9>  EINT6             <0=> Secure <1=> Non-Secure
-//   <o.10> UART4             <0=> Secure <1=> Non-Secure
-//   <o.11> UART5             <0=> Secure <1=> Non-Secure
-//   <o.12> USCI0             <0=> Secure <1=> Non-Secure
-//   <o.13> USCI1             <0=> Secure <1=> Non-Secure
-//   <o.14> BPWM0             <0=> Secure <1=> Non-Secure
-//   <o.15> BPWM1             <0=> Secure <1=> Non-Secure
-
-
-//   <o.18> I2C2              <0=> Secure <1=> Non-Secure
-
-//   <o.20> QEI0              <0=> Secure <1=> Non-Secure
-//   <o.21> QEI1              <0=> Secure <1=> Non-Secure
-//   <o.22> ECAP0             <0=> Secure <1=> Non-Secure
-//   <o.23> ECAP1             <0=> Secure <1=> Non-Secure
-//   <o.24> GPH               <0=> Secure <1=> Non-Secure
-//   <o.25> EINT7             <0=> Secure <1=> Non-Secure
-
-
-//   <o.28> USBH              <0=> Secure <1=> Non-Secure
-
-
-
-//
-*/
-#define NVIC_INIT_ITNS2_VAL      0xFFFFFFFF
-
-
-/*
-    Initialize ITNS 3 (Interrupts 0..31)
-*/
-#define NVIC_INIT_ITNS3    1
-/*
-//   <o.2>  PDMA1             <0=> Secure <1=> Non-Secure
-// SCU  Always secure
-//
-//   <o.5>  TRNG              <0=> Secure <1=> Non-Secure
-*/
-#define NVIC_INIT_ITNS3_VAL      0xFFFFFFDF
-
-
-
-/*
-// </h>
-*/
-
 #if defined (__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3U)
 
 /*
@@ -763,109 +511,29 @@ __STATIC_INLINE void SCU_Setup(void)
     SAU regions are defined in partition.h
  */
 
+#if TFM_LVL == 0
 #define SAU_INIT_REGION(n) \
     SAU->RNR  =  (n                                     & SAU_RNR_REGION_Msk); \
     SAU->RBAR =  (SAU_INIT_START##n                     & SAU_RBAR_BADDR_Msk); \
     SAU->RLAR =  (SAU_INIT_END##n                       & SAU_RLAR_LADDR_Msk) | \
                 ((SAU_INIT_NSC##n << SAU_RLAR_NSC_Pos)  & SAU_RLAR_NSC_Msk)   | 1U
-
-/**
-  \brief   Setup a SAU Region
-  \details Writes the region information contained in SAU_Region to the
-           registers SAU_RNR, SAU_RBAR, and SAU_RLAR
- */
-__STATIC_INLINE void TZ_SAU_Setup(void)
-{
-
-#if defined (__SAU_PRESENT) && (__SAU_PRESENT == 1U)
-
-#if defined (SAU_INIT_REGION0) && (SAU_INIT_REGION0 == 1U)
-    SAU_INIT_REGION(0);
-#endif
-
-#if defined (SAU_INIT_REGION1) && (SAU_INIT_REGION1 == 1U)
-    SAU_INIT_REGION(1);
-#endif
-
-#if defined (SAU_INIT_REGION2) && (SAU_INIT_REGION2 == 1U)
-    SAU_INIT_REGION(2);
-#endif
-
-#if defined (SAU_INIT_REGION3) && (SAU_INIT_REGION3 == 1U)
-    SAU_INIT_REGION(3);
-#endif
-
-#if defined (SAU_INIT_REGION4) && (SAU_INIT_REGION4 == 1U)
-    SAU_INIT_REGION(4);
-#endif
-
-#if defined (SAU_INIT_REGION5) && (SAU_INIT_REGION5 == 1U)
-    SAU_INIT_REGION(5);
-#endif
-
-#if defined (SAU_INIT_REGION6) && (SAU_INIT_REGION6 == 1U)
-    SAU_INIT_REGION(6);
-#endif
-
-#if defined (SAU_INIT_REGION7) && (SAU_INIT_REGION7 == 1U)
-    SAU_INIT_REGION(7);
-#endif
-
-    /* repeat this for all possible SAU regions */
-
-
-#if defined (SAU_INIT_CTRL) && (SAU_INIT_CTRL == 1U)
-    SAU->CTRL = ((SAU_INIT_CTRL_ENABLE << SAU_CTRL_ENABLE_Pos) & SAU_CTRL_ENABLE_Msk) |
-                ((SAU_INIT_CTRL_ALLNS  << SAU_CTRL_ALLNS_Pos)  & SAU_CTRL_ALLNS_Msk)   ;
-#endif
-
-#endif /* defined (__SAU_PRESENT) && (__SAU_PRESENT == 1U) */
-
-#if defined (SCB_CSR_AIRCR_INIT) && (SCB_CSR_AIRCR_INIT == 1U)
-    SCB->SCR   = (SCB->SCR   & ~(SCB_SCR_SLEEPDEEPS_Msk)) |
-                 ((SCB_CSR_DEEPSLEEPS_VAL     << SCB_SCR_SLEEPDEEPS_Pos)     & SCB_SCR_SLEEPDEEPS_Msk);
-
-//    SCB->AIRCR = (SCB->AIRCR & ~(SCB_AIRCR_SYSRESETREQS_Msk | SCB_AIRCR_BFHFNMINS_Msk |  SCB_AIRCR_PRIS_Msk)) |
-//                 ((SCB_AIRCR_SYSRESETREQS_VAL << SCB_AIRCR_SYSRESETREQS_Pos) & SCB_AIRCR_SYSRESETREQS_Msk) |
-//                 ((SCB_AIRCR_BFHFNMINS_VAL    << SCB_AIRCR_BFHFNMINS_Pos)    & SCB_AIRCR_BFHFNMINS_Msk)    |
-//                 ((SCB_AIRCR_PRIS_VAL         << SCB_AIRCR_PRIS_Pos)         & SCB_AIRCR_PRIS_Msk);
-
-    SCB->AIRCR = (0x05FA << 16) |
-                 ((SCB_AIRCR_SYSRESETREQS_VAL << SCB_AIRCR_SYSRESETREQS_Pos) & SCB_AIRCR_SYSRESETREQS_Msk) |
-                 ((SCB_AIRCR_BFHFNMINS_VAL    << SCB_AIRCR_BFHFNMINS_Pos)    & SCB_AIRCR_BFHFNMINS_Msk)    |
-                 ((SCB_AIRCR_PRIS_VAL         << SCB_AIRCR_PRIS_Pos)         & SCB_AIRCR_PRIS_Msk);
-
-
-
-#endif /* defined (SCB_CSR_AIRCR_INIT) && (SCB_CSR_AIRCR_INIT == 1U) */
-
-#if defined (SCB_ICSR_INIT) && (SCB_ICSR_INIT == 1U)
-    SCB->ICSR  = (SCB->ICSR  & ~(SCB_ICSR_STTNS_Msk)) |
-                 ((SCB_ICSR_STTNS_VAL         << SCB_ICSR_STTNS_Pos)         & SCB_ICSR_STTNS_Msk);
-#endif /* defined (SCB_ICSR_INIT) && (SCB_ICSR_INIT == 1U) */
-
-#if defined (NVIC_INIT_ITNS0) && (NVIC_INIT_ITNS0 == 1U)
-    NVIC->ITNS[0] = NVIC_INIT_ITNS0_VAL;
-#endif
-
-#if defined (NVIC_INIT_ITNS1) && (NVIC_INIT_ITNS1 == 1U)
-    NVIC->ITNS[1] = NVIC_INIT_ITNS1_VAL;
-#endif
-
-#if defined (NVIC_INIT_ITNS2) && (NVIC_INIT_ITNS2 == 1U)
-    NVIC->ITNS[2] = NVIC_INIT_ITNS2_VAL;
-#endif
-
-#if defined (NVIC_INIT_ITNS3) && (NVIC_INIT_ITNS3 == 1U)
-    NVIC->ITNS[3] = NVIC_INIT_ITNS3_VAL;
+#else
+#define SAU_INIT_REGION(n, tfm_n) \
+    SAU->RNR  =  (tfm_n                                 & SAU_RNR_REGION_Msk); \
+    SAU->RBAR =  (SAU_INIT_START##n                     & SAU_RBAR_BADDR_Msk); \
+    SAU->RLAR =  (SAU_INIT_END##n                       & SAU_RLAR_LADDR_Msk) | \
+                ((SAU_INIT_NSC##n << SAU_RLAR_NSC_Pos)  & SAU_RLAR_NSC_Msk)   | 1U
 #endif
 
 
-    /* repeat this for all possible ITNS elements */
-
-}
+#if SCB_AIRCR_SYSRESETREQS_VAL == 1
+#warning ("Debugger (and other) resets fail when SCB_AIRCR_SYSRESETREQS_VAL == 1!!!")
+#endif
 
 #endif  /* #if defined (__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3U) */
 
-#endif  /* PARTITION_M2351 */
+#ifdef __cplusplus
+}
+#endif
 
+#endif  /* PARTITION_M2351 */

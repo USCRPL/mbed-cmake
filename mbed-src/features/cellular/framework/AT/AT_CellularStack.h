@@ -18,9 +18,10 @@
 #ifndef AT_CELLULAR_STACK_H_
 #define AT_CELLULAR_STACK_H_
 
-#include "AT_CellularBase.h"
+#include "ATHandler.h"
 #include "NetworkStack.h"
 #include "PlatformMutex.h"
+#include "AT_CellularDevice.h"
 
 namespace mbed {
 
@@ -35,18 +36,15 @@ namespace mbed {
  *
  * Implements NetworkStack and introduces interface for modem specific stack implementations.
  */
-class AT_CellularStack : public NetworkStack, public AT_CellularBase {
+class AT_CellularStack : public NetworkStack {
 
 public:
-    AT_CellularStack(ATHandler &at, int cid, nsapi_ip_stack_t stack_type);
+    AT_CellularStack(ATHandler &at, int cid, nsapi_ip_stack_t stack_type, AT_CellularDevice &device);
     virtual ~AT_CellularStack();
 
 public: // NetworkStack
 
     virtual nsapi_error_t get_ip_address(SocketAddress *address);
-
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    virtual const char *get_ip_address();
 
     /**
      * Set PDP context ID for this stack
@@ -56,13 +54,6 @@ public: // NetworkStack
     void set_cid(int cid);
 
 protected: // NetworkStack
-
-    /**
-     * Modem specific socket stack initialization
-     *
-     *  @return 0 on success
-     */
-    virtual nsapi_error_t socket_stack_init();
 
     /**
       * Note: Socket_open does not actually open socket on all drivers, but that's deferred until calling `sendto`.
@@ -98,7 +89,6 @@ protected: // NetworkStack
     virtual void socket_attach(nsapi_socket_t handle, void (*callback)(void *), void *data);
 
 protected:
-
     class CellularSocket {
     public:
         CellularSocket() :
@@ -113,7 +103,8 @@ protected:
             started(false),
             tx_ready(false),
             tls_socket(false),
-            pending_bytes(0)
+            pending_bytes(0),
+            txfull_event(false)
         {
         }
         // Socket identifier, generally it will be the socket ID assigned by the
@@ -131,19 +122,8 @@ protected:
         bool tx_ready; // socket is ready for sending on modem stack
         bool tls_socket; // socket uses modem's internal TLS socket functionality
         nsapi_size_t pending_bytes; // The number of received bytes pending
+        bool txfull_event; // socket event after wouldblock
     };
-
-    /**
-    * Gets maximum number of sockets modem supports
-    */
-    virtual int get_max_socket_count() = 0;
-
-    /**
-    * Checks if modem supports the given protocol
-    *
-    * @param protocol   Protocol type
-    */
-    virtual bool is_protocol_supported(nsapi_protocol_t protocol) = 0;
 
     /**
     * Implements modem specific AT command set for socket closing
@@ -185,6 +165,7 @@ protected:
     virtual nsapi_size_or_error_t socket_recvfrom_impl(CellularSocket *socket, SocketAddress *address,
                                                        void *buffer, nsapi_size_t size) = 0;
 
+protected:
     /**
      *  Find the socket handle based on the index of the socket construct
      *  in the socket container. Please note that this index may or may not be
@@ -208,11 +189,12 @@ protected:
      */
     bool is_addr_stack_compatible(const SocketAddress &addr);
 
+private:
+    int get_socket_index_by_port(uint16_t port);
+
+protected:
     // socket container
     CellularSocket **_socket;
-
-    // number of socket slots allocated in socket container
-    int _socket_count;
 
     // IP address
     char _ip[PDP_IPV6_SIZE];
@@ -226,12 +208,11 @@ protected:
     // IP version of send to address
     nsapi_version_t _ip_ver_sendto;
 
-private:
-
-    int get_socket_index_by_port(uint16_t port);
-
-    // mutex for write/read to a _socket array, needed when multiple threads may open sockets simultaneously
+    // mutex for write/read to a _socket array, needed when multiple threads may use sockets simultaneously
     PlatformMutex _socket_mutex;
+
+    ATHandler &_at;
+    AT_CellularDevice &_device;
 };
 
 } // namespace mbed

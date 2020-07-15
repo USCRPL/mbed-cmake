@@ -1,5 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2019, Arm Limited and affiliates.
+ * Copyright (c) 2019-2020, Arm Limited and affiliates.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 #include "cmsis.h"
 #include "us_ticker_api.h"
 #include "mbed_error.h"
+#include "cy_us_ticker.h"
 #include "cyhal_timer.h"
 #include "cy_tcpwm_counter.h"
 
@@ -51,9 +52,36 @@ static void cy_us_ticker_irq_handler(MBED_UNUSED void *arg, MBED_UNUSED cyhal_ti
     us_ticker_irq_handler();
 }
 
+void cy_us_ticker_start()
+{
+    cyhal_timer_start(&cy_us_timer);
+}
+
+void cy_us_ticker_stop()
+{
+    cyhal_timer_stop(&cy_us_timer);
+}
+
 void us_ticker_init(void)
 {
     if (!cy_us_ticker_initialized) {
+
+#ifdef TARGET_TFM
+        /* There are two timers, Timer0 and Timer1, available on the PSoC64.
+         * Timer0 has 8 channels and Timer1 has 24 channels. TF-M regression
+         * tests make use of Timer0 Channel 1 and Timer0 Channel 2. Therefore,
+         * reserve the timer channels used by TF-M. This approach can be
+         * replaced once we have a way to allocate dedicated timers for TF-M
+         * and Mbed OS. */
+        cyhal_resource_inst_t res = { CYHAL_RSC_TCPWM, 0, 0 };
+        if(CY_RSLT_SUCCESS != cyhal_hwmgr_reserve(&res)) {
+            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_FAILED_OPERATION), "cyhal_timer_init");
+        }
+        res.channel_num = 1;
+        if(CY_RSLT_SUCCESS != cyhal_hwmgr_reserve(&res)) {
+            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_FAILED_OPERATION), "cyhal_timer_init");
+        }
+#endif
         if (CY_RSLT_SUCCESS != cyhal_timer_init(&cy_us_timer, NC, NULL)) {
             MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_FAILED_OPERATION), "cyhal_timer_init");
         }

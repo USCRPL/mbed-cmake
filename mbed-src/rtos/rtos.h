@@ -1,6 +1,7 @@
 
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2012 ARM Limited
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,6 @@
 #include "rtos/Thread.h"
 #include "rtos/ThisThread.h"
 #include "rtos/Mutex.h"
-#include "rtos/RtosTimer.h"
 #include "rtos/Semaphore.h"
 #include "rtos/Mail.h"
 #include "rtos/MemoryPool.h"

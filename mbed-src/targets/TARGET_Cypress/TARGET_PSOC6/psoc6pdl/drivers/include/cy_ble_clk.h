@@ -1,12 +1,12 @@
 /***************************************************************************//**
 * \file cy_ble_clk.h
-* \version 3.20
-* 
+* \version 3.40.1
+*
 * The header file of the BLE ECO clock driver.
 *
 ********************************************************************************
 * \copyright
-* Copyright 2017-2019 Cypress Semiconductor Corporation
+* Copyright 2017-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,18 +27,18 @@
 * \{
 * This driver provides an API to manage the BLE ECO clock block.
 *
-* The functions and other declarations used in this driver are in cy_ble_clk.h. 
-* You can include cy_pdl.h (ModusToolbox only) to get access to all functions 
-* and declarations in the PDL. 
+* The functions and other declarations used in this driver are in cy_ble_clk.h.
+* You can include cy_pdl.h to get access to all functions
+* and declarations in the PDL.
 *
 * The BLE ECO clock is a high-accuracy high-frequency clock that feeds the
-* link-layer controller and the radio Phy. 
+* link-layer controller and the radio Phy.
 *
 * This clock is also an input to the system resources subsystem as an
 * alternative high-frequency clock source (ALTHF).
 *
 * \section group_ble_configuration_considerations Configuration Considerations
-* To configure the BLE ECO clock, call Cy_BLE_EcoConfigure(). 
+* To configure the BLE ECO clock, call Cy_BLE_EcoConfigure().
 *
 * The following code shows how to configure the BLE ECO clock:
 * \snippet bleclk/snippet/main.c BLE ECO clock API: Cy_BLE_EcoConfigure()
@@ -69,6 +69,21 @@
 * \section group_ble_clk_changelog Changelog
 * <table class="doxtable">
 *   <tr><th>Version</th><th>Changes</th><th>Reason of Change</th></tr>
+*   <tr>
+*     <td>3.40.1</td>
+*     <td>Minor documentation updates.</td>
+*     <td>Documentation enhancement.</td>
+*   </tr>
+*   <tr>
+*     <td>3.40</td>
+*     <td>A new API function \ref Cy_BLE_EcoIsEnabled() is added.</td>
+*     <td>API enhancement.</td>
+*   </tr>
+*   <tr>
+*     <td>3.30</td>
+*     <td>Updated the \ref Cy_BLE_EcoConfigure() to reuse the \ref Cy_SysClk_ClkPeriGetFrequency().</td>
+*     <td>API enhancement.</td>
+*   </tr>
 *   <tr>
 *     <td>3.20</td>
 *     <td>Updated the Cy_BLE_EcoConfigure(): it stores the ECO frequency for possible frequency calculation by the Cy_SysClk_ClkHfGetFrequency().</td>
@@ -122,7 +137,7 @@ extern "C" {
 #define CY_BLE_CLK_DRV_VERSION_MAJOR    (3)
 
 /** Driver minor version */
-#define CY_BLE_CLK_DRV_VERSION_MINOR    (20)
+#define CY_BLE_CLK_DRV_VERSION_MINOR    (40)
 
 /** Driver ID */
 #define CY_BLE_CLK_ID                   (0x05UL << 18U)
@@ -192,7 +207,7 @@ typedef enum
 
     /** Invalid Link Layer clock divider */
     CY_BLE_SYS_ECO_CLK_DIV_INVALID
-    
+
 } cy_en_ble_eco_sys_clk_div_t;
 
 /** BLE ECO Clock return value */
@@ -209,10 +224,10 @@ typedef enum
 
     /** ECO already started */
     CY_BLE_ECO_ALREADY_STARTED = CY_PDL_STATUS_ERROR | CY_BLE_CLK_ID | 0x0003UL,
-    
+
     /** Hardware error */
     CY_BLE_ECO_HARDWARE_ERROR  = CY_PDL_STATUS_ERROR | CY_BLE_CLK_ID | 0x0004UL,
-    
+
 } cy_en_ble_eco_status_t;
 
 /** BLE Voltage regulator */
@@ -220,10 +235,10 @@ typedef enum
 {
     /** Use SIMO Buck or BLE LDO regulator depend on system usage */
     CY_BLE_ECO_VOLTAGE_REG_AUTO,
-    
+
     /** Use BLE LDO */
     CY_BLE_ECO_VOLTAGE_REG_BLESSLDO
-    
+
 } cy_en_ble_eco_voltage_reg_t;
 /** \} */
 
@@ -236,15 +251,15 @@ typedef enum
 /** BLE ECO configuration structures */
 typedef struct
 {
-    /** 
+    /**
      *  ECO crystal startup time in multiple of 31.25us (startup_time_from_user min - 31.25us)
-     *  ecoXtalStartUpTime = startup_time_from_user/31.25 
+     *  ecoXtalStartUpTime = startup_time_from_user/31.25
      */
     uint8_t                           ecoXtalStartUpTime;
 
-    /** 
+    /**
      *  ECO crystal load capacitance - In multiple of 0.075pF (pF_from_user min - 7.5pF, pF_from_user max - 26.625pF)
-     *  loadcap = ((pF_from_user - 7.5)/0.075) 
+     *  loadcap = ((pF_from_user - 7.5)/0.075)
      */
     uint8_t                           loadCap;
 
@@ -253,7 +268,7 @@ typedef struct
 
     /** System divider for ECO clock. */
     cy_en_ble_eco_sys_clk_div_t       ecoSysDiv;
-        
+
 } cy_stc_ble_eco_config_t;
 /** \endcond */
 
@@ -267,10 +282,28 @@ typedef struct
  * \{
  */
 cy_en_ble_eco_status_t Cy_BLE_EcoConfigure(cy_en_ble_eco_freq_t freq,
-                                           cy_en_ble_eco_sys_clk_div_t sysClkDiv, 
-                                           uint32_t cLoad, uint32_t xtalStartUpTime,
-                                           cy_en_ble_eco_voltage_reg_t voltageReg);
+                                    cy_en_ble_eco_sys_clk_div_t sysClkDiv,
+                                                       uint32_t cLoad,
+                                                       uint32_t xtalStartUpTime,
+                                    cy_en_ble_eco_voltage_reg_t voltageReg);
 void Cy_BLE_EcoReset(void);
+__STATIC_INLINE bool Cy_BLE_EcoIsEnabled(void);
+
+
+/*******************************************************************************
+* Function Name: Cy_BLE_EcoIsEnabled
+****************************************************************************//**
+*
+*  Reports the Enabled/Disabled BLE ECO status.
+*
+*  \return Boolean status of BLE ECO: true - Enabled, false - Disabled.
+*
+*******************************************************************************/
+__STATIC_INLINE bool Cy_BLE_EcoIsEnabled(void)
+{
+    return (((BLE_BLESS_MT_CFG & BLE_BLESS_MT_CFG_ENABLE_BLERD_Msk) != 0u) &&
+            ((BLE_BLESS_MT_STATUS & BLE_BLESS_MT_STATUS_BLESS_STATE_Msk) != 0u));
+}
 /** \} */
 
 /** \cond INTERNAL */
@@ -306,4 +339,3 @@ void Cy_BLE_HAL_Init(void);
 /** \} group_ble_clk */
 
 /* [] END OF FILE */
-

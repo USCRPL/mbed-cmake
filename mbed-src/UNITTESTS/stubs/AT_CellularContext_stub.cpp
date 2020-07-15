@@ -20,8 +20,8 @@
 using namespace mbed;
 
 AT_CellularContext::AT_CellularContext(ATHandler &at, CellularDevice *device, const char *apn,  bool cp_req, bool nonip_req) :
-    AT_CellularBase(at), _is_connected(false),
-    _current_op(OP_INVALID), _fh(0), _cp_req(cp_req)
+    _at(at), _is_connected(false),
+    _current_op(OP_INVALID), _dcd_pin(NC), _active_high(false), _cp_req(cp_req)
 {
     _stack = NULL;
     _pdp_type = DEFAULT_PDP_TYPE;
@@ -30,8 +30,8 @@ AT_CellularContext::AT_CellularContext(ATHandler &at, CellularDevice *device, co
     _is_context_active = false;
     _is_context_activated = false;
     _apn = apn;
-    _uname = MBED_CONF_NSAPI_DEFAULT_CELLULAR_USERNAME;
-    _pwd = MBED_CONF_NSAPI_DEFAULT_CELLULAR_PASSWORD;
+    _uname = NULL;
+    _pwd = NULL;
     _status_cb = NULL;
     _cid = -1;
     _new_context_set = false;
@@ -51,17 +51,15 @@ AT_CellularContext::~AT_CellularContext()
 {
 }
 
-void AT_CellularContext::set_file_handle(UARTSerial *serial, PinName dcd_pin, bool active_high)
+nsapi_error_t AT_CellularContext::configure_hup(PinName dcd_pin, bool active_high)
 {
+    return NSAPI_ERROR_OK;
 }
 
 void AT_CellularContext::enable_hup(bool enable)
 {
 }
 
-void AT_CellularContext::set_file_handle(FileHandle *fh)
-{
-}
 
 nsapi_error_t AT_CellularContext::connect()
 {
@@ -116,11 +114,6 @@ nsapi_error_t AT_CellularContext::get_ip_address(SocketAddress *address)
     return NSAPI_ERROR_UNSUPPORTED;
 }
 
-const char *AT_CellularContext::get_ip_address()
-{
-    return NULL;
-}
-
 void AT_CellularContext::attach(Callback<void(nsapi_event_t, intptr_t)> status_cb)
 {
 }
@@ -149,35 +142,15 @@ void AT_CellularContext::set_credentials(const char *apn, const char *uname, con
 
 }
 
-nsapi_error_t AT_CellularContext::get_netmask(SocketAddress *address)
+AT_CellularDevice::CellularProperty AT_CellularContext::pdp_type_t_to_cellular_property(pdp_type_t pdp_type)
 {
-    return NSAPI_ERROR_UNSUPPORTED;
-}
-
-const char *AT_CellularContext::get_netmask()
-{
-    return NULL;
-}
-
-nsapi_error_t AT_CellularContext::get_gateway(SocketAddress *address)
-{
-    return NSAPI_ERROR_UNSUPPORTED;
-}
-
-const char *AT_CellularContext::get_gateway()
-{
-    return NULL;
-}
-
-AT_CellularBase::CellularProperty AT_CellularContext::pdp_type_t_to_cellular_property(pdp_type_t pdp_type)
-{
-    AT_CellularBase::CellularProperty prop = PROPERTY_IPV4_PDP_TYPE;
+    AT_CellularDevice::CellularProperty prop = AT_CellularDevice::PROPERTY_IPV4_PDP_TYPE;
     if (pdp_type == IPV6_PDP_TYPE) {
-        prop = PROPERTY_IPV6_PDP_TYPE;
+        prop = AT_CellularDevice::PROPERTY_IPV6_PDP_TYPE;
     } else if (pdp_type == IPV4V6_PDP_TYPE) {
-        prop = PROPERTY_IPV4V6_PDP_TYPE;
+        prop = AT_CellularDevice::PROPERTY_IPV4V6_PDP_TYPE;
     } else if (pdp_type == NON_IP_PDP_TYPE) {
-        prop = PROPERTY_NON_IP_PDP_TYPE;
+        prop = AT_CellularDevice::PROPERTY_NON_IP_PDP_TYPE;
     }
 
     return prop;
@@ -196,6 +169,10 @@ nsapi_error_t AT_CellularContext::do_user_authentication()
 bool AT_CellularContext::get_context()
 {
     return true;
+}
+
+const char* AT_CellularContext::get_nonip_context_type_str() {
+    return "Non-IP";
 }
 
 bool AT_CellularContext::set_new_context(int cid)
@@ -219,6 +196,10 @@ void AT_CellularContext::deactivate_context()
 }
 
 void AT_CellularContext::do_connect()
+{
+}
+
+void AT_CellularContext::do_disconnect()
 {
 }
 

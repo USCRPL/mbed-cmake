@@ -3,10 +3,18 @@
  * @version  V1.00
  * @brief    ECAP register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __ECAP_REG_H__
 #define __ECAP_REG_H__
+
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Enhanced Input Capture Timer -------------------------*/
 /**
@@ -372,6 +380,7 @@ typedef struct
 
 /**@}*/ /* ECAP_CONST */
 /**@}*/ /* end of ECAP register group */
+/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __ECAP_REG_H__ */

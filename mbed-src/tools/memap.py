@@ -113,6 +113,7 @@ class _GccParser(_Parser):
     )
     RE_STD_SECTION = re.compile(r'^\s+.*0x(\w{8,16})\s+0x(\w+)\s(.+)$')
     RE_FILL_SECTION = re.compile(r'^\s*\*fill\*\s+0x(\w{8,16})\s+0x(\w+).*$')
+    RE_TRANS_FILE = re.compile(r'^(.+\/|.+\.ltrans.o(bj)?)$')
     OBJECT_EXTENSIONS = (".o", ".obj")
 
     ALL_SECTIONS = (
@@ -148,6 +149,9 @@ class _GccParser(_Parser):
 
         return value - an object file name
         """
+        if re.match(self.RE_TRANS_FILE, line):
+            return '[misc]'
+
         test_re_mbed_os_name = re.match(self.RE_OBJECT_FILE, line)
 
         if test_re_mbed_os_name:
@@ -280,7 +284,10 @@ class _ArmccParser(_Parser):
         """  # noqa: E501
         test_re = re.match(self.RE, line)
 
-        if test_re:
+        if (
+            test_re
+            and "ARM_LIB_HEAP" not in line
+            ):
             size = int(test_re.group(2), 16)
 
             if test_re.group(4) == 'RO':

@@ -24,7 +24,7 @@
 
 using namespace mbed;
 
-static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
+static const intptr_t cellular_properties[AT_CellularDevice::PROPERTY_MAX] = {
     AT_CellularNetwork::RegistrationModeDisable,// C_EREG
     AT_CellularNetwork::RegistrationModeLAC,    // C_GREG
     AT_CellularNetwork::RegistrationModeDisable,// C_REG
@@ -40,21 +40,26 @@ static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
     0,  // PROPERTY_IPV4V6_STACK
     0,  // PROPERTY_NON_IP_PDP_TYPE
     1,  // PROPERTY_AT_CGEREP
+    1,  // PROPERTY_AT_COPS_FALLBACK_AUTO
+    6,  // PROPERTY_SOCKET_COUNT
+    1,  // PROPERTY_IP_TCP
+    1,  // PROPERTY_IP_UDP
+    0,  // PROPERTY_AT_SEND_DELAY
 };
 
 QUECTEL_M26::QUECTEL_M26(FileHandle *fh) : AT_CellularDevice(fh)
 {
-    AT_CellularBase::set_cellular_properties(cellular_properties);
+    set_cellular_properties(cellular_properties);
 }
 
 nsapi_error_t QUECTEL_M26::get_sim_state(SimState &state)
 {
     char buf[13];
 
-    _at->lock();
-    nsapi_error_t err = _at->at_cmd_str("+CPIN", "?", buf, 13);
+    _at.lock();
+    nsapi_error_t err = _at.at_cmd_str("+CPIN", "?", buf, 13);
     tr_debug("CPIN: %s", buf);
-    _at->unlock();
+    _at.unlock();
 
     if (memcmp(buf, "READY", 5) == 0) {
         state = SimStateReady;
@@ -84,15 +89,15 @@ AT_CellularContext *QUECTEL_M26::create_context_impl(ATHandler &at, const char *
 
 nsapi_error_t QUECTEL_M26::shutdown()
 {
-    return _at->at_cmd_discard("+QPOWD", "=0");
+    return _at.at_cmd_discard("+QPOWD", "=0");
 }
 
 
 #if MBED_CONF_QUECTEL_M26_PROVIDE_DEFAULT
-#include "UARTSerial.h"
+#include "drivers/BufferedSerial.h"
 CellularDevice *CellularDevice::get_default_instance()
 {
-    static UARTSerial serial(MBED_CONF_QUECTEL_M26_TX, MBED_CONF_QUECTEL_M26_RX, MBED_CONF_QUECTEL_M26_BAUDRATE);
+    static BufferedSerial serial(MBED_CONF_QUECTEL_M26_TX, MBED_CONF_QUECTEL_M26_RX, MBED_CONF_QUECTEL_M26_BAUDRATE);
 #if defined (MBED_CONF_QUECTEL_M26_RTS) && defined(MBED_CONF_QUECTEL_M26_CTS)
     tr_debug("QUECTEL_M26 flow control: RTS %d CTS %d", MBED_CONF_QUECTEL_M26_RTS, MBED_CONF_QUECTEL_M26_CTS);
     serial.set_flow_control(SerialBase::RTSCTS, MBED_CONF_QUECTEL_M26_RTS, MBED_CONF_QUECTEL_M26_CTS);

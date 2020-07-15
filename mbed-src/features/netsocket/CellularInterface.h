@@ -80,13 +80,13 @@ public:
      *
      *  @return         NSAPI_ERROR_OK on success, or negative error code on failure.
      */
-    virtual nsapi_error_t connect() = 0;
+    nsapi_error_t connect() override = 0;
 
     /** Stop the interface.
      *
      *  @return         NSAPI_ERROR_OK on success, or error code on failure.
      */
-    virtual nsapi_error_t disconnect() = 0;
+    nsapi_error_t disconnect() override = 0;
 
     /** Check if the connection is currently established.
      *
@@ -96,34 +96,11 @@ public:
     virtual bool is_connected() = 0;
 
     /** @copydoc NetworkInterface::get_ip_address */
-    virtual nsapi_error_t get_ip_address(SocketAddress *address) = 0;
-
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    virtual const char *get_ip_address() = 0;
-
-    /** @copydoc NetworkInterface::get_netmask */
-    virtual nsapi_error_t get_netmask(SocketAddress *address) = 0;
-
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    virtual const char *get_netmask() = 0;
-
-    /** @copydoc NetworkInterface::get_gateway */
-    virtual nsapi_error_t get_gateway(SocketAddress *address) = 0;
-
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    virtual const char *get_gateway() = 0;
-
-    /** @copydoc NetworkInterface::cellularBase
-     */
-    MBED_DEPRECATED_SINCE("mbed-os-5.12", "Migrated to CellularInterface")
-    virtual CellularInterface *cellularBase()
-    {
-        return this;
-    }
+    nsapi_error_t get_ip_address(SocketAddress *address) override = 0;
 
     /** @copydoc NetworkInterface::cellularInterface
      */
-    virtual CellularInterface *cellularInterface()
+    CellularInterface *cellularInterface() final
     {
         return this;
     }
@@ -153,7 +130,7 @@ public:
      * NetworkInterface::get_default_instance() (see nsapi JSON
      * configuration).
      */
-    virtual void set_default_parameters();
+    void set_default_parameters() override;
 };
 
 #endif // CELLULAR_INTERFACE_H_

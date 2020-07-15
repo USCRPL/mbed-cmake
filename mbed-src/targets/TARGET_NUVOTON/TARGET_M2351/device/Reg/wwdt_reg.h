@@ -3,11 +3,18 @@
  * @version  V1.00
  * @brief    WWDT register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __WWDT_REG_H__
 #define __WWDT_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 
 /*---------------------- Window Watchdog Timer -------------------------*/
@@ -135,5 +142,6 @@ typedef struct
 
 /**@}*/ /* WWDT_CONST */
 /**@}*/ /* end of WWDT register group */
+/**@}*/ /* end of REGISTER group */
 
 #endif /* __WWDT_REG_H__ */

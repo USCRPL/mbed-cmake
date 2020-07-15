@@ -18,7 +18,7 @@
 *
 ********************************************************************************
 * \copyright
-* Copyright 2018-2019 Cypress Semiconductor Corporation
+* Copyright 2018-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,29 +35,48 @@
 *******************************************************************************/
 
 /**
-* \defgroup group_hal HAL Drivers
+* \addtogroup group_hal_types HAL General Types/Macros
+* This section documents the basic types and macros that are used by multiple HAL drivers.
+*/
+
+/**
+* \addtogroup group_result Result Type
+* \ingroup group_hal_types
+*/
+
+/**
+* \addtogroup group_hal HAL Drivers
+* This section documents the drivers which form the stable API of the Cypress HAL.
+* In order to remain portable across platforms and HAL versions, applications should
+* rely only on functionality documented in this section.
 */
 
 #pragma once
 
-#include "cyhal_modules.h"
+#include "cyhal_general_types.h"
 #include "cyhal_hw_types.h"
 
 #include "cyhal_adc.h"
+#include "cyhal_clock.h"
 #include "cyhal_crc.h"
 #include "cyhal_dac.h"
+#include "cyhal_dma.h"
+#include "cyhal_ezi2c.h"
 #include "cyhal_flash.h"
 #include "cyhal_gpio.h"
 #include "cyhal_hwmgr.h"
 #include "cyhal_i2c.h"
+#include "cyhal_i2s.h"
 #include "cyhal_interconnect.h"
 #include "cyhal_lptimer.h"
+#include "cyhal_pdmpcm.h"
 #include "cyhal_pwm.h"
 #include "cyhal_qspi.h"
 #include "cyhal_rtc.h"
 #include "cyhal_sdhc.h"
 #include "cyhal_sdio.h"
 #include "cyhal_spi.h"
+#include "cyhal_syspm.h"
 #include "cyhal_system.h"
 #include "cyhal_timer.h"
 #include "cyhal_trng.h"

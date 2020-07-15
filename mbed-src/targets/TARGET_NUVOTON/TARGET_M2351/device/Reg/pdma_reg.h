@@ -3,11 +3,18 @@
  * @version  V1.00
  * @brief    PDMA register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __PDMA_REG_H__
 #define __PDMA_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Peripheral Direct Memory Access Controller -------------------------*/
 /**
@@ -94,7 +101,7 @@ typedef struct
      * |[31:0]  |DA        |PDMA Transfer Destination Address Register
      * |        |          |This field indicates a 32-bit destination address of PDMA controller.
      * |        |          |Note: The PDMA transfer destination address should be aligned with the TXWIDTH(PDMA_DSCTn_CTL[13:12], n=0,1..7) selection.
-     * @var DSCT_T::FIRST
+     * @var DSCT_T::NEXT
      * Offset: 0x0C/0x1C/0x2C/0x3C/0x4C/0x5C/0x6C/0x7C  First Scatter-Gather Descriptor Table Offset of PDMA Channel 0~7
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -360,7 +367,7 @@ typedef struct
      * |        |          |This controls the period of time-out function for channel 1
      * |        |          |The calculation unit is based on TOUTPSC1 (PDMA_TOUTPSC[5:3]) clock
      * |        |          |The example of time-out period can refer TOC0 bit description.
-     * @var PDMA_T::RESET
+     * @var PDMA_T::CHRST
      * Offset: 0x460  PDMA Channel Reset Control Register
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -406,8 +413,6 @@ typedef struct
      * |        |          |27 = Channel connects to SPI2_RX.
      * |        |          |28 = Channel connects to SPI3_TX.
      * |        |          |29 = Channel connects to SPI3_RX.
-     * |        |          |30 = Channel connects to SPI5_TX.
-     * |        |          |31 = Channel connects to SPI5_RX.
      * |        |          |32 = Channel connects to EPWM0_P1_RX.
      * |        |          |33 = Channel connects to EPWM0_P2_RX.
      * |        |          |34 = Channel connects to EPWM0_P3_RX.
@@ -766,8 +771,7 @@ typedef struct
 
 /**@}*/ /* PDMA_CONST */
 /**@}*/ /* end of PDMA register group */
-
-
+/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __PDMA_REG_H__ */

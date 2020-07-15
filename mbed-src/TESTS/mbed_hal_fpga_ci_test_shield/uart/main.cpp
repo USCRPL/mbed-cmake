@@ -28,13 +28,14 @@
 #include "greentea-client/test_env.h"
 #include "platform/mbed_critical.h"
 #include <stdlib.h>
+#include "hal/serial_api.h"
 #include "UARTTester.h"
 #include "pinmap.h"
 #include "test_utils.h"
-#include "serial_api.h"
 #include "us_ticker_api.h"
 #include "uart_fpga_test.h"
 #include "hal/static_pinmap.h"
+
 
 using namespace utest::v1;
 
@@ -85,16 +86,37 @@ static void test_irq_handler(uint32_t id, SerialIrq event)
 static void uart_test_common(int baudrate, int data_bits, SerialParity parity, int stop_bits, bool init_direct, PinName tx, PinName rx, PinName cts, PinName rts)
 {
     // The FPGA CI shield only supports None, Odd & Even.
-    // Forced parity is not supported on Atmel, Freescale, Nordic & STM targets.
+    // Forced parity is not supported on many targets
     MBED_ASSERT(parity != ParityForced1 && parity != ParityForced0);
 
-    // STM-specific constraints
-    // Only 7, 8 & 9 data bits.
-    MBED_ASSERT(data_bits >= 7 && data_bits <= 9);
-    // Only Odd or Even parity for 7 data bits.
-    if (data_bits == 7) {
-        MBED_ASSERT(parity != ParityNone);
+// See TESTS/configs/fpga.json to check which target supports what
+#if defined(UART_9BITS_NOT_SUPPORTED)
+    if (data_bits == 9) {
+        utest_printf(" UART_9BITS_NOT_SUPPORTED set ... ");
+        return;
     }
+#endif
+
+#if defined(UART_9BITS_PARITY_NOT_SUPPORTED)
+    if ((data_bits == 9) && (parity != ParityNone)) {
+        utest_printf(" UART_9BITS_PARITY_NOT_SUPPORTED set ... ");
+        return;
+    }
+#endif
+
+#if defined(UART_7BITS_NOT_SUPPORTED)
+    if (data_bits == 7) {
+        utest_printf(" UART_7BITS_NOT_SUPPORTED set ... ");
+        return;
+    }
+#endif
+
+#if defined(UART_7BITS_PARITY_NONE_NOT_SUPPORTED)
+    if ((data_bits == 7) && (parity == ParityNone)) {
+        utest_printf(" UART_7BITS_PARITY_NONE_NOT_SUPPORTED set ... ");
+        return;
+    }
+#endif
 
     // Limit the actual TX & RX chars to 8 bits for this test.
     int test_buff_bits = data_bits < 8 ? data_bits : 8;
@@ -133,6 +155,9 @@ static void uart_test_common(int baudrate, int data_bits, SerialParity parity, i
             serial_set_flow_control_direct(&serial, FlowControlRTSCTS, &pinmap);
 #else
             //skip this test case if static pinmap is not supported
+            // Cleanup uart to be able execute next test case
+            serial_free(&serial);
+            tester.reset();
             return;
 #endif
         } else {
@@ -329,13 +354,19 @@ Case cases[] = {
     Case("basic, 9600, 8N1, FC off", all_peripherals<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<9600, 8, ParityNone, 1, false> >),
     Case("basic (direct init), 9600, 8N1, FC off", all_peripherals<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<9600, 8, ParityNone, 1, true> >),
 
+    // same test with 7 and 9 bits data length
+    Case("basic, 9600, 7N1, FC off", all_peripherals<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<9600, 7, ParityNone, 1, false> >),
+    Case("basic, 9600, 9N1, FC off", all_peripherals<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<9600, 9, ParityNone, 1, false> >),
+
     // One set of pins from one peripheral.
     // baudrate
     Case("19200, 8N1, FC off", one_peripheral<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<19200, 8, ParityNone, 1, false> >),
     Case("38400, 8N1, FC off", one_peripheral<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<38400, 8, ParityNone, 1, false> >),
     Case("115200, 8N1, FC off", one_peripheral<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<115200, 8, ParityNone, 1, false> >),
     // stop bits
+#if !defined(UART_TWO_STOP_BITS_NOT_SUPPORTED)
     Case("9600, 8N2, FC off", one_peripheral<UARTNoFCPort, DefaultFormFactor, fpga_uart_test_common_no_fc<9600, 8, ParityNone, 2, false> >),
+#endif
 
 #if DEVICE_SERIAL_FC
     // Every set of pins from every peripheral.
@@ -345,6 +376,10 @@ Case cases[] = {
     Case("basic, 9600, 8N1, FC on", all_peripherals<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 8, ParityNone, 1, false> >),
     Case("basic (direct init), 9600, 8N1, FC on", all_peripherals<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 8, ParityNone, 1, true> >),
 
+    // same test with 7 and 9 bits data length
+    Case("basic, 9600, 7N1, FC on", all_peripherals<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 7, ParityNone, 1, false> >),
+    Case("basic, 9600, 9N1, FC on", all_peripherals<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 9, ParityNone, 1, false> >),
+
     // One set of pins from one peripheral.
     // baudrate
     Case("19200, 8N1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<19200, 8, ParityNone, 1, false> >),
@@ -352,11 +387,25 @@ Case cases[] = {
     Case("115200, 8N1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<115200, 8, ParityNone, 1, false> >),
     // data bits: not tested (some platforms support 8 bits only)
     // parity
+#if !defined(UART_ODD_PARITY_NOT_SUPPORTED)
     Case("9600, 8O1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 8, ParityOdd, 1, false> >),
+
+    // same test with 7 and 9 bits data length
+    Case("9600, 7O1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 7, ParityOdd, 1, false> >),
+    Case("9600, 9O1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 9, ParityOdd, 1, false> >),
+#endif
     Case("9600, 8E1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 8, ParityEven, 1, false> >),
+
+    // same test with 7 and 9 bits data length
+    Case("9600, 7E1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 7, ParityEven, 1, false> >),
+    Case("9600, 9E1, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 9, ParityEven, 1, false> >),
+
     // stop bits
+#if !defined(UART_TWO_STOP_BITS_NOT_SUPPORTED)
     Case("9600, 8N2, FC on", one_peripheral<UARTPort, DefaultFormFactor, fpga_uart_test_common<9600, 8, ParityNone, 2, false> >),
 #endif
+#endif
+
 };
 
 utest::v1::status_t greentea_test_setup(const size_t number_of_cases)

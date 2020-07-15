@@ -52,8 +52,6 @@ LEGACY_IGNORE_DIRS = set([
     'LPC11U24',
     'LPC1768',
     'LPC2368',
-    'LPC4088',
-    'LPC812',
     'KL25Z',
 
     # Legacy Toolchains
@@ -426,11 +424,7 @@ class Resources(object):
             self.add_ignore_patterns(
                 path, base_path, [join(e, "*") for e in exclude_paths])
 
-        import time
-        start_time = time.perf_counter()
-
         for root, dirs, files in walk(path, followlinks=True):
-            #print("root=%s, dirs=%s=" % (root, str(dirs)))
             # Check if folder contains .mbedignore
             if IGNORE_FILENAME in files:
                 real_base = relpath(root, base_path)
@@ -477,10 +471,6 @@ class Resources(object):
             for file in files:
                 file_path = join(root, file)
                 self._add_file(file_path, base_path, into_path)
-
-        end_time = time.perf_counter()
-        print(f"Scanned all dirs in {end_time - start_time:0.4f} seconds")
-        # note: time measured as .375s for normal scan, .51 s for all-inclusive scan
 
     _EXT = {
         ".c": FileType.C_SRC,
@@ -618,38 +608,3 @@ class Resources(object):
         for t in res_filter.file_types:
             self._file_refs[t] = set(filter(
                 res_filter.predicate, self._file_refs[t]))
-
-
-class ResourceFilter(object):
-    def __init__(self, file_types):
-        self.file_types = file_types
-
-    def predicate(self, ref):
-        raise NotImplemented
-
-
-class SpeOnlyResourceFilter(ResourceFilter):
-    def __init__(self):
-        ResourceFilter.__init__(
-            self, [FileType.ASM_SRC, FileType.C_SRC, FileType.CPP_SRC])
-
-    def predicate(self, ref):
-        return 'COMPONENT_SPE' in ref.name
-
-
-class OsAndSpeResourceFilter(ResourceFilter):
-    def __init__(self):
-        ResourceFilter.__init__(
-            self, [FileType.ASM_SRC, FileType.C_SRC, FileType.CPP_SRC])
-
-    def predicate(self, ref):
-        return ROOT in abspath(ref.name) or 'COMPONENT_SPE' in ref.name
-
-
-class PsaManifestResourceFilter(ResourceFilter):
-    def __init__(self):
-        ResourceFilter.__init__(
-            self, [FileType.JSON])
-
-    def predicate(self, ref):
-        return not ref.name.endswith('_psa.json')

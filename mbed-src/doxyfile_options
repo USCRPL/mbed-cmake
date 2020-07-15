@@ -443,7 +443,7 @@ EXTRACT_PACKAGE        = NO
 # included in the documentation.
 # The default value is: NO.
 
-EXTRACT_STATIC         = YES
+EXTRACT_STATIC         = NO
 
 # If the EXTRACT_LOCAL_CLASSES tag is set to YES, classes (and structs) defined
 # locally in source files will be included in the documentation. If set to NO,
@@ -2102,8 +2102,6 @@ PREDEFINED             = DOXYGEN_ONLY            \
                          DEVICE_QSPI             \
                          DEVICE_STORAGE          \
                          DEVICE_WATCHDOG         \
-                         COMPONENT_SPE           \
-                         COMPONENT_SPM_MAILBOX   \
                          "TFM_LVL=1" \
                          "MBED_DEPRECATED_SINCE(d, m)=" \
                          "MBED_ENABLE_IF_CALLBACK_COMPATIBLE(F, M)=" \

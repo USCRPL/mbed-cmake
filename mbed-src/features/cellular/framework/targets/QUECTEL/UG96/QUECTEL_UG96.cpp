@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-#include "onboard_modem_api.h"
 #include "QUECTEL_UG96.h"
 #include "QUECTEL_UG96_CellularContext.h"
 #include "AT_CellularNetwork.h"
@@ -27,7 +26,7 @@ using namespace events;
 #define CONNECT_BUFFER_SIZE   (1280 + 80 + 80) // AT response + sscanf format
 #define CONNECT_TIMEOUT       8000
 
-static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
+static const intptr_t cellular_properties[AT_CellularDevice::PROPERTY_MAX] = {
     AT_CellularNetwork::RegistrationModeDisable,// C_EREG
     AT_CellularNetwork::RegistrationModeLAC,    // C_GREG
     AT_CellularNetwork::RegistrationModeLAC,    // C_REG
@@ -42,12 +41,17 @@ static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
     0,  // PROPERTY_IPV6_STACK
     0,  // PROPERTY_IPV4V6_STACK
     0,  // PROPERTY_NON_IP_PDP_TYPE
-    1,  // PROPERTY_AT_CGEREP
+    1,  // PROPERTY_AT_CGEREP,
+    1,  // PROPERTY_AT_COPS_FALLBACK_AUTO
+    0,  // PROPERTY_SOCKET_COUNT
+    0,  // PROPERTY_IP_TCP
+    0,  // PROPERTY_IP_UDP
+    0,  // PROPERTY_AT_SEND_DELAY
 };
 
 QUECTEL_UG96::QUECTEL_UG96(FileHandle *fh) : AT_CellularDevice(fh)
 {
-    AT_CellularBase::set_cellular_properties(cellular_properties);
+    set_cellular_properties(cellular_properties);
 }
 
 AT_CellularContext *QUECTEL_UG96::create_context_impl(ATHandler &at, const char *apn, bool cp_req, bool nonip_req)
@@ -56,10 +60,10 @@ AT_CellularContext *QUECTEL_UG96::create_context_impl(ATHandler &at, const char 
 }
 
 #if MBED_CONF_QUECTEL_UG96_PROVIDE_DEFAULT
-#include "UARTSerial.h"
+#include "drivers/BufferedSerial.h"
 CellularDevice *CellularDevice::get_default_instance()
 {
-    static UARTSerial serial(MBED_CONF_QUECTEL_UG96_TX, MBED_CONF_QUECTEL_UG96_RX, MBED_CONF_QUECTEL_UG96_BAUDRATE);
+    static BufferedSerial serial(MBED_CONF_QUECTEL_UG96_TX, MBED_CONF_QUECTEL_UG96_RX, MBED_CONF_QUECTEL_UG96_BAUDRATE);
 #if defined (MBED_CONF_QUECTEL_UG96_RTS) && defined (MBED_CONF_QUECTEL_UG96_CTS)
     tr_debug("QUECTEL_UG96 flow control: RTS %d CTS %d", MBED_CONF_QUECTEL_UG96_RTS, MBED_CONF_QUECTEL_UG96_CTS);
     serial.set_flow_control(SerialBase::RTSCTS, MBED_CONF_QUECTEL_UG96_RTS, MBED_CONF_QUECTEL_UG96_CTS);

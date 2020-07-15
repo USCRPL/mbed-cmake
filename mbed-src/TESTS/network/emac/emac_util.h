@@ -36,7 +36,7 @@ extern const unsigned char eth_mac_broadcast_addr[];
 // Message validation flags
 #define BROADCAST               0x01
 #define RESPONSE_RECEIVED       0x02
-#define INVALID_LENGHT          0x04
+#define INVALID_LENGTH          0x04
 #define INVALID_DATA            0x08
 #define PRINTED                 0x10
 // Validates outgoing messages for replies, sets error flags on error
@@ -101,8 +101,6 @@ void emac_if_set_trace_level(char trace_level_value);
 char emac_if_get_trace_level();
 
 void emac_if_trace_to_ascii_hex_dump(const char *prefix, int len, char *data);
-
-void emac_if_link_state_change_cb(void *data, bool up);
 
 unsigned char *emac_if_get_own_addr(void);
 

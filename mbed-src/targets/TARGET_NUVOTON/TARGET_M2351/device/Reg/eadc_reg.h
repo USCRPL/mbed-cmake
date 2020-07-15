@@ -3,10 +3,18 @@
  * @version  V1.00
  * @brief    EADC register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __EADC_REG_H__
 #define __EADC_REG_H__
+
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Enhanced Analog to Digital Converter -------------------------*/
 /**
@@ -1691,6 +1699,7 @@ typedef struct
 
 /**@}*/ /* EADC_CONST */
 /**@}*/ /* end of EADC register group */
+/**@}*/ /* end of REGISTER group */
 
 
 

@@ -1,6 +1,7 @@
 """
 mbed SDK
 Copyright (c) 2014-2016 ARM Limited
+SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +22,7 @@ from tools.export.exporters import Exporter, apply_supported_whitelist
 
 
 POST_BINARY_WHITELIST = set([
-    "TEENSY3_1Code.binary_hook",
-    "LPCTargetCode.lpc_patch",
-    "LPC4088Code.binary_hook"
+    "LPCTargetCode.lpc_patch"
 ])
 
 

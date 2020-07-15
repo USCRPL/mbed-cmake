@@ -125,6 +125,10 @@ static nsapi_security_t whd_tosecurity(whd_security_t sec)
         case WHD_SECURITY_WPA2_FBT_PSK:
         case WHD_SECURITY_WPA2_FBT_ENT:
             return NSAPI_SECURITY_WPA2;
+        case WHD_SECURITY_WPA3_SAE:
+            return NSAPI_SECURITY_WPA3;
+        case WHD_SECURITY_WPA3_WPA2_PSK:
+            return NSAPI_SECURITY_WPA3_WPA2;
         default:
             return NSAPI_SECURITY_UNKNOWN;
     }
@@ -145,6 +149,10 @@ whd_security_t whd_fromsecurity(nsapi_security_t sec)
             return WHD_SECURITY_WPA2_MIXED_PSK;
         case NSAPI_SECURITY_WPA2_ENT:
             return WHD_SECURITY_WPA2_MIXED_ENT;
+        case NSAPI_SECURITY_WPA3:
+            return WHD_SECURITY_WPA3_SAE;
+        case NSAPI_SECURITY_WPA3_WPA2:
+            return WHD_SECURITY_WPA3_WPA2_PSK;
         default:
             return WHD_SECURITY_UNKNOWN;
     }
@@ -224,7 +232,8 @@ nsapi_error_t WhdSTAInterface::set_credentials(const char *ssid, const char *pas
             (strlen(ssid) == 0) ||
             (pass == NULL && (security != NSAPI_SECURITY_NONE && security != NSAPI_SECURITY_WPA2_ENT)) ||
             (strlen(pass) == 0 && (security != NSAPI_SECURITY_NONE && security != NSAPI_SECURITY_WPA2_ENT)) ||
-            (strlen(pass) > 63 && (security == NSAPI_SECURITY_WPA2 || security == NSAPI_SECURITY_WPA || security == NSAPI_SECURITY_WPA_WPA2))
+            (strlen(pass) > 63 && (security == NSAPI_SECURITY_WPA2 || security == NSAPI_SECURITY_WPA ||
+            security == NSAPI_SECURITY_WPA_WPA2 || security == NSAPI_SECURITY_WPA3 || security == NSAPI_SECURITY_WPA3_WPA2))
        ) {
         return NSAPI_ERROR_PARAMETER;
     }
@@ -250,7 +259,9 @@ nsapi_error_t WhdSTAInterface::connect()
 
     // initialize wiced, this is noop if already init
     if (!_whd_emac.powered_up) {
-        _whd_emac.power_up();
+        if(!_whd_emac.power_up()) {
+            return NSAPI_ERROR_DEVICE_ERROR;
+        }
     }
 
     res = whd_management_set_event_handler(_whd_emac.ifp, sta_link_change_events,
@@ -292,6 +303,19 @@ nsapi_error_t WhdSTAInterface::connect()
     // choose network security
     whd_security_t security = whd_fromsecurity(_security);
 
+#if defined MBED_CONF_APP_WIFI_PASSWORD_WPA2PSK
+    /* Set PSK password for WPA3_WPA2 */
+    if (security == WHD_SECURITY_WPA3_WPA2_PSK) {
+        res = (whd_result_t)whd_wifi_enable_sup_set_passphrase( _whd_emac.ifp, (const uint8_t *)MBED_CONF_APP_WIFI_PASSWORD_WPA2PSK,
+                  strlen(MBED_CONF_APP_WIFI_PASSWORD_WPA2PSK), WHD_SECURITY_WPA3_WPA2_PSK );
+    }
+#else
+    /* Set PSK password for WPA3_WPA2 */
+    if (security == WHD_SECURITY_WPA3_WPA2_PSK) {
+        res = (whd_result_t)whd_wifi_enable_sup_set_passphrase( _whd_emac.ifp, (const uint8_t *)_pass,
+                  strlen(_pass), WHD_SECURITY_WPA3_WPA2_PSK );
+    }
+#endif
     // join the network
     for (i = 0; i < MAX_RETRY_COUNT; i++) {
         res = (whd_result_t)whd_wifi_join(_whd_emac.ifp,
@@ -322,7 +346,9 @@ nsapi_error_t WhdSTAInterface::connect()
 void WhdSTAInterface::wifi_on()
 {
     if (!_whd_emac.powered_up) {
-        _whd_emac.power_up();
+        if(!_whd_emac.power_up()) {
+            CY_ASSERT(false);
+        }
     }
 }
 
@@ -355,6 +381,15 @@ nsapi_error_t WhdSTAInterface::disconnect()
     }
     whd_emac_wifi_link_state_changed(_whd_emac.ifp, WHD_FALSE);
 
+    // remove the interface added in connect
+    if (_interface) {
+        nsapi_error_t err = _stack.remove_ethernet_interface(&_interface);
+        if (err != NSAPI_ERROR_OK) {
+            return err;
+        }
+        _iface_shared.iface_sta = NULL;
+    }
+
     res = whd_wifi_deregister_event_handler(_whd_emac.ifp, sta_link_update_entry);
     if (res != WHD_SUCCESS) {
         return whd_toerror(res);
@@ -373,13 +408,15 @@ int8_t WhdSTAInterface::get_rssi()
     int32_t rssi;
     whd_result_t res;
 
-    // initialize wiced, this is noop if already init
     if (!_whd_emac.powered_up) {
-        _whd_emac.power_up();
+        if(!_whd_emac.power_up()) {
+            CY_ASSERT(false);
+        }
     }
 
     res = (whd_result_t)whd_wifi_get_rssi(_whd_emac.ifp, &rssi);
     if (res != 0) {
+        /* The network GT tests expect that this function should return 0 in case of an error and not assert */
         return 0;
     }
 
@@ -454,7 +491,9 @@ int WhdSTAInterface::internal_scan(WiFiAccessPoint *aps, unsigned count, scan_re
 
     // initialize wiced, this is noop if already init
     if (!_whd_emac.powered_up) {
-        _whd_emac.power_up();
+        if(!_whd_emac.power_up()) {
+            return NSAPI_ERROR_DEVICE_ERROR;
+        }
     }
 
     interal_scan_data.sema = new Semaphore();
@@ -466,7 +505,6 @@ int WhdSTAInterface::internal_scan(WiFiAccessPoint *aps, unsigned count, scan_re
     interal_scan_data.result_buff = new std::vector<whd_scan_result_t>();
     whd_result_t whd_res;
     int res;
-
 
     whd_res = (whd_result_t)whd_wifi_scan(_whd_emac.ifp, WHD_SCAN_TYPE_ACTIVE, WHD_BSS_TYPE_ANY,
                                           NULL, NULL, NULL, NULL, whd_scan_handler, &internal_scan_result, &interal_scan_data);

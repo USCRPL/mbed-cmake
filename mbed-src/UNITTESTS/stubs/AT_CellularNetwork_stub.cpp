@@ -32,7 +32,7 @@ int AT_CellularNetwork_stub::fail_counter = 0;
 int AT_CellularNetwork_stub::set_registration_urc_fail_counter = 0;
 int AT_CellularNetwork_stub::get_registration_params_fail_counter = 0;
 
-AT_CellularNetwork::AT_CellularNetwork(ATHandler &atHandler) : AT_CellularBase(atHandler)
+AT_CellularNetwork::AT_CellularNetwork(ATHandler &atHandler, AT_CellularDevice &device) : _at(atHandler), _device(device)
 {
 }
 

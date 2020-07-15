@@ -14,9 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if defined(MBED_RTOS_SINGLE_THREAD) || !defined(MBED_CONF_RTOS_PRESENT)
-#error [NOT_SUPPORTED] Event flags test cases require RTOS with multithread to run
-#else
 
 #include "mbed.h"
 #include "greentea-client/test_env.h"
@@ -24,15 +21,18 @@
 #include "utest/utest.h"
 
 using utest::v1::Case;
+using namespace std::chrono;
 
 #if !DEVICE_USTICKER
 #error [NOT_SUPPORTED] UsTicker need to be enabled for this test.
 #else
 
+#if defined(MBED_CONF_RTOS_PRESENT)
 #if defined(__CORTEX_M23) || defined(__CORTEX_M33)
 #define THREAD_STACK_SIZE   512
 #else
 #define THREAD_STACK_SIZE   320 /* 512B stack on GCC_ARM compiler cause out of memory on some 16kB RAM boards e.g. NUCLEO_F070RB */
+#endif
 #endif
 
 #define MAX_FLAG_POS 30
@@ -45,35 +45,35 @@ using utest::v1::Case;
 #define PROHIBITED_FLAG 0x80000000   /* 10000000000000000000000000000000 */
 #define NO_FLAGS 0x0
 
-Semaphore sync_sem(0, 1);
-
-template<uint32_t flags, uint32_t wait_ms>
-void send_thread(EventFlags *ef)
+void send_thread(EventFlags *ef, uint32_t flags, milliseconds wait)
 {
     for (uint32_t i = 0; i <= MAX_FLAG_POS; i++) {
         const uint32_t flag = flags & (1 << i);
         if (flag) {
             ef->set(flag);
-            ThisThread::sleep_for(wait_ms);
+            if (wait != 0ms) {
+                ThisThread::sleep_for(wait);
+            }
         }
     }
 }
 
-template<uint32_t flags, uint32_t wait_ms>
-void send_thread_sync(EventFlags *ef)
+#if defined(MBED_CONF_RTOS_PRESENT)
+Semaphore sync_sem(0, 1);
+
+void send_thread_sync(EventFlags *ef, uint32_t flags, milliseconds wait)
 {
     for (uint32_t i = 0; i <= MAX_FLAG_POS; i++) {
         const uint32_t flag = flags & (1 << i);
         if (flag) {
             sync_sem.acquire();
             ef->set(flag);
-            ThisThread::sleep_for(wait_ms);
+            ThisThread::sleep_for(wait);
         }
     }
 }
 
-template<uint32_t flags>
-void wait_thread_all(EventFlags *ef)
+void wait_thread_all(EventFlags *ef, uint32_t flags)
 {
     uint32_t ret, flags_after_clear;
     ret = ef->wait_all(flags);
@@ -81,6 +81,7 @@ void wait_thread_all(EventFlags *ef)
     TEST_ASSERT(flags | ret);
     TEST_ASSERT(flags | ~flags_after_clear);
 }
+#endif
 
 
 /** Test if get on empty EventFlags object return NO_FLAGS
@@ -203,6 +204,7 @@ void test_set_get_clear_full_flag_range(void)
     }
 }
 
+#if defined(MBED_CONF_RTOS_PRESENT)
 /** Test if multi-threaded flag set cause wait_all to return
 
     Given a EventFlags object and three threads are started in parallel
@@ -215,9 +217,9 @@ void test_multi_thread_all(void)
     Thread thread1(osPriorityNormal, THREAD_STACK_SIZE);
     Thread thread2(osPriorityNormal, THREAD_STACK_SIZE);
     Thread thread3(osPriorityNormal, THREAD_STACK_SIZE);
-    thread1.start(callback(send_thread<FLAG01, 1>, &ef));
-    thread2.start(callback(send_thread<FLAG02, 2>, &ef));
-    thread3.start(callback(send_thread<FLAG03, 3>, &ef));
+    thread1.start([&] { send_thread(&ef, FLAG01, 1ms); });
+    thread2.start([&] { send_thread(&ef, FLAG02, 2ms); });
+    thread3.start([&] { send_thread(&ef, FLAG03, 3ms); });
 
     uint32_t ret = ef.wait_all(FLAG01 | FLAG02 | FLAG03);
     TEST_ASSERT_EQUAL(FLAG01 | FLAG02 | FLAG03, ret);
@@ -236,9 +238,9 @@ void test_multi_thread_any(void)
     Thread thread1(osPriorityNormal, THREAD_STACK_SIZE);
     Thread thread2(osPriorityNormal, THREAD_STACK_SIZE);
     Thread thread3(osPriorityNormal, THREAD_STACK_SIZE);
-    thread1.start(callback(send_thread<FLAG01, 1>, &ef));
-    thread2.start(callback(send_thread<FLAG02, 1>, &ef));
-    thread3.start(callback(send_thread<FLAG03, 1>, &ef));
+    thread1.start([&] { send_thread(&ef, FLAG01, 1ms); });
+    thread2.start([&] { send_thread(&ef, FLAG02, 1ms); });
+    thread3.start([&] { send_thread(&ef, FLAG03, 1ms); });
 
     for (int i = 0; i <= MAX_FLAG_POS; i++) {
         uint32_t flag = 1 << i;
@@ -262,16 +264,16 @@ void test_multi_thread_any_timeout(void)
     EventFlags ef;
     uint32_t ret;
     Thread thread(osPriorityNormal, THREAD_STACK_SIZE);
-    thread.start(callback(send_thread_sync < FLAG01 | FLAG02 | FLAG03, 1 >, &ef));
+    thread.start([&] { send_thread_sync(&ef, FLAG01 | FLAG02 | FLAG03, 1ms); });
 
     for (int i = 0; i <= MAX_FLAG_POS; i++) {
         uint32_t flag = 1 << i;
 
-        ret = ef.wait_any(flag, 10);
+        ret = ef.wait_any_for(flag, 10ms);
         TEST_ASSERT_EQUAL(osFlagsErrorTimeout, ret);
 
         sync_sem.release();
-        ret = ef.wait_any(flag, 10);
+        ret = ef.wait_any_for(flag, 10ms);
         TEST_ASSERT_EQUAL(flag, ret);
     }
     ret = ef.get();
@@ -291,13 +293,13 @@ void test_multi_thread_any_no_clear(void)
     Thread thread1(osPriorityNormal, THREAD_STACK_SIZE);
     Thread thread2(osPriorityNormal, THREAD_STACK_SIZE);
     Thread thread3(osPriorityNormal, THREAD_STACK_SIZE);
-    thread1.start(callback(send_thread<FLAG01, 1>, &ef));
-    thread2.start(callback(send_thread<FLAG02, 1>, &ef));
-    thread3.start(callback(send_thread<FLAG03, 1>, &ef));
+    thread1.start([&] { send_thread(&ef, FLAG01, 1ms); });
+    thread2.start([&] { send_thread(&ef, FLAG02, 1ms); });
+    thread3.start([&] { send_thread(&ef, FLAG03, 1ms); });
 
     for (int i = 0; i <= MAX_FLAG_POS; i++) {
         uint32_t flag = 1 << i;
-        ret = ef.wait_any(flag, osWaitForever, false);
+        ret = ef.wait_any_for(flag, Kernel::wait_for_u32_forever, false);
         TEST_ASSERT(flag | ret);
         ret = ef.clear(flag);
         TEST_ASSERT(ret < osFlagsError);
@@ -319,9 +321,9 @@ void test_multi_thread_all_many_wait(void)
         Thread thread1(osPriorityNormal, THREAD_STACK_SIZE);
         Thread thread2(osPriorityNormal, THREAD_STACK_SIZE);
         Thread thread3(osPriorityNormal, THREAD_STACK_SIZE);
-        thread1.start(callback(wait_thread_all<FLAG01>, &ef));
-        thread2.start(callback(wait_thread_all<FLAG02>, &ef));
-        thread3.start(callback(wait_thread_all<FLAG03>, &ef));
+        thread1.start([&] { wait_thread_all(&ef, FLAG01); });
+        thread2.start([&] { wait_thread_all(&ef, FLAG02); });
+        thread3.start([&] { wait_thread_all(&ef, FLAG03); });
 
         ef.set(FLAG01 | FLAG02 | FLAG03);
         thread1.join();
@@ -334,9 +336,9 @@ void test_multi_thread_all_many_wait(void)
         Thread thread1(osPriorityNormal, THREAD_STACK_SIZE);
         Thread thread2(osPriorityNormal, THREAD_STACK_SIZE);
         Thread thread3(osPriorityNormal, THREAD_STACK_SIZE);
-        thread1.start(callback(wait_thread_all<FLAG01>, &ef));
-        thread2.start(callback(wait_thread_all<FLAG02>, &ef));
-        thread3.start(callback(wait_thread_all<FLAG03>, &ef));
+        thread1.start([&] { wait_thread_all(&ef, FLAG01); });
+        thread2.start([&] { wait_thread_all(&ef, FLAG02); });
+        thread3.start([&] { wait_thread_all(&ef, FLAG03); });
 
         ef.set(FLAG01);
         thread1.join();
@@ -346,6 +348,74 @@ void test_multi_thread_all_many_wait(void)
         thread3.join();
         TEST_ASSERT_EQUAL(NO_FLAGS, ef.get());
     }
+}
+#endif
+
+/** Test if multi-event flag set cause wait_all to return
+
+    Given a EventFlags object and three ticker instance with the callback registered
+    When callbacks set specified flags
+    Then main thread waits until receive all of them
+ */
+void test_multi_eventflags_all(void)
+{
+    EventFlags ef;
+    Ticker t1, t2, t3;
+    t1.attach([&] { send_thread(&ef, FLAG01, 0ms); }, 3ms);
+    t2.attach([&] { send_thread(&ef, FLAG02, 0ms); }, 4ms);
+    t3.attach([&] { send_thread(&ef, FLAG03, 0ms); }, 5ms);
+    uint32_t ret = ef.wait_all_for(FLAG01 | FLAG02 | FLAG03, 20ms, false);
+    TEST_ASSERT_EQUAL(FLAG01 | FLAG02 | FLAG03, ret);
+}
+
+/** Test if multi-event flag set cause wait_any to return
+
+    Given a EventFlags object and three ticker instance with the callback registered
+    When callbacks set specified flags
+    Then main thread waits until receive all of them
+ */
+void test_multi_eventflags_any(void)
+{
+    EventFlags ef;
+    uint32_t ret;
+    Ticker t1, t2, t3;
+    t1.attach([&] { send_thread(&ef, FLAG01, 0ms); }, 3ms);
+    t2.attach([&] { send_thread(&ef, FLAG02, 0ms); }, 4ms);
+    t3.attach([&] { send_thread(&ef, FLAG03, 0ms); }, 5ms);
+
+    for (int i = 0; i <= MAX_FLAG_POS; i++) {
+        uint32_t flag = 1 << i;
+        ret = ef.wait_any(flag);
+        TEST_ASSERT(flag | ret);
+    }
+    ret = ef.get();
+    TEST_ASSERT_EQUAL(NO_FLAGS, ret);
+}
+
+/** Test if multi-event flag set cause wait_any(without clear) to return
+
+    Given a EventFlags object and three ticker instance with the callback registered
+    When callbacks set specified flags
+    Then main thread waits until receive all of them
+ */
+void test_multi_eventflags_any_no_clear(void)
+{
+    EventFlags ef;
+    uint32_t ret;
+    Ticker t1, t2, t3;
+    t1.attach([&] { send_thread(&ef, FLAG01, 0ms); }, 3ms);
+    t2.attach([&] { send_thread(&ef, FLAG02, 0ms); }, 4ms);
+    t3.attach([&] { send_thread(&ef, FLAG03, 0ms); }, 5ms);
+
+    for (int i = 0; i <= MAX_FLAG_POS; i++) {
+        uint32_t flag = 1 << i;
+        ret = ef.wait_any(flag, osWaitForever, false);
+        TEST_ASSERT(flag | ret);
+        ret = ef.clear(flag);
+        TEST_ASSERT(ret < osFlagsError);
+    }
+    ret = ef.get();
+    TEST_ASSERT_EQUAL(NO_FLAGS, ret);
 }
 
 utest::v1::status_t test_setup(const size_t number_of_cases)
@@ -360,11 +430,16 @@ Case cases[] = {
     Case("Test empty set", test_empty_set),
     Case("Test clear/set with prohibited flag", test_prohibited),
     Case("Test set/get/clear for full flag range", test_set_get_clear_full_flag_range),
+#if defined(MBED_CONF_RTOS_PRESENT)
     Case("Test multi-threaded wait_all", test_multi_thread_all),
     Case("Test multi-threaded wait_any", test_multi_thread_any),
     Case("Test multi-threaded wait_all many wait", test_multi_thread_all_many_wait),
     Case("Test multi-threaded wait_any timeout", test_multi_thread_any_timeout),
-    Case("Test multi-threaded wait_any no clear", test_multi_thread_any_no_clear)
+    Case("Test multi-threaded wait_any no clear", test_multi_thread_any_no_clear),
+#endif
+    Case("Test multi-eventflags wait_all", test_multi_eventflags_all),
+    Case("Test multi-eventflags wait_any", test_multi_eventflags_any),
+    Case("Test multi-eventflags wait_any no clear", test_multi_eventflags_any_no_clear)
 };
 
 utest::v1::Specification specification(test_setup, cases);
@@ -375,4 +450,3 @@ int main()
 }
 
 #endif // !DEVICE_USTICKER
-#endif // defined(MBED_RTOS_SINGLE_THREAD) || !defined(MBED_CONF_RTOS_PRESENT)

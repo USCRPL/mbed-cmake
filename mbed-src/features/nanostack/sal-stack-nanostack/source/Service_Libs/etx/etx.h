@@ -64,7 +64,6 @@ typedef struct etx_sample_storage_s {
     uint16_t           attempts_count;         /*!< TX attempt count */
     uint8_t            etx_timer;              /*!< Count down from configured value 0 means that ETX Update is possible done again*/
     uint8_t            received_acks;          /*!< Received ACK's */
-    uint8_t            sample_count;           /*!< Finished TX count */
 } etx_sample_storage_t;
 
 /**
@@ -77,8 +76,9 @@ typedef struct etx_sample_storage_s {
  * \param attempts number of attempts to send message
  * \param success was message sending successful
  * \param attribute_index Neighbour attribute index
+ * \param mac64_addr_ptr Neighbour MAC64
  */
-void etx_transm_attempts_update(int8_t interface_id, uint8_t attempts, bool success, uint8_t attribute_index);
+void etx_transm_attempts_update(int8_t interface_id, uint8_t attempts, bool success, uint8_t attribute_index, const uint8_t *mac64_addr_ptr);
 
 /**
  * \brief A function to update ETX value based on remote incoming IDR
@@ -89,8 +89,9 @@ void etx_transm_attempts_update(int8_t interface_id, uint8_t attempts, bool succ
  * \param interface_id Interface identifier
  * \param remote_incoming_idr Remote incoming IDR
  * \param attribute_index Neighbour attribute index
+ * \param mac64_addr_ptr Neighbour MAC64
  */
-void etx_remote_incoming_idr_update(int8_t interface_id, uint8_t remote_incoming_idr, uint8_t attribute_index);
+void etx_remote_incoming_idr_update(int8_t interface_id, uint8_t remote_incoming_idr, uint8_t attribute_index, const uint8_t *mac64_addr_ptr);
 
 /**
  * \brief A function to read ETX value
@@ -140,10 +141,11 @@ uint16_t etx_local_etx_read(int8_t interface_id, uint8_t attribute_index);
  * \param lqi link quality indicator
  * \param dbm measured dBm
  * \param attribute_index Neighbour attribute index
+ * \param mac64_addr_ptr Neighbour MAC64
  *
  * \return 0x0100 to 0xFFFF local incoming IDR value (8 bit fraction)
  */
-uint16_t etx_lqi_dbm_update(int8_t interface_id, uint8_t lqi, int8_t dbm, uint8_t attribute_index);
+uint16_t etx_lqi_dbm_update(int8_t interface_id, uint8_t lqi, int8_t dbm, uint8_t attribute_index, const uint8_t *mac64_addr_ptr);
 
 /**
  * \brief A function callback that indicates ETX value change
@@ -155,9 +157,10 @@ uint16_t etx_lqi_dbm_update(int8_t interface_id, uint8_t lqi, int8_t dbm, uint8_
  * \param previous_etx ETX value to what the current ETX was compared (8 bit fraction)
  * \param current_etx current ETX value (8 bit fraction)
  * \param attribute_index Neighbour attribute index
+ * \param mac64_addr_ptr Pointer to MAC64 for given etx update
  *
  */
-typedef void (etx_value_change_handler_t)(int8_t nwk_id, uint16_t previous_etx, uint16_t current_etx, uint8_t attribute_index);
+typedef void (etx_value_change_handler_t)(int8_t nwk_id, uint16_t previous_etx, uint16_t current_etx, uint8_t attribute_index, const uint8_t *mac64_addr_ptr);
 
 /**
  * \brief A function callback that indicates the number of accumulated TX failures
@@ -233,20 +236,10 @@ uint8_t etx_accum_failures_callback_register(nwk_interface_id nwk_id, int8_t int
  *  if that is set.
  *
  * \param attribute_index Neighbour attribute index
+ * \param mac64_addr_ptr Neighbour MAC64
  *
  */
-void etx_neighbor_remove(int8_t interface_id, uint8_t attribute_index);
-
-/**
- * \brief A function to add ETX neighbor
- *
- *  Notifies ETX module that neighbor has been added. Calls ETX value change callback
- *  if that is set.
- *
- * \param attribute_index Neighbour attribute index
- *
- */
-void etx_neighbor_add(int8_t interface_id, uint8_t attribute_index);
+void etx_neighbor_remove(int8_t interface_id, uint8_t attribute_index, const uint8_t *mac64_addr_ptr);
 
 /**
  * \brief A function for update cached ETX calculation
@@ -266,13 +259,14 @@ void etx_cache_timer(int8_t interface_id, uint16_t seconds_update);
  *  ETX update will happen when min wait time is reached and also reached min etx sample count.
  *
  * \param min_wait_time how many seconds must wait before do new ETX
- * \param etx_min_sample_count define how many completed TX process must be done for new ETX. Min accepted value is 4.
+ * \param etx_min_attempts_count define how many TX attempts process must be done for new ETX. Min accepted value is 4.
+ * \param init_etx_sample_count How Many sample is need to init etx calculate
  *
  * \return true Enable is OK
  * \return false Memory allocation fail
  *
  */
-bool etx_cached_etx_parameter_set(uint8_t min_wait_time, uint8_t etx_min_sample_count);
+bool etx_cached_etx_parameter_set(uint8_t min_wait_time, uint8_t etx_min_attempts_count, uint8_t init_etx_sample_count);
 
 
 /**
@@ -284,5 +278,15 @@ bool etx_cached_etx_parameter_set(uint8_t min_wait_time, uint8_t etx_min_sample_
  *
  */
 void etx_max_update_set(uint16_t etx_max_update);
+
+/**
+ * \brief A function for set Maxium ETX value
+ *
+ * ETX RFC define that that Max value is 0xffff but this API cuold make that Poor link start go down slowly.
+ *
+ * \param etx_max 0 No limit for higher value means. This pameter will change normal ETX which could be 0xffff.
+ *
+ */
+void etx_max_set(uint16_t etx_max);
 
 #endif /* ETX_H_ */

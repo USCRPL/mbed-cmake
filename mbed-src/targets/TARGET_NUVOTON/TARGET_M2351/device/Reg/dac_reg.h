@@ -3,10 +3,19 @@
  * @version  V1.00
  * @brief    DAC register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __DAC_REG_H__
 #define __DAC_REG_H__
+
+
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Digital to Analog Converter -------------------------*/
 /**
@@ -193,5 +202,6 @@ typedef struct
 
 /**@}*/ /* DAC_CONST */
 /**@}*/ /* end of DAC register group */
+/**@}*/ /* end of REGISTER group */
 
 #endif /* __DAC_REG_H__ */

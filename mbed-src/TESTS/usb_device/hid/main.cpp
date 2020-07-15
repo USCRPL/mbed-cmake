@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, ARM Limited, All Rights Reserved
+ * Copyright (c) 2018-2020, ARM Limited, All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if !defined(MBED_CONF_RTOS_PRESENT)
-#error [NOT_SUPPORTED] USB stack and test cases require RTOS to run.
+
+#if !USB_DEVICE_TESTS
+#error [NOT_SUPPORTED] usb device tests not enabled
 #else
 
 #if !defined(DEVICE_USBDEVICE) || !DEVICE_USBDEVICE
@@ -42,7 +43,6 @@
 
 #define MSG_VALUE_LEN 24
 #define MSG_KEY_LEN 24
-#define MSG_KEY_DEVICE_READY "ready"
 #define MSG_KEY_DEVICE_READY "dev_ready"
 #define MSG_KEY_HOST_READY "host_ready"
 #define MSG_KEY_SERIAL_NUMBER "usb_dev_sn"
@@ -389,4 +389,4 @@ int main()
 }
 
 #endif // !defined(DEVICE_USBDEVICE) || !DEVICE_USBDEVICE
-#endif // !defined(MBED_CONF_RTOS_PRESENT)
+#endif // !defined(USB_DEVICE_TESTS)

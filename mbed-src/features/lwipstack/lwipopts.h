@@ -84,11 +84,6 @@
 #define LWIP_RAW                    MBED_CONF_LWIP_RAW_SOCKET_ENABLED
 
 #define MEMP_NUM_TCPIP_MSG_INPKT    MBED_CONF_LWIP_MEMP_NUM_TCPIP_MSG_INPKT
-#define TCPIP_MBOX_SIZE             MBED_CONF_LWIP_TCPIP_MBOX_SIZE
-#define DEFAULT_TCP_RECVMBOX_SIZE   MBED_CONF_LWIP_DEFAULT_TCP_RECVMBOX_SIZE
-#define DEFAULT_UDP_RECVMBOX_SIZE   8
-#define DEFAULT_RAW_RECVMBOX_SIZE   8
-#define DEFAULT_ACCEPTMBOX_SIZE     8
 
 // Thread stacks use 8-byte alignment
 #define LWIP_ALIGN_UP(pos, align) ((pos) % (align) ? (pos) +  ((align) - (pos) % (align)) : (pos))
@@ -158,7 +153,7 @@
 
 #define MEM_SIZE                    MBED_CONF_LWIP_MEM_SIZE
 
-// One tcp_pcb_listen is needed for each TCPServer.
+// One tcp_pcb_listen is needed for each TCP server.
 // Each requires 72 bytes of RAM.
 #define MEMP_NUM_TCP_PCB_LISTEN     MBED_CONF_LWIP_TCP_SERVER_MAX
 
@@ -177,7 +172,7 @@
 // Each netbuf requires 64 bytes of RAM.
 #define MEMP_NUM_NETBUF             MBED_CONF_LWIP_NUM_NETBUF
 
-// One netconn is needed for each UDPSocket, TCPSocket or TCPServer.
+// One netconn is needed for each UDPSocket or TCPSocket.
 // Each requires 236 bytes of RAM (total rounded to multiple of 512).
 #define MEMP_NUM_NETCONN            MBED_CONF_LWIP_SOCKET_MAX
 

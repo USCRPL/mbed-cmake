@@ -356,7 +356,7 @@ static void icmpv6_na_wisun_aro_handler(protocol_interface_info_entry_t *cur_int
 
     (void)life_time;
     if (nd_status != ARO_SUCCESS) {
-        ws_common_aro_failure(cur_interface, src_addr, true);
+        ws_common_aro_failure(cur_interface, src_addr);
     }
 }
 
@@ -1377,6 +1377,7 @@ void ack_remove_neighbour_cb(struct buffer *buffer_ptr, uint8_t status)
 
 static void icmpv6_aro_cb(buffer_t *buf, uint8_t status)
 {
+    (void)status;
     uint8_t ll_address[16];
     if (buf->dst_sa.addr_type == ADDR_IPV6) {
         /*Full IPv6 address*/
@@ -1387,9 +1388,9 @@ static void icmpv6_aro_cb(buffer_t *buf, uint8_t status)
         memcpy(ll_address + 8, &buf->dst_sa.address[2], 8);
         ll_address[8] ^= 2;
     }
-    rpl_control_address_register_done(buf->interface, ll_address, status);
-    if (status != SOCKET_TX_DONE) {
-        ws_common_aro_failure(buf->interface, ll_address, false);
+    if (rpl_control_address_register_done(buf->interface, ll_address, status)) {
+        // When RPL returns true neighbor should be blacklisted
+        ws_common_aro_failure(buf->interface, ll_address);
     }
 }
 
@@ -1697,7 +1698,7 @@ buffer_t *icmpv6_build_na(protocol_interface_info_entry_t *cur, bool solicited, 
         memcpy(ptr, aro->eui64, 8);
         ptr += 8;
     }
-    if (ws_info(cur) && aro && aro->status != ARO_SUCCESS) {
+    if (ws_info(cur) && aro && (aro->status != ARO_SUCCESS && aro->status != ARO_TOPOLOGICALLY_INCORRECT)) {
         /*If Aro failed we will kill the neigbour after we have succeeded in sending message*/
         if (!ws_common_negative_aro_mark(cur, aro->eui64)) {
             tr_debug("Neighbour removed for negative response send");
@@ -1713,7 +1714,11 @@ buffer_t *icmpv6_build_na(protocol_interface_info_entry_t *cur, bool solicited, 
     buf->info = (buffer_info_t)(B_DIR_DOWN | B_FROM_ICMP | B_TO_ICMP);
     buf->interface = cur;
 
-    tr_debug("Build NA");
+    if (aro) {
+        tr_info("Build NA ARO");
+    } else {
+        tr_info("Build NA");
+    }
 
     return (buf);
 }

@@ -18,7 +18,7 @@
 
 namespace mbed {
 
-QUECTEL_BG96_CellularInformation::QUECTEL_BG96_CellularInformation(ATHandler &at) : AT_CellularInformation(at)
+QUECTEL_BG96_CellularInformation::QUECTEL_BG96_CellularInformation(ATHandler &at, AT_CellularDevice &device) : AT_CellularInformation(at, device)
 {
 }
 
@@ -30,6 +30,11 @@ QUECTEL_BG96_CellularInformation::~QUECTEL_BG96_CellularInformation()
 nsapi_error_t QUECTEL_BG96_CellularInformation::get_iccid(char *buf, size_t buf_size)
 {
     return _at.at_cmd_str("+QCCID", "", buf, buf_size);
+}
+
+nsapi_error_t QUECTEL_BG96_CellularInformation::get_revision(char *buf, size_t buf_size)
+{
+    return get_info("AT+QGMR", buf, buf_size);
 }
 
 } /* namespace mbed */

@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#if !defined(MBED_CONF_RTOS_PRESENT)
-#error [NOT_SUPPORTED] Low power timer test cases require a RTOS to run.
-#else
 
 #include "mbed.h"
 #include "greentea-client/test_env.h"
@@ -47,21 +44,20 @@ ticker_irq_handler_type prev_handler;
 
 #define LP_TICKER_OV_LIMIT 4000
 
-/* Flush serial buffer before deep sleep
+/* To prevent a loss of Greentea data, the serial buffers have to be flushed
+ * before the UART peripheral shutdown. The UART shutdown happens when the
+ * device is entering the deepsleep mode or performing a reset.
  *
- * Since deepsleep() may shut down the UART peripheral, we wait for some time
- * to allow for hardware serial buffers to completely flush.
+ * With the current API, it is not possible to check if the hardware buffers
+ * are empty. However, it is possible to determine the time required for the
+ * buffers to flush.
  *
- * Take NUMAKER_PFM_NUC472 as an example:
- * Its UART peripheral has 16-byte Tx FIFO. With baud rate set to 9600, flush
- * Tx FIFO would take: 16 * 8 * 1000 / 9600 = 13.3 (ms). So set wait time to
- * 20ms here for safe.
- *
- * This should be replaced with a better function that checks if the
- * hardware buffers are empty. However, such an API does not exist now,
- * so we'll use the busy_wait_ms() function for now.
+ * Assuming the biggest Tx FIFO of 128 bytes (as for CY8CPROTO_062_4343W)
+ * and a default UART config (9600, 8N1), flushing the Tx FIFO wold take:
+ * (1 start_bit + 8 data_bits + 1 stop_bit) * 128 * 1000 / 9600 = 133.3 ms.
+ * To be on the safe side, set the wait time to 150 ms.
  */
-#define SERIAL_FLUSH_TIME_MS    20
+#define SERIAL_FLUSH_TIME_MS 150
 
 void busy_wait_ms(int ms)
 {
@@ -167,8 +163,10 @@ void lp_ticker_glitch_test()
 #if DEVICE_LPTICKER
 utest::v1::status_t lp_ticker_deepsleep_test_setup_handler(const Case *const source, const size_t index_of_case)
 {
+#ifdef MBED_CONF_RTOS_PRESENT
     /* disable everything using the lp ticker for this test */
     osKernelSuspend();
+#endif
     ticker_suspend(get_lp_ticker_data());
 #if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
     lp_ticker_wrapper_suspend();
@@ -185,7 +183,9 @@ utest::v1::status_t lp_ticker_deepsleep_test_teardown_handler(const Case *const 
     lp_ticker_wrapper_resume();
 #endif
     ticker_resume(get_lp_ticker_data());
+#ifdef MBED_CONF_RTOS_PRESENT
     osKernelResume(0);
+#endif
     return greentea_case_teardown_handler(source, passed, failed, reason);
 }
 #endif
@@ -212,4 +212,3 @@ int main()
 }
 
 #endif // !DEVICE_LPTICKER
-#endif // !defined(MBED_CONF_RTOS_PRESENT)

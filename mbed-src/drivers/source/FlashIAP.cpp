@@ -1,6 +1,8 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017-2019 ARM Limited
  *
+ * SPDX-License-Identifier: MIT
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -57,8 +59,12 @@ int FlashIAP::init()
             ret = -1;
         }
     }
-    uint32_t page_size = get_page_size();
-    _page_buf = new uint8_t[page_size];
+
+    // Do not allocate if flash_init failed
+    if (ret == 0) {
+        uint32_t page_size = get_page_size();
+        _page_buf = new uint8_t[page_size];
+    }
 
     _mutex->unlock();
     return ret;

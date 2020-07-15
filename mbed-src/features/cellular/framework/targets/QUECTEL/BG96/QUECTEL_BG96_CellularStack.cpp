@@ -29,9 +29,13 @@ static const char BG96_SUPPORTED_CIPHER_SUITE[] = "0xFFFF"; // Support all
 //       Later can be expanded to support multiple contexts. Modem supports IDs 0-5.
 static const int sslctxID = 0;
 
-using namespace mbed;
+static const int BG96_ASYNC_DNS_QUERY_ID = 1; // BG96 driver only supports one request, so using id 1
 
-QUECTEL_BG96_CellularStack::QUECTEL_BG96_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type) : AT_CellularStack(atHandler, cid, stack_type)
+using namespace mbed;
+using namespace std::chrono_literals;
+
+QUECTEL_BG96_CellularStack::QUECTEL_BG96_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type, AT_CellularDevice &device) :
+    AT_CellularStack(atHandler, cid, stack_type, device)
 #ifdef MBED_CONF_CELLULAR_OFFLOAD_DNS_QUERIES
 #if (MBED_CONF_CELLULAR_OFFLOAD_DNS_QUERIES != 1)
 #error Define cellular.offload-dns-queries to null or 1.
@@ -190,7 +194,7 @@ void QUECTEL_BG96_CellularStack::urc_qiurc_dnsgip()
     }
     SocketAddress address;
     if (read_dnsgip(address, _dns_version)) {
-        _dns_callback(NSAPI_ERROR_OK, &address);
+        _dns_callback(1, &address);
     } else {
         _dns_callback(NSAPI_ERROR_DNS_FAILURE, NULL);
     }
@@ -219,16 +223,6 @@ void QUECTEL_BG96_CellularStack::urc_qiurc(urc_type_t urc_type)
             sock->_cb(sock->_data);
         }
     }
-}
-
-int QUECTEL_BG96_CellularStack::get_max_socket_count()
-{
-    return BG96_SOCKET_MAX;
-}
-
-bool QUECTEL_BG96_CellularStack::is_protocol_supported(nsapi_protocol_t protocol)
-{
-    return (protocol == NSAPI_UDP || protocol == NSAPI_TCP);
 }
 
 nsapi_error_t QUECTEL_BG96_CellularStack::socket_close_impl(int sock_id)
@@ -472,7 +466,7 @@ nsapi_error_t QUECTEL_BG96_CellularStack::gethostbyname(const char *host, Socket
     }
 
     if (!address->set_ip_address(host)) {
-        _at.set_at_timeout(60 * 1000); // from BG96_TCP/IP_AT_Commands_Manual_V1.0
+        _at.set_at_timeout(1min); // from BG96_TCP/IP_AT_Commands_Manual_V1.0
         _at.at_cmd_discard("+QIDNSGIP", "=", "%d%s", _cid, host);
         _at.resp_start("+QIURC: \"dnsgip\",");
         _at.restore_at_timeout();
@@ -505,7 +499,7 @@ nsapi_value_or_error_t QUECTEL_BG96_CellularStack::gethostbyname_async(const cha
         _dns_version = version;
     }
 
-    return _at.unlock_return_error() ? NSAPI_ERROR_DNS_FAILURE : NSAPI_ERROR_OK;
+    return _at.unlock_return_error() ? NSAPI_ERROR_DNS_FAILURE : BG96_ASYNC_DNS_QUERY_ID;
 }
 
 nsapi_error_t QUECTEL_BG96_CellularStack::gethostbyname_async_cancel(int id)
@@ -534,6 +528,8 @@ void QUECTEL_BG96_CellularStack::ip2dot(const SocketAddress &ip, char *dot)
     }
 }
 
+#if defined(MBED_CONF_NSAPI_OFFLOAD_TLSSOCKET) && (MBED_CONF_NSAPI_OFFLOAD_TLSSOCKET)
+
 nsapi_error_t QUECTEL_BG96_CellularStack::set_to_modem_impl(const char *filename, const char *config, const char *data, size_t size)
 {
     // Delete old file from the modem.
@@ -557,7 +553,6 @@ nsapi_error_t QUECTEL_BG96_CellularStack::set_to_modem_impl(const char *filename
 
     return _at.get_last_error();
 }
-
 
 nsapi_error_t QUECTEL_BG96_CellularStack::setsockopt(nsapi_socket_t handle, int level,
                                                      int optname, const void *optval, unsigned optlen)
@@ -650,3 +645,4 @@ nsapi_error_t QUECTEL_BG96_CellularStack::setsockopt(nsapi_socket_t handle, int 
 
     return ret;
 }
+#endif

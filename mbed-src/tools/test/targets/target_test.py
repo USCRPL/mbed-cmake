@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
  mbed
- Copyright (c) 2017-2017 ARM Limited
+ Copyright (c) 2017-2020 ARM Limited
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -15,6 +15,12 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 """
+# How to run this test?
+#
+# Note! You  must be in the mbed-os -folder!
+#
+# python -m pytest tools/test/targets/target_test.py
+#
 import os
 import sys
 import shutil
@@ -23,8 +29,10 @@ from os.path import join, abspath, dirname
 from contextlib import contextmanager
 import pytest
 
-from tools.targets import TARGETS, TARGET_MAP, Target, update_target_data
+from tools.targets import TARGETS, TARGET_MAP, Target, update_target_data, find_secure_image
 from tools.arm_pack_manager import Cache
+from tools.notifier.mock import MockNotifier
+from tools.resources import Resources, FileType
 
 
 def test_device_name():
@@ -39,6 +47,7 @@ def test_device_name():
 
 def test_bl_has_sectors():
     """Assert a bootloader supporting pack has sector information"""
+    # ToDo: validity checks for the information IN the sectors!
     cache = Cache(True, True)
     named_targets = (
         target for target in TARGETS if
@@ -48,6 +57,9 @@ def test_bl_has_sectors():
         assert target.device_name in cache.index,\
             ("Target %s contains invalid device_name %s" %
              (target.name, target.device_name))
+        assert "sectors" in cache.index[target.device_name],\
+            ("Target %s does not have sectors" %
+             (target.name))
         assert cache.index[target.device_name]["sectors"],\
             ("Device name %s is misssing sector information" %
              (target.device_name))
@@ -102,7 +114,12 @@ def test_modify_existing_target():
             "features": [],
             "detect_code": [],
             "public": false,
-            "default_lib": "std",
+            "c_lib": "std",
+            "supported_c_libs": {
+                "arm": ["std"],
+                "gcc_arm": ["std", "small"],
+                "iar": ["std"]
+            },
             "bootloader_supported": false
         },
         "Test_Target": {
@@ -113,7 +130,7 @@ def test_modify_existing_target():
     }"""
 
     test_target_json = """
-    { 
+    {
         "Target": {
             "core": "Cortex-M0",
             "default_toolchain": "GCC_ARM",
@@ -125,7 +142,12 @@ def test_modify_existing_target():
             "features": [],
             "detect_code": [],
             "public": false,
-            "default_lib": "std",
+            "c_lib": "std",
+            "supported_c_libs": {
+                "arm": ["std"],
+                "gcc_arm": ["std", "small"],
+                "iar": ["std"]
+            },
             "bootloader_supported": true
         }
     }
@@ -146,3 +168,38 @@ def test_modify_existing_target():
             # The existing target should not be modified by custom targets
             assert TARGET_MAP["Test_Target"].default_toolchain != 'GCC_ARM'
             assert TARGET_MAP["Test_Target"].bootloader_supported != True
+
+def test_find_secure_image():
+    mock_notifier = MockNotifier()
+    mock_resources = Resources(mock_notifier)
+    ns_image_path = os.path.join('BUILD', 'TARGET_NS', 'app.bin')
+    ns_test_path = os.path.join('BUILD', 'TARGET_NS', 'test.bin')
+    config_s_image_name = 'target_config.bin'
+    default_bin = os.path.join('prebuilt', config_s_image_name)
+    test_bin = os.path.join('prebuilt', 'test.bin')
+
+    with pytest.raises(Exception, match='ns_image_path and configured_s_image_path are mandatory'):
+        find_secure_image(mock_notifier, mock_resources, None, None, FileType.BIN)
+        find_secure_image(mock_notifier, mock_resources, ns_image_path, None, FileType.BIN)
+        find_secure_image(mock_notifier, mock_resources, None, config_s_image_name, FileType.BIN)
+
+    with pytest.raises(Exception, match='image_type must be of type BIN or HEX'):
+        find_secure_image(mock_notifier, mock_resources, ns_image_path, config_s_image_name, None)
+        find_secure_image(mock_notifier, mock_resources, ns_image_path, config_s_image_name, FileType.C_SRC)
+
+    with pytest.raises(Exception, match='No image files found for this target'):
+        find_secure_image(mock_notifier, mock_resources, ns_image_path, config_s_image_name, FileType.BIN)
+
+    dummy_bin = os.path.join('path', 'to', 'dummy.bin')
+    mock_resources.add_file_ref(FileType.BIN, dummy_bin, dummy_bin)
+
+    with pytest.raises(Exception, match='Required secure image not found'):
+        find_secure_image(mock_notifier, mock_resources, ns_image_path, config_s_image_name, FileType.BIN)
+
+    mock_resources.add_file_ref(FileType.BIN, default_bin, default_bin)
+    mock_resources.add_file_ref(FileType.BIN, test_bin, test_bin)
+    secure_image = find_secure_image(mock_notifier, mock_resources, ns_image_path, config_s_image_name, FileType.BIN)
+    assert secure_image == default_bin
+
+    secure_image = find_secure_image(mock_notifier, mock_resources, ns_test_path, config_s_image_name, FileType.BIN)
+    assert secure_image == test_bin

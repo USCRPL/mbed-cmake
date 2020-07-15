@@ -58,6 +58,10 @@
             "help": "Number of cached host name resolutions",
             "value": 3
         },
+        "dns-addresses-limit": {
+            "help": "Max number IP addresses returned by  multiple DNS query",
+            "value": 10
+        },
         "socket-stats-enabled": {
             "help": "Enable network socket statistics",
             "value": false
@@ -72,12 +76,6 @@
         }
     },
     "target_overrides": {
-        "KW24D": {
-            "nsapi.default-mesh-type": "LOWPAN"
-        },
-        "NCS36510": {
-            "nsapi.default-mesh-type": "LOWPAN"
-        },
         "TB_SENSE_12": {
             "nsapi.default-mesh-type": "LOWPAN"
         }

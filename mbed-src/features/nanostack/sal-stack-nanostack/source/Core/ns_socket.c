@@ -287,14 +287,16 @@ void socket_release(socket_t *socket)
         if (tcp_info(socket->inet_pcb)) {
             /* This may trigger a reset if pending data. Do it first so you
              * get just the reset, rather than a FIN. */
-            tcp_session_shutdown_read(tcp_info(socket->inet_pcb));
+            tcp_error sock_status = tcp_session_shutdown_read(tcp_info(socket->inet_pcb));
             /* This can also cause TCP deletion */
             if (tcp_info(socket->inet_pcb)) {
-                tcp_session_close(tcp_info(socket->inet_pcb));
+                sock_status = tcp_session_close(tcp_info(socket->inet_pcb));
             }
             if (tcp_info(socket->inet_pcb)) {
                 tcp_socket_released(tcp_info(socket->inet_pcb));
             }
+            // prevent warning "statement with no effect" when TCP is disabled
+            (void) sock_status;
         } else {
             /* Unbind the internet control block - ensures users are not prevented
              * from binding a new socket to the same port if the socket lingers
@@ -340,7 +342,7 @@ static void socket_free(socket_t *socket)
     ns_dyn_mem_free(socket);
 }
 
-error_t socket_port_validate(uint16_t port, uint8_t protocol)
+socket_error_t socket_port_validate(uint16_t port, uint8_t protocol)
 {
     ns_list_foreach(socket_t, socket, &socket_list) {
         if (!socket_is_ipv6(socket)) {
@@ -495,7 +497,7 @@ socket_t *socket_dereference(socket_t *socket_ptr)
  * \return eFALSE no free sockets
  * \return eBUSY port reserved
  */
-error_t socket_create(socket_family_t family, socket_type_t type, uint8_t protocol, int8_t *sid, uint16_t port, void (*passed_fptr)(void *), bool buffer_type)
+socket_error_t socket_create(socket_family_t family, socket_type_t type, uint8_t protocol, int8_t *sid, uint16_t port, void (*passed_fptr)(void *), bool buffer_type)
 {
     if (sid) {
         *sid = -1;
@@ -848,7 +850,7 @@ socket_t *socket_lookup(socket_family_t family, uint8_t protocol, const sockaddr
  * \return eFALSE no socket found
  * \return eBUSY socket full
  */
-error_t socket_up(buffer_t *buf)
+socket_error_t socket_up(buffer_t *buf)
 {
     socket_t *socket = buf->socket;
 
@@ -1362,8 +1364,10 @@ int16_t socket_buffer_sendmsg(int8_t sid, buffer_t *buf, const struct ns_msghdr 
 
     protocol_push(buf);
 
+#ifndef NO_TCP
     /* TCP jumps back to here */
 success:
+#endif
     if (flags & NS_MSG_LEGACY0) {
         return 0;
     } else {

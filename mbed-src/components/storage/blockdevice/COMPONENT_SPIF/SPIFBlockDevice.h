@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2018 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +20,24 @@
 #include "platform/SingletonPtr.h"
 #include "drivers/SPI.h"
 #include "drivers/DigitalOut.h"
+#include "drivers/internal/SFDP.h"
 #include "features/storage/blockdevice/BlockDevice.h"
+
+#ifndef MBED_CONF_SPIF_DRIVER_SPI_MOSI
+#define MBED_CONF_SPIF_DRIVER_SPI_MOSI NC
+#endif
+#ifndef MBED_CONF_SPIF_DRIVER_SPI_MISO
+#define MBED_CONF_SPIF_DRIVER_SPI_MISO NC
+#endif
+#ifndef MBED_CONF_SPIF_DRIVER_SPI_CLK
+#define MBED_CONF_SPIF_DRIVER_SPI_CLK NC
+#endif
+#ifndef MBED_CONF_SPIF_DRIVER_SPI_CS
+#define MBED_CONF_SPIF_DRIVER_SPI_CS NC
+#endif
+#ifndef MBED_CONF_SPIF_DRIVER_SPI_FREQ
+#define MBED_CONF_SPIF_DRIVER_SPI_FREQ 40000000
+#endif
 
 /** Enum spif standard error codes
  *
@@ -34,9 +52,6 @@ enum spif_bd_error {
     SPIF_BD_ERROR_INVALID_ERASE_PARAMS  = -4005, /* Erase command not on sector aligned addresses or exceeds device size */
 };
 
-
-#define SPIF_MAX_REGIONS    10
-#define MAX_NUM_OF_ERASE_TYPES 4
 
 /** BlockDevice for SFDP based flash devices over SPI bus
  *
@@ -82,8 +97,14 @@ public:
      *  @param sclk     SPI clock pin
      *  @param csel     SPI chip select pin
      *  @param freq     Clock speed of the SPI bus (defaults to 40MHz)
+     *
+     *
      */
-    SPIFBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName csel, int freq = 40000000);
+    SPIFBlockDevice(PinName mosi = MBED_CONF_SPIF_DRIVER_SPI_MOSI,
+                    PinName miso = MBED_CONF_SPIF_DRIVER_SPI_MISO,
+                    PinName sclk = MBED_CONF_SPIF_DRIVER_SPI_CLK,
+                    PinName csel = MBED_CONF_SPIF_DRIVER_SPI_CS,
+                    int freq = MBED_CONF_SPIF_DRIVER_SPI_FREQ);
 
     /** Initialize a block device
      *
@@ -196,42 +217,18 @@ public:
     virtual const char *get_type() const;
 
 private:
-
-    // Internal functions
-
     /****************************************/
     /* SFDP Detection and Parsing Functions */
     /****************************************/
-    // Parse SFDP Headers and retrieve Basic Param and Sector Map Tables (if exist)
-    int _sfdp_parse_sfdp_headers(uint32_t &basic_table_addr, size_t &basic_table_size,
-                                 uint32_t &sector_map_table_addr, size_t &sector_map_table_size);
+    // Send SFDP Read command to Driver
+    int _spi_send_read_sfdp_command(mbed::bd_addr_t addr, void *rx_buffer, mbed::bd_size_t rx_length);
 
     // Parse and Detect required Basic Parameters from Table
-    int _sfdp_parse_basic_param_table(uint32_t basic_table_addr, size_t basic_table_size);
-
-    // Parse and read information required by Regions Sector Map
-    int _sfdp_parse_sector_map_table(uint32_t sector_map_table_addr, size_t sector_map_table_size);
+    int _sfdp_parse_basic_param_table(mbed::Callback<int(mbed::bd_addr_t, void *, mbed::bd_size_t)> sfdp_reader,
+                                      mbed::sfdp_hdr_info &hdr_info);
 
     // Detect fastest read Bus mode supported by device
     int _sfdp_detect_best_bus_read_mode(uint8_t *basic_param_table_ptr, int basic_param_table_size, int &read_inst);
-
-    // Set Page size for program
-    unsigned int _sfdp_detect_page_size(uint8_t *basic_param_table_ptr, int basic_param_table_size);
-
-    // Detect all supported erase types
-    int _sfdp_detect_erase_types_inst_and_size(uint8_t *basic_param_table_ptr, int basic_param_table_size,
-                                               int &erase4k_inst,
-                                               int *erase_type_inst_arr, unsigned int *erase_type_size_arr);
-
-    /***********************/
-    /* Utilities Functions */
-    /***********************/
-    // Find the region to which the given offset belongs to
-    int _utils_find_addr_region(bd_size_t offset) const;
-
-    // Iterate on all supported Erase Types of the Region to which the offset belongs to.
-    // Iterates from highest type to lowest
-    int _utils_iterate_next_largest_erase_type(uint8_t &bitfield, int size, int offset, int boundry);
 
     /********************************/
     /*   Calls to SPI Driver APIs   */
@@ -263,11 +260,12 @@ private:
     // Wait on status register until write not-in-progress
     bool _is_mem_ready();
 
+    // Query vendor ID and handle special behavior that isn't covered by SFDP data
+    int _handle_vendor_quirks();
+
 private:
     // Master side hardware
     mbed::SPI _spi;
-    // Enable CS control (low/high) for SPI driver operations
-    mbed::DigitalOut _cs;
 
     // Mutex is used to protect Flash device for some SPI Driver commands that must be done sequentially with no other commands in between
     // e.g. (1)Set Write Enable, (2)Program, (3)Wait Memory Ready
@@ -277,19 +275,9 @@ private:
     int _read_instruction;
     int _prog_instruction;
     int _erase_instruction;
-    int _erase4k_inst;  // Legacy 4K erase instruction (default 0x20h)
 
-    // Up To 4 Erase Types are supported by SFDP (each with its own command Instruction and Size)
-    int _erase_type_inst_arr[MAX_NUM_OF_ERASE_TYPES];
-    unsigned int _erase_type_size_arr[MAX_NUM_OF_ERASE_TYPES];
-
-    // Sector Regions Map
-    int _regions_count; //number of regions
-    int _region_size_bytes[SPIF_MAX_REGIONS]; //regions size in bytes
-    bd_size_t _region_high_boundary[SPIF_MAX_REGIONS]; //region high address offset boundary
-    //Each Region can support a bit combination of any of the 4 Erase Types
-    uint8_t _region_erase_types_bitfield[SPIF_MAX_REGIONS];
-    unsigned int _min_common_erase_size; // minimal common erase size for all regions (0 if none exists)
+    // Data extracted from the devices SFDP structure
+    mbed::sfdp_hdr_info _sfdp_info;
 
     unsigned int _page_size_bytes; // Page size - 256 Bytes default
     bd_size_t _device_size_bytes;

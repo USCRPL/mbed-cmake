@@ -10,7 +10,7 @@
 *
 ********************************************************************************
 * \copyright
-* Copyright 2018-2019 Cypress Semiconductor Corporation
+* Copyright 2018-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@
   </Dependencies>
   <ExposedMembers>
     <ExposedMember key="suppressCodeGen" paramId="suppressAmuxCodeGen" />
+    <ExposedMember key="CapSenseEnable" paramId="CapSenseEnable" />
   </ExposedMembers>
   <Parameters>
     <!-- PDL documentation -->
@@ -81,7 +82,7 @@
     <!-- CapSense -->
     <ParamBool id="CapSenseEnable" name="Enable CapSense" group="CapSense" default="true" visible="true" editable="true" 
             desc="Enables CapSense function of CSD hardware block" />
-    <ParamChoice id="CapSenseCore" name="Target CPU core" group="CapSense" default="4" visible="false" editable="true" desc="Configures the target CPU core for CapSense middleware" >
+    <ParamChoice id="CapSenseCore" name="Target CPU core" group="CapSense" default="4" visible="true" editable="true" desc="Configures the target CPU core for CapSense middleware" >
       <Entry name="Cortex M0+" value="0" visible="true" />
       <Entry name="Cortex M4" value="4" visible="true" />
     </ParamChoice>
@@ -253,10 +254,9 @@
 
   <ConfigFirmware>
     <!-- External tools -->
-    <ConfigTool value="`${cy_tools_path(&quot;capsense-configurator&quot;) . &quot;/capsense-configurator&quot;}`" include="`${CapSenseEnable}`">
+    <ConfigTool value="`${cy_tools_path(&quot;capsense-configurator&quot;) . &quot;/capsense-configurator-cli&quot;}`" include="`${CapSenseEnable}`">
       <Arg value="`${&quot;--config=&quot; . cfgFilePath}`" />
       <Arg value="`${&quot;--output-dir=&quot; . cy_codegen_path()}`" />
-      <Arg value="`${&quot;--generate&quot;}`" />
     </ConfigTool>
   
     <ConfigInclude value="cy_sysclk.h" include="`${pclkOk}`" />

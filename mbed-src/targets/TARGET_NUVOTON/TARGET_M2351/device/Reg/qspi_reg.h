@@ -3,10 +3,18 @@
  * @version  V1.00
  * @brief    QSPI register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __QSPI_REG_H__
 #define __QSPI_REG_H__
+
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Quad Serial Peripheral Interface Controller -------------------------*/
 /**
@@ -574,6 +582,6 @@ typedef struct
 
 /**@}*/ /* QSPI_CONST */
 /**@}*/ /* end of QSPI register group */
-
+/**@}*/ /* end of REGISTER group */
 
 #endif /* __QSPI_REG_H__ */

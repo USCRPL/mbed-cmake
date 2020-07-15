@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "mbed_config_f429zi.h"
+#include "mbed_config.h"
 #include "nfc/ndef/MessageBuilder.h"
 #include "nfc/ndef/common/URI.h"
 #include "nfc/ndef/common/util.h"

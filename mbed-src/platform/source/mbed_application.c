@@ -71,17 +71,6 @@ void mbed_start_application(uintptr_t address)
     powerdown_scb(address);
     mbed_mpu_manager_deinit();
 
-#ifdef MBED_DEBUG
-    // Configs to make debugging easier
-#ifdef SCnSCB_ACTLR_DISDEFWBUF_Msk
-    // Disable write buffer to make BusFaults (eg write to ROM via NULL pointer) precise.
-    // Possible on Cortex-M3 and M4, not on M0, M7 or M33.
-    // Would be less necessary if ROM was write-protected in MPU to give a
-    // precise MemManage exception.
-    SCnSCB->ACTLR |= SCnSCB_ACTLR_DISDEFWBUF_Msk;
-#endif
-#endif
-
     sp = *((void **)address + 0);
     pc = *((void **)address + 1);
     start_new_application(sp, pc);
@@ -157,18 +146,7 @@ static void powerdown_scb(uint32_t vtor)
     // SCB->CPACR   - Implementation defined value
 }
 
-#if defined (__CC_ARM)
-
-__asm static void start_new_application(void *sp, void *pc)
-{
-    MOVS R2, #0
-    MSR CONTROL, R2         // Switch to main stack
-    MOV SP, R0
-    MSR PRIMASK, R2         // Enable interrupts
-    BX R1
-}
-
-#elif defined (__GNUC__) || defined (__ICCARM__)
+#if defined (__GNUC__) || defined (__ICCARM__)
 
 void start_new_application(void *sp, void *pc)
 {

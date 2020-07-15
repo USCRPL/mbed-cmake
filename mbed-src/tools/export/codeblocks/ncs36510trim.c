@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "mbed_config_f429zi.h"
+#include "mbed_config.h"
 
 struct ncs36510fib {
 	uint32_t mac_addr_low;

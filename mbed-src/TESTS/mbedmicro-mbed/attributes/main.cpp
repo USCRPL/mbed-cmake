@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +34,7 @@ extern "C" {
     int testPure();
     int testForceInline();
     int testNoReturn();
+    int testFallthrough();
     int testUnreachable();
     int testDeprecated();
 }
@@ -59,6 +61,7 @@ Case cases[] = {
     Case("Testing PURE attribute",          test_wrapper<testPure>),
     Case("Testing FORCEINLINE attribute",   test_wrapper<testForceInline>),
     Case("Testing NORETURN attribute",      test_wrapper<testNoReturn>),
+    Case("Testing FALLTHROUGH attribute",   test_wrapper<testFallthrough>),
     Case("Testing UNREACHABLE attribute",   test_wrapper<testUnreachable>),
     Case("Testing DEPRECATED attribute",    test_wrapper<testDeprecated>),
 };

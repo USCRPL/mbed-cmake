@@ -67,11 +67,12 @@
     <ParamSignal port="clk_usb_dev[0]" name="Clock" group="Connections" visible="true" desc="Clock that operates this block." canBeEmpty="false" />
 
     <ParamString id="usbHfSource" name="usbHfSource" group="Internal" default="`${getBlockFromSignal(&quot;clk_usb_dev[0]&quot;)}`" visible="false" editable="false" desc="Source Clock Resource" />
-    <ParamRange  id="usbHfClkHz" name="usbHfClkHz" group="Internal" default="`${getExposedMember(usbHfSource, &quot;frequency&quot;)}`" min="1" max="200000000" resolution="1" visible="false" editable="false" desc="USB Device HF clock frequency in Hz." />
+    <ParamRange  id="usbHfClkHz" name="usbHfClkHz" group="Internal" default="`${getExposedMember(usbHfSource, &quot;frequency&quot;)}`" min="0" max="200000000" resolution="1" visible="false" editable="false" desc="USB Device HF clock frequency in Hz." />
     <ParamRange  id="usbHfClkAccuracy" name="usbHfClkAccuracy" group="Internal" default="`${getExposedMember(usbHfSource, &quot;accuracy&quot;)}`" min="0" max="100" resolution="0.0001" visible="false" editable="false" desc="USB Device HF clock accuracy." />
 
     <ParamString id="usbRstClkHz" name="usbRstClkHz" group="Internal" default="100000" visible="false" editable="false" desc="USB needs clock 100kHz to detect USB Bus Reset condition." />
-    <ParamRange  id="clkPeriHz" name="clkPeriHz" group="Internal" default="`${getExposedMember(&quot;srss[0].clock[0].periclk[0]&quot;, &quot;frequency&quot;)}`" min="0" max="400000000" resolution="1" visible="false" editable="false" desc="Clk_Peri frequency." />
+    <ParamBool id="checkPeri" name="Check periclk" group="Internal" default="`${hasExposedMember(&quot;srss[0].clock[0].periclk[0]&quot;, &quot;frequency&quot;)}`" visible="false" editable="false" desc="Check if peri clk could be used." />
+    <ParamRange  id="clkPeriHz" name="clkPeriHz" group="Internal" default="`${checkPeri ? getExposedMember(&quot;srss[0].clock[0].periclk[0]&quot;, &quot;frequency&quot;) : 0}`" min="0" max="400000000" resolution="1" visible="false" editable="false" desc="Clk_Peri frequency." />
     <ParamRange  id="usbRstDiv" name="usbRstDiv" group="Internal" default="`${clkPeriHz / usbRstClkHz}`" min="0" max="400000000" resolution="1" visible="false" editable="false" desc="USB bus reset pclk divider value." />
     <ParamBool id="usbRstDiv8" name="usbRstDiv8" group="Internal" default="`${(usbRstDiv &lt;= pow(2, 8))}`" visible="false" editable="false" desc="Checks whether 8-bit divider can be used for USBFS bus reset detection." />
 

@@ -69,12 +69,12 @@ static void _ifup()
 
 #define MESH 3
 #if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == MESH
-    printf("Waiting for GLOBAL_UP\n");
+    tr_info("Waiting for GLOBAL_UP\n");
     while (net->get_connection_status() != NSAPI_STATUS_GLOBAL_UP) {
         ThisThread::sleep_for(500);
     }
 #endif
-    printf("MBED: UDPClient IP address is '%s'\n", address ? address.get_ip_address() : "null");
+    tr_info("MBED: UDPClient IP address is '%s'\n", address ? address.get_ip_address() : "null");
 }
 
 static void _ifdown()
@@ -118,9 +118,9 @@ void fill_tx_buffer_ascii(char *buff, size_t len)
     }
 }
 
-int split2half_rmng_udp_test_time()
+microseconds split2half_rmng_udp_test_time()
 {
-    return (udp_global::TESTS_TIMEOUT - tc_bucket.read()) / 2;
+    return (udp_global::TESTS_TIMEOUT - tc_bucket.elapsed_time()) / 2;
 }
 
 #if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
@@ -133,7 +133,7 @@ int fetch_stats()
 // Test setup
 utest::v1::status_t greentea_setup(const size_t number_of_cases)
 {
-    GREENTEA_SETUP(udp_global::TESTS_TIMEOUT, "default_auto");
+    GREENTEA_SETUP(seconds(udp_global::TESTS_TIMEOUT).count(), "default_auto");
     _ifup();
     tc_bucket.start();
     return greentea_test_setup_handler(number_of_cases);
@@ -192,9 +192,11 @@ Case cases[] = {
     Case("UDPSOCKET_BIND_WRONG_TYPE", UDPSOCKET_BIND_WRONG_TYPE),
     Case("UDPSOCKET_BIND_UNOPENED", UDPSOCKET_BIND_UNOPENED),
     Case("UDPSOCKET_ECHOTEST_NONBLOCK", UDPSOCKET_ECHOTEST_NONBLOCK),
+    Case("UDPSOCKET_ECHOTEST_NONBLOCK_CONNECT_SEND_RECV", UDPSOCKET_ECHOTEST_NONBLOCK_CONNECT_SEND_RECV),
     Case("UDPSOCKET_ECHOTEST_BURST_NONBLOCK", UDPSOCKET_ECHOTEST_BURST_NONBLOCK),
     Case("UDPSOCKET_SENDTO_REPEAT", UDPSOCKET_SENDTO_REPEAT),
     Case("UDPSOCKET_ECHOTEST", UDPSOCKET_ECHOTEST),
+    Case("UDPSOCKET_ECHOTEST_CONNECT_SEND_RECV", UDPSOCKET_ECHOTEST_CONNECT_SEND_RECV),
     Case("UDPSOCKET_ECHOTEST_BURST", UDPSOCKET_ECHOTEST_BURST),
 };
 

@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -186,7 +187,7 @@ void test_set_time_twice()
     TEST_ASSERT_EQUAL(true, (current_time == NEW_TIME));
 
     /* Wait 2 seconds */
-    wait_ms(2000);
+    ThisThread::sleep_for(2000);
 
     /* set the time to NEW_TIME again and check it */
     set_time(NEW_TIME);

@@ -9,7 +9,7 @@
 *
 ********************************************************************************
 * \copyright
-* Copyright 2018-2019 Cypress Semiconductor Corporation
+* Copyright 2018-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,12 +31,20 @@
 
 #ifdef CY_IP_MXS40SRSS
 
-#define cyhal_system_critical_section_enter()     Cy_SysLib_EnterCriticalSection()
+#define cyhal_system_critical_section_enter()   Cy_SysLib_EnterCriticalSection()
 
 #define cyhal_system_critical_section_exit(x)   Cy_SysLib_ExitCriticalSection(x)
 
-#define cyhal_system_sleep()                    Cy_SysPm_CpuEnterSleep(CY_SYSPM_WAIT_FOR_INTERRUPT)
+#define cyhal_system_delay_us(microseconds)     Cy_SysLib_DelayUs(microseconds)
 
+/*
+ * The power management functions below have been migrated to the System Power Management module.
+ * Please refer to cyhal_syspm.h or System Power Management documentation for further details.
+ */
+#define cyhal_system_sleep()                    Cy_SysPm_CpuEnterSleep(CY_SYSPM_WAIT_FOR_INTERRUPT)
 #define cyhal_system_deepsleep()                Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT)
+
+cy_rslt_t cyhal_system_register_callback(cyhal_system_callback_t *callback);
+cy_rslt_t cyhal_system_unregister_callback(cyhal_system_callback_t const *callback);
 
 #endif /* CY_IP_MXS40SRSS */

@@ -1,6 +1,7 @@
 """
 mbed SDK
 Copyright (c) 2011-2019 ARM Limited
+SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,18 +26,25 @@ from tempfile import mkstemp
 from shutil import rmtree
 from distutils.version import LooseVersion
 
-from tools.toolchains.mbed_toolchain import mbedToolchain, TOOLCHAIN_PATHS
+from tools.toolchains.mbed_toolchain import (
+    mbedToolchain, TOOLCHAIN_PATHS, should_replace_small_c_lib
+)
 from tools.utils import mkdir, NotSupportedException, run_cmd
 from tools.resources import FileRef
 
 ARMC5_MIGRATION_WARNING = (
-    "Warning: We noticed that you are using Arm Compiler 5. "
-    "We are deprecating the use of Arm Compiler 5 soon. "
+    "Warning: Arm Compiler 5 is no longer supported as of Mbed 6. "
     "Please upgrade your environment to Arm Compiler 6 "
     "which is free to use with Mbed OS. For more information, "
     "please visit https://os.mbed.com/docs/mbed-os/latest/tools/index.html"
 )
 
+UARM_TOOLCHAIN_WARNING = (
+    "Warning: We noticed that you are using uARM Toolchain either via --toolchain command line or default_toolchain option. "
+    "We are deprecating the use of the uARM Toolchain. "
+    "For more information on how to use the ARM toolchain with small C libraries, "
+    "please visit https://os.mbed.com/docs/mbed-os/latest/reference/using-small-c-libraries.html"
+)
 
 class ARM(mbedToolchain):
     LINKER_EXT = '.sct'
@@ -63,7 +71,7 @@ class ARM(mbedToolchain):
         return mbedToolchain.generic_check_executable("ARM", 'armcc', 2, 'bin')
 
     def __init__(self, target, notify=None, macros=None,
-                 build_profile=None, build_dir=None):
+                 build_profile=None, build_dir=None, coverage_patterns=None):
         mbedToolchain.__init__(
             self, target, notify, macros, build_dir=build_dir,
             build_profile=build_profile)
@@ -71,7 +79,17 @@ class ARM(mbedToolchain):
             raise NotSupportedException(
                 "this compiler does not support the core %s" % target.core)
 
-        if getattr(target, "default_toolchain", "ARM") == "uARM":
+        toolchain = "arm"
+
+        if should_replace_small_c_lib(target, toolchain):
+            target.c_lib = "std"
+
+        self.check_c_lib_supported(target, toolchain)
+
+        if (
+            getattr(target, "default_toolchain", "ARM") == "uARM"
+            or getattr(target, "c_lib", "std") == "small"
+        ):
             if "-DMBED_RTOS_SINGLE_THREAD" not in self.flags['common']:
                 self.flags['common'].append("-DMBED_RTOS_SINGLE_THREAD")
             if "-D__MICROLIB" not in self.flags['common']:
@@ -80,6 +98,8 @@ class ARM(mbedToolchain):
                 self.flags['ld'].append("--library_type=microlib")
             if "--library_type=microlib" not in self.flags['common']:
                 self.flags['common'].append("--library_type=microlib")
+
+        self.check_and_add_minimal_printf(target)
 
         cpu = {
             "Cortex-M0+": "Cortex-M0plus",
@@ -440,7 +460,8 @@ class ARM_STD(ARM):
             notify=None,
             macros=None,
             build_profile=None,
-            build_dir=None
+            build_dir=None,
+            coverage_patterns=None
     ):
         ARM.__init__(
             self,
@@ -448,7 +469,8 @@ class ARM_STD(ARM):
             notify,
             macros,
             build_dir=build_dir,
-            build_profile=build_profile
+            build_profile=build_profile,
+            coverage_patterns=None
         )
         if int(target.build_tools_metadata["version"]) > 0:
             # check only for ARMC5 because ARM_STD means using ARMC5, and thus
@@ -482,7 +504,8 @@ class ARM_MICRO(ARM):
             silent=False,
             extra_verbose=False,
             build_profile=None,
-            build_dir=None
+            build_dir=None,
+            coverage_patterns=None,
     ):
         target.default_toolchain = "uARM"
         if int(target.build_tools_metadata["version"]) > 0:
@@ -554,30 +577,27 @@ class ARMC6(ARM_STD):
                     "ARM/ARMC6 compiler support is required for ARMC6 build"
                 )
 
-        if getattr(target, "default_toolchain", "ARMC6") == "uARM":
+        toolchain = "arm"
+
+        if should_replace_small_c_lib(target, toolchain):
+            target.c_lib = "std"
+
+        self.check_c_lib_supported(target, toolchain)
+
+        if (
+            getattr(target, "default_toolchain", "ARMC6") == "uARM"
+            or getattr(target, "c_lib", "std") == "small"
+        ):
             if "-DMBED_RTOS_SINGLE_THREAD" not in self.flags['common']:
                 self.flags['common'].append("-DMBED_RTOS_SINGLE_THREAD")
             if "-D__MICROLIB" not in self.flags['common']:
                 self.flags['common'].append("-D__MICROLIB")
             if "--library_type=microlib" not in self.flags['ld']:
                 self.flags['ld'].append("--library_type=microlib")
-            if "-Wl,--library_type=microlib" not in self.flags['c']:
-                self.flags['c'].append("-Wl,--library_type=microlib")
-            if "-Wl,--library_type=microlib" not in self.flags['cxx']:
-                self.flags['cxx'].append("-Wl,--library_type=microlib")
             if "--library_type=microlib" not in self.flags['asm']:
                 self.flags['asm'].append("--library_type=microlib")
 
-        if target.is_TrustZone_secure_target:
-            if kwargs.get('build_dir', False):
-                # Output secure import library
-                build_dir = kwargs['build_dir']
-                secure_file = join(build_dir, "cmse_lib.o")
-                self.flags["ld"] += ["--import_cmse_lib_out=%s" % secure_file]
-
-            # Enable compiler security extensions
-            self.flags['cxx'].append("-mcmse")
-            self.flags['c'].append("-mcmse")
+        self.check_and_add_minimal_printf(target)
 
         if target.is_TrustZone_non_secure_target:
             # Add linking time preprocessor macro DOMAIN_NS
@@ -767,3 +787,4 @@ class ARMC6(ARM_STD):
             cmd.insert(1, "--ide=mbed")
 
         return cmd
+

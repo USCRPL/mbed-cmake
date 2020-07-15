@@ -21,6 +21,13 @@
 #include "netsocket/NetworkStack.h"
 #include <list>
 
+/*
+ * Note: If you want to:
+ * - control and/or set expectations for the data returned/sent from/to the stack
+ * - set expectations on the calls to NetworkStack
+ * See OnboardNetworkStack_mock.h and its OnboardNetworkStackMock class.
+ */
+
 class NetworkStackstub : public NetworkStack {
 public:
     std::list<nsapi_error_t> return_values;
@@ -33,10 +40,6 @@ public:
     {
     }
 
-    virtual const char *get_ip_address()
-    {
-        return "127.0.0.1";
-    }
     virtual nsapi_error_t get_ip_address(SocketAddress* address)
     {
         address->set_ip_address("127.0.0.1");
@@ -47,8 +50,16 @@ public:
     {
         return return_value;
     }
+    virtual nsapi_value_or_error_t getaddrinfo(const char *hostname, SocketAddress *hints, SocketAddress **res, const char *interface_name)
+    {
+        return return_value;
+    }
     virtual nsapi_value_or_error_t gethostbyname_async(const char *host, hostbyname_cb_t callback, nsapi_version_t version,
                                                        const char *interface_name)
+    {
+        return return_value;
+    }
+    virtual nsapi_value_or_error_t getaddrinfo_async(const char *hostname, SocketAddress *hints, hostbyname_cb_t callback, const char *interface_name)
     {
         return return_value;
     }

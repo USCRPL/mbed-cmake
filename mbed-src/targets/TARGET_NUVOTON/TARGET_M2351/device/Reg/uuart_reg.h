@@ -3,11 +3,18 @@
  * @version  V1.00
  * @brief    UUART register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __UUART_REG_H__
 #define __UUART_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 
 /*---------------------- UART Mode of USCI Controller -------------------------*/
@@ -304,7 +311,7 @@ typedef struct
      * |        |          |0 = Auto-baud rate detect function Disabled.
      * |        |          |1 = Auto-baud rate detect function Enabled.
      * |        |          |Note: When the auto - baud rate detect operation finishes, hardware will clear this bit.
-     * |        |          |The associated interrupt ABRDETIF (UUART_PROTST[9]) will be generated (If ARBIEN (UUART_PROTIEN [1]) is enabled).
+     * |        |          |The associated interrupt ABRDETIF (UUART_PROTSTS[9]) will be generated (If ARBIEN (UUART_PROTIEN [1]) is enabled).
      * |[9]     |DATWKEN   |Data Wake-up Mode Enable Bit
      * |        |          |0 = Data wake-up mode Disabled.
      * |        |          |1 = Data wake-up mode Enabled.
@@ -318,7 +325,7 @@ typedef struct
      * |        |          |The order of the bus shall be 1 and 0 step by step (e.g
      * |        |          |the input data pattern shall be 0x55)
      * |        |          |The user can read the value to know the current input baud rate of the bus whenever the ABRDETIF (UUART_PROTCTL[9]) is set.
-     * |        |          |Note: This bit can be cleared to 0 by software writing u20180' to the BRDETITV.
+     * |        |          |Note: This bit can be cleared to 0 by software writing 1 to the BRDETITV.
      * |[26]    |STICKEN   |Stick Parity Enable Bit
      * |        |          |0 = Stick parity Disabled.
      * |        |          |1 = Stick parity Enabled.
@@ -649,7 +656,6 @@ typedef struct
 
 /**@}*/ /* UUART_CONST */
 /**@}*/ /* end of UUART register group */
-
-
+/**@}*/ /* end of REGISTER group */
 
 #endif /* __UUART_REG_H__ */

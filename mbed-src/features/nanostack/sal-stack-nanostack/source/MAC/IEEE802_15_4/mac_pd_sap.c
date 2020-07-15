@@ -34,6 +34,7 @@
 #include "MAC/IEEE802_15_4/mac_mlme.h"
 #include "MAC/IEEE802_15_4/mac_filter.h"
 #include "MAC/IEEE802_15_4/mac_mcps_sap.h"
+#include "MAC/IEEE802_15_4/mac_cca_threshold.h"
 #include "MAC/rf_driver_storage.h"
 
 /* Define TX Timeot Period */
@@ -45,7 +46,7 @@
 #define MIN_FHSS_CSMA_PERIOD_US    5000
 
 static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *rf_ptr, phy_link_tx_status_e status, uint8_t cca_retry, uint8_t tx_retry);
-static void  mac_sap_cca_fail_cb(protocol_interface_rf_mac_setup_s *rf_ptr);
+static void  mac_sap_cca_fail_cb(protocol_interface_rf_mac_setup_s *rf_ptr, uint16_t failed_channel);
 
 void mac_csma_param_init(protocol_interface_rf_mac_setup_s *rf_mac_setup)
 {
@@ -111,7 +112,7 @@ uint32_t mac_csma_backoff_get(protocol_interface_rf_mac_setup_s *rf_mac_setup)
             backoff_in_us += ((rf_mac_setup->multi_cca_interval * (rf_mac_setup->number_of_csma_ca_periods - 1)) - backoff_in_us);
         }
         if (rf_mac_setup->mac_tx_retry) {
-            backoff_in_us += rf_mac_setup->fhss_api->get_retry_period(rf_mac_setup->fhss_api, rf_mac_setup->active_pd_data_request->DstAddr, rf_mac_setup->dev_driver->phy_driver->phy_MTU);
+            backoff_in_us += rf_mac_setup->fhss_api->get_retry_period(rf_mac_setup->fhss_api, rf_mac_setup->active_pd_data_request->DstAddr, rf_mac_setup->phy_mtu_size);
         }
     }
     return backoff_in_us;
@@ -273,7 +274,7 @@ void mac_pd_sap_state_machine(protocol_interface_rf_mac_setup_s *rf_mac_setup)
         if (rf_mac_setup->mac_tx_result == MAC_TIMER_CCA) {
 
             if (rf_mac_setup->rf_csma_extension_supported) {
-                mac_sap_cca_fail_cb(rf_mac_setup);
+                mac_sap_cca_fail_cb(rf_mac_setup, 0xffff);
                 return;
             }
 
@@ -328,7 +329,7 @@ void mac_pd_sap_state_machine(protocol_interface_rf_mac_setup_s *rf_mac_setup)
     }
 }
 
-static void  mac_sap_cca_fail_cb(protocol_interface_rf_mac_setup_s *rf_ptr)
+static void  mac_sap_cca_fail_cb(protocol_interface_rf_mac_setup_s *rf_ptr, uint16_t failed_channel)
 {
     if (rf_ptr->mac_ack_tx_active) {
         if (rf_ptr->active_pd_data_request) {
@@ -340,6 +341,11 @@ static void  mac_sap_cca_fail_cb(protocol_interface_rf_mac_setup_s *rf_ptr)
         if (rf_ptr->mac_cca_retry > rf_ptr->macMaxCSMABackoffs || (rf_ptr->active_pd_data_request && rf_ptr->active_pd_data_request->asynch_request)) {
             //Send MAC_CCA_FAIL
             mac_tx_done_state_set(rf_ptr, MAC_CCA_FAIL);
+            if (failed_channel != 0xffff && rf_ptr->active_pd_data_request) {
+                if (failed_channel == rf_ptr->active_pd_data_request->initial_tx_channel) {
+                    mac_cca_threshold_event_send(rf_ptr, failed_channel, CCA_FAILED_DBM);
+                }
+            }
         } else {
             timer_mac_stop(rf_ptr);
             mac_csma_BE_update(rf_ptr);
@@ -414,7 +420,7 @@ static void mac_data_ack_tx_finish(protocol_interface_rf_mac_setup_s *rf_ptr)
 
         mcps_pending_packet_counter_update_check(rf_ptr, rf_ptr->active_pd_data_request);
         //GEN TX failure
-        mac_sap_cca_fail_cb(rf_ptr);
+        mac_sap_cca_fail_cb(rf_ptr, 0xffff);
     }
 }
 
@@ -429,7 +435,7 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
 
         if (rf_ptr->mac_ack_tx_active) {
             //Accept direct non crypted acks and crypted only if neighbor is at list
-            if (rf_ptr->ack_tx_possible || mac_sec_mib_device_description_get(rf_ptr, rf_ptr->enhanced_ack_buffer.DstAddr, rf_ptr->enhanced_ack_buffer.fcf_dsn.DstAddrMode, rf_ptr->enhanced_ack_buffer.DstPANId)) {
+            if (rf_ptr->ack_tx_possible) {
                 return PHY_TX_ALLOWED;
             }
 
@@ -442,6 +448,11 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
         }
 
         if (mac_data_asynch_channel_switch(rf_ptr, rf_ptr->active_pd_data_request)) {
+            rf_ptr->active_pd_data_request->initial_tx_channel = rf_ptr->mac_channel;
+            int8_t channel_cca_threshold = mac_cca_thr_get_dbm(rf_ptr, rf_ptr->mac_channel);
+            if (CCA_FAILED_DBM != channel_cca_threshold) {
+                rf_ptr->dev_driver->phy_driver->extension(PHY_EXTENSION_SET_CHANNEL_CCA_THRESHOLD, (uint8_t *)&channel_cca_threshold);
+            }
             return PHY_TX_ALLOWED;
         }
 
@@ -458,7 +469,7 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
                                                                rf_ptr->dev_driver->phy_driver->phy_tail_length, active_buf->tx_time);
             // When FHSS TX handle returns -1, transmission of the packet is currently not allowed -> restart CCA timer
             if (tx_handle_retval == -1) {
-                mac_sap_cca_fail_cb(rf_ptr);
+                mac_sap_cca_fail_cb(rf_ptr, 0xffff);
                 return PHY_TX_NOT_ALLOWED;
             }
             // When FHSS TX handle returns -3, we are trying to transmit broadcast packet on unicast channel -> push back
@@ -470,6 +481,13 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
                 mac_tx_done_state_set(rf_ptr, MAC_UNKNOWN_DESTINATION);
                 return PHY_TX_NOT_ALLOWED;
             }
+            if (rf_ptr->mac_cca_retry == 0 && rf_ptr->active_pd_data_request) {
+                rf_ptr->active_pd_data_request->initial_tx_channel = rf_ptr->mac_channel;
+            }
+            int8_t channel_cca_threshold = mac_cca_thr_get_dbm(rf_ptr, rf_ptr->mac_channel);
+            if (CCA_FAILED_DBM != channel_cca_threshold) {
+                rf_ptr->dev_driver->phy_driver->extension(PHY_EXTENSION_SET_CHANNEL_CCA_THRESHOLD, (uint8_t *)&channel_cca_threshold);
+            }
             if (active_buf->csma_periods_left > 0) {
                 active_buf->csma_periods_left--;
                 active_buf->tx_time += rf_ptr->multi_cca_interval;
@@ -480,10 +498,6 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
 
         return 0;
     }
-
-    //
-    bool waiting_ack = false;
-
 
     if (rf_ptr->mac_ack_tx_active) {
         mac_data_ack_tx_finish(rf_ptr);
@@ -505,12 +519,41 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
         rf_ptr->mac_tx_retry += tx_retry;
         timer_mac_stop(rf_ptr);
     }
+    uint16_t failed_channel = rf_ptr->mac_channel;
+    if (rf_ptr->fhss_api && rf_ptr->active_pd_data_request->asynch_request == false) {
+        /* waiting_ack == false allows FHSS to change back to RX channel after transmission
+         * tx_completed == true allows FHSS to delete stored failure handles
+         */
+        bool waiting_ack = false, tx_completed = false;
+        if (status == PHY_LINK_TX_SUCCESS && !rf_ptr->macTxRequestAck) {
+            waiting_ack = false;
+            tx_completed = true;
+        } else if (status == PHY_LINK_TX_SUCCESS && rf_ptr->macTxRequestAck) {
+            waiting_ack = true;
+            tx_completed = false;
+        } else if (status == PHY_LINK_CCA_FAIL) {
+            waiting_ack = false;
+            tx_completed = false;
+        } else if (status == PHY_LINK_CCA_OK) {
+            waiting_ack = false;
+            tx_completed = false;
+        } else if (status == PHY_LINK_TX_FAIL) {
+            waiting_ack = false;
+            tx_completed = false;
+        } else if (status == PHY_LINK_TX_DONE) {
+            waiting_ack = false;
+            tx_completed = true;
+        } else if (status == PHY_LINK_TX_DONE_PENDING) {
+            waiting_ack = false;
+            tx_completed = true;
+        }
+        rf_ptr->fhss_api->data_tx_done(rf_ptr->fhss_api, waiting_ack, tx_completed, rf_ptr->active_pd_data_request->msduHandle);
+    }
 
     switch (status) {
         case PHY_LINK_TX_SUCCESS:
             if (rf_ptr->macTxRequestAck) {
                 timer_mac_start(rf_ptr, MAC_TIMER_ACK, rf_ptr->mac_ack_wait_duration); /*wait for ACK 1 ms*/
-                waiting_ack = true;
             } else {
                 //TODO CHECK this is MAC_TX_ PERMIT OK
                 mac_tx_done_state_set(rf_ptr, MAC_TX_DONE);
@@ -518,7 +561,7 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
             break;
 
         case PHY_LINK_CCA_FAIL:
-            mac_sap_cca_fail_cb(rf_ptr);
+            mac_sap_cca_fail_cb(rf_ptr, failed_channel);
             break;
 
         case PHY_LINK_CCA_OK:
@@ -539,15 +582,6 @@ static int8_t mac_data_interface_tx_done_cb(protocol_interface_rf_mac_setup_s *r
 
         default:
             break;
-    }
-    if (rf_ptr->fhss_api) {
-        bool tx_is_done = false;
-        if (rf_ptr->mac_tx_result == MAC_TX_DONE) {
-            tx_is_done = true;
-        }
-        if (rf_ptr->active_pd_data_request->asynch_request == false) {
-            rf_ptr->fhss_api->data_tx_done(rf_ptr->fhss_api, waiting_ack, tx_is_done, rf_ptr->active_pd_data_request->msduHandle);
-        }
     }
     return 0;
 }
@@ -772,10 +806,16 @@ static int8_t mac_pd_sap_generate_ack(protocol_interface_rf_mac_setup_s *rf_ptr,
         return -1;
     }
 
-    if (rf_ptr->enhanced_ack_buffer.aux_header.securityLevel == 0 || mac_sec_mib_device_description_get(rf_ptr, rf_ptr->enhanced_ack_buffer.DstAddr, rf_ptr->enhanced_ack_buffer.fcf_dsn.DstAddrMode, rf_ptr->enhanced_ack_buffer.DstPANId)) {
+
+    if (rf_ptr->enhanced_ack_buffer.fcf_dsn.securityEnabled == 0 || rf_ptr->enhanced_ack_buffer.aux_header.securityLevel == 0) {
+        //Unsecured data will be acked immediately
         rf_ptr->ack_tx_possible = true;
     } else {
-        rf_ptr->ack_tx_possible = false;
+        if (mac_sec_mib_device_description_get(rf_ptr, rf_ptr->enhanced_ack_buffer.DstAddr, rf_ptr->enhanced_ack_buffer.fcf_dsn.DstAddrMode, rf_ptr->enhanced_ack_buffer.DstPANId)) {
+            rf_ptr->ack_tx_possible = true;
+        } else {
+            rf_ptr->ack_tx_possible = false;
+        }
     }
 
     return mcps_generic_ack_build(rf_ptr, true);
@@ -874,14 +914,19 @@ int8_t mac_pd_sap_data_cb(void *identifier, arm_phy_sap_msg_t *message)
 
     if (message->id == MAC15_4_PD_SAP_DATA_IND) {
         arm_pd_sap_generic_ind_t *pd_data_ind = &(message->message.generic_data_ind);
+        mac_pre_parsed_frame_t *buffer = NULL;
+        if (pd_data_ind->data_len == 0) {
+            goto ERROR_HANDLER;
+        }
+
         if (pd_data_ind->data_len < 3) {
             return -1;
         }
-
+        mac_cca_threshold_event_send(rf_ptr, rf_ptr->mac_channel, pd_data_ind->dbm);
         mac_fcf_sequence_t fcf_read;
         const uint8_t *ptr = mac_header_parse_fcf_dsn(&fcf_read, pd_data_ind->data_ptr);
 
-        mac_pre_parsed_frame_t *buffer = mac_pd_sap_allocate_receive_buffer(rf_ptr, &fcf_read, pd_data_ind);
+        buffer = mac_pd_sap_allocate_receive_buffer(rf_ptr, &fcf_read, pd_data_ind);
         if (buffer && mac_filter_modify_link_quality(rf_ptr->mac_interface_id, buffer) == 1) {
             goto ERROR_HANDLER;
         }
@@ -919,7 +964,12 @@ int8_t mac_pd_sap_data_cb(void *identifier, arm_phy_sap_msg_t *message)
         }
 ERROR_HANDLER:
         mcps_sap_pre_parsed_frame_buffer_free(buffer);
-        sw_mac_stats_update(rf_ptr, STAT_MAC_RX_DROP, 0);
+        if (pd_data_ind->data_len >= 3) {
+            sw_mac_stats_update(rf_ptr, STAT_MAC_RX_DROP, 0);
+        }
+        if (rf_ptr->fhss_api) {
+            rf_ptr->fhss_api->data_tx_done(rf_ptr->fhss_api, false, false, 0);
+        }
         return -1;
 
     } else if (message->id == MAC15_4_PD_SAP_DATA_TX_CONFIRM) {

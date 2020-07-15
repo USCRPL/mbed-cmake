@@ -4,7 +4,7 @@
 
 ;*******************************************************************************
 ;* \file cy8c6xx7_cm0plus.sct
-;* \version 2.70
+;* \version 2.70.1
 ;*
 ;* Linker file for the ARMCC.
 ;*
@@ -26,7 +26,7 @@
 ;*
 ;*******************************************************************************
 ;* \copyright
-;* Copyright 2016-2019 Cypress Semiconductor Corporation
+;* Copyright 2016-2020 Cypress Semiconductor Corporation
 ;* SPDX-License-Identifier: Apache-2.0
 ;*
 ;* Licensed under the Apache License, Version 2.0 (the "License");
@@ -189,15 +189,13 @@ LR_IROM1 FLASH_START (FLASH_SIZE - 0x8000)
     }
 
     ; Application heap area (HEAP)
-    ARM_LIB_HEAP  +0
+    ARM_LIB_HEAP  +0 EMPTY RAM_START+RAM_SIZE-STACK_SIZE-ImageLimit(RW_IRAM2)
     { 
-        * (HEAP) 
     }
-
+    
     ; Stack region growing down
-    ARM_LIB_STACK RAM_START+RAM_SIZE -STACK_SIZE
+    ARM_LIB_STACK RAM_START+RAM_SIZE EMPTY -STACK_SIZE 
     {
-        * (STACK)
     }
 }
 

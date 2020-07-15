@@ -30,12 +30,16 @@ typedef enum {
 #ifdef HAVE_WS
 
 struct llc_neighbour_req;
+struct ws_us_ie;
+struct ws_neighbor_class_entry;
 
 int ws_bootstrap_init(int8_t interface_id, net_6lowpan_mode_e bootstrap_mode);
 
 void ws_bootstrap_state_machine(protocol_interface_info_entry_t *cur);
 
 int ws_bootstrap_restart(int8_t interface_id);
+
+int ws_bootstrap_restart_delayed(int8_t interface_id);
 
 int ws_bootstrap_set_rf_config(protocol_interface_info_entry_t *cur, phy_rf_channel_configuration_s rf_configs);
 
@@ -76,7 +80,13 @@ bool ws_eapol_relay_state_active(protocol_interface_info_entry_t *cur);
 
 void ws_bootstrap_eapol_parent_synch(struct protocol_interface_info_entry *cur, struct llc_neighbour_req *neighbor_info);
 
-void ws_bootstrap_etx_accelerate(struct protocol_interface_info_entry *cur, mac_neighbor_table_entry_t *neigh);
+bool ws_bootstrap_validate_channel_plan(struct ws_us_ie *ws_us, struct protocol_interface_info_entry *cur);
+
+void ws_bootstrap_eapol_rx_temporary_set(struct protocol_interface_info_entry *interface, const uint8_t *src64);
+
+struct ws_neighbor_class_entry *ws_bootstrap_eapol_tx_temporary_set(struct protocol_interface_info_entry *interface, const uint8_t *src64);
+
+void ws_bootstrap_eapol_tx_temporary_clear(struct protocol_interface_info_entry *interface);
 
 #else
 
@@ -87,7 +97,6 @@ void ws_bootstrap_etx_accelerate(struct protocol_interface_info_entry *cur, mac_
 #define ws_bootstrap_aro_failure(cur, ll_address)
 #define ws_primary_parent_update(interface, neighbor)
 #define ws_secondary_parent_update(interface)
-#define ws_bootstrap_etx_accelerate(cur, neigh) ((void) 0)
 
 #endif //HAVE_WS
 

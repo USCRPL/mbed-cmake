@@ -19,11 +19,15 @@
 #include "rtos/ThisThread.h"
 #include "mbed_trace.h"
 
-#define TRACE_GROUP "CELL"
+#define TRACE_GROUP "STMD"
 
 using namespace mbed;
 
 STModCellular::STModCellular(FileHandle *fh) : STMOD_CELLULAR_MODEM(fh),
+#if defined(TARGET_DISCO_L562QE)
+    STMOD_SEL_12(PF_11),
+    STMOD_SEL_34(PF_12),
+#endif
     m_powerkey(MBED_CONF_STMOD_CELLULAR_POWER),
     m_reset(MBED_CONF_STMOD_CELLULAR_RESET),
     m_simsel0(MBED_CONF_STMOD_CELLULAR_SIMSEL0),
@@ -33,7 +37,14 @@ STModCellular::STModCellular(FileHandle *fh) : STMOD_CELLULAR_MODEM(fh),
     m_sim_clk(MBED_CONF_STMOD_CELLULAR_SIM_CLK),
     m_sim_data(MBED_CONF_STMOD_CELLULAR_SIM_DATA)
 {
-    tr_debug("STModCellular creation\r\n");
+    tr_info("STModCellular creation");
+
+#if defined(TARGET_DISCO_L562QE)
+    /* See PinNames.h file, STMOD+ pins are configurable */
+    STMOD_SEL_12 = 1;
+    STMOD_SEL_34 = 1;
+    tr_info("STMOD+ UART pins re-configuration");
+#endif
 
     // start with modem disabled
     m_powerkey.write(0);
@@ -54,10 +65,10 @@ STModCellular::~STModCellular()
 
 nsapi_error_t STModCellular::soft_power_on()
 {
-    tr_debug("STMOD cellular modem power ON\r\n");
+    tr_debug("STMOD cellular modem power ON");
 
 #if (MBED_CONF_STMOD_CELLULAR_TYPE == STMOD_UG96)
-    tr_debug("Booting UG96\r\n");
+    tr_info("Booting UG96");
     m_reset.write(1);
     rtos::ThisThread::sleep_for(200);
     m_reset.write(0);
@@ -68,9 +79,8 @@ nsapi_error_t STModCellular::soft_power_on()
     /* Because modem status is not available on STMOD+ connector,
      * let's wait for Modem complete boot */
     rtos::ThisThread::sleep_for(2300);
-#endif
-#if (MBED_CONF_STMOD_CELLULAR_TYPE == STMOD_BG96)
-    tr_debug("Booting BG96\r\n");
+#elif (MBED_CONF_STMOD_CELLULAR_TYPE == STMOD_BG96)
+    tr_info("Booting BG96");
     m_powerkey.write(1);
     m_reset.write(1);
     rtos::ThisThread::sleep_for(150);
@@ -89,58 +99,58 @@ nsapi_error_t STModCellular::soft_power_on()
     }
 
     // wait for RDY
-    _at->lock();
-    _at->set_at_timeout(5000);
-    _at->set_stop_tag("RDY");
-    bool rdy = _at->consume_to_stop_tag();
+    _at.lock();
+    _at.set_at_timeout(5000);
+    _at.set_stop_tag("RDY");
+    bool rdy = _at.consume_to_stop_tag();
     (void)rdy;
 
     /*  Modem may send more bytes are RDY flag */
-    _at->flush();
+    _at.flush();
 
     /* Turn OFF ECHO before anything else */
-    _at->set_stop_tag(mbed::OK);
-    _at->cmd_start("ATE0");
-    _at->cmd_stop();
-    _at->consume_to_stop_tag();
+    _at.set_stop_tag(mbed::OK);
+    _at.cmd_start("ATE0");
+    _at.cmd_stop();
+    _at.consume_to_stop_tag();
 
-    _at->restore_at_timeout();
-    _at->unlock();
+    _at.restore_at_timeout();
+    _at.unlock();
 
-    tr_debug("Modem %sready to receive AT commands\r\n", rdy ? "" : "NOT ");
+    tr_info("Modem %sready to receive AT commands", rdy ? "" : "NOT ");
 
     if ((MBED_CONF_STMOD_CELLULAR_CTS != NC) && (MBED_CONF_STMOD_CELLULAR_RTS != NC)) {
-        tr_debug("Enable flow control\r\n");
+        tr_info("Enable flow control");
 
         pin_mode(MBED_CONF_STMOD_CELLULAR_CTS, PullDown);
 
-        _at->lock();
+        _at.lock();
         // enable CTS/RTS flowcontrol
-        _at->set_stop_tag(mbed::OK);
-        _at->set_at_timeout(400);
-        _at->cmd_start("AT+IFC=");
-        _at->write_int(2);
-        _at->write_int(2);
-        _at->cmd_stop_read_resp();
-        err = _at->get_last_error();
-        _at->restore_at_timeout();
-        _at->unlock();
+        _at.set_stop_tag(mbed::OK);
+        _at.set_at_timeout(400);
+        _at.cmd_start("AT+IFC=");
+        _at.write_int(2);
+        _at.write_int(2);
+        _at.cmd_stop_read_resp();
+        err = _at.get_last_error();
+        _at.restore_at_timeout();
+        _at.unlock();
 
         if (err == NSAPI_ERROR_OK) {
-            tr_debug("Flow control turned ON\r\n");
+            tr_debug("Flow control turned ON");
         } else {
-            tr_error("Failed to enable hw flow control\r\n");
+            tr_error("Failed to enable hw flow control");
         }
     }
 
     rtos::ThisThread::sleep_for(500);
 
 #if MBED_CONF_CELLULAR_DEBUG_AT
-    _at->lock();
+    _at.lock();
     /*  Verify Flow Control settings */
-    _at->cmd_start("AT+IFC?");
-    _at->cmd_stop_read_resp();
-    _at->unlock();
+    _at.cmd_start("AT+IFC?");
+    _at.cmd_stop_read_resp();
+    _at.unlock();
 #endif // MBED_CONF_CELLULAR_DEBUG_AT
 
     return err;
@@ -148,8 +158,8 @@ nsapi_error_t STModCellular::soft_power_on()
 
 nsapi_error_t STModCellular::soft_power_off()
 {
-    _at->cmd_start("AT+QPOWD");
-    _at->cmd_stop();
+    _at.cmd_start("AT+QPOWD");
+    _at.cmd_stop();
     rtos::ThisThread::sleep_for(1000);
     // should wait for POWERED DOWN with a time out up to 65 second according to the manual.
     // we cannot afford such a long wait though.
@@ -157,14 +167,13 @@ nsapi_error_t STModCellular::soft_power_off()
 }
 
 #if MBED_CONF_STMOD_CELLULAR_PROVIDE_DEFAULT
-#include "UARTSerial.h"
+#include "drivers/BufferedSerial.h"
 CellularDevice *CellularDevice::get_default_instance()
 {
-    tr_debug("MODEM default instance\r\n");
+    tr_debug("STMOD_CELLULAR default instance");
 
-    static UARTSerial serial(MBED_CONF_STMOD_CELLULAR_TX, MBED_CONF_STMOD_CELLULAR_RX, MBED_CONF_STMOD_CELLULAR_BAUDRATE);
+    static BufferedSerial serial(MBED_CONF_STMOD_CELLULAR_TX, MBED_CONF_STMOD_CELLULAR_RX, MBED_CONF_STMOD_CELLULAR_BAUDRATE);
     if ((MBED_CONF_STMOD_CELLULAR_CTS != NC) && (MBED_CONF_STMOD_CELLULAR_RTS != NC)) {
-        tr_debug("STMOD_CELLULAR flow control: RTS %d CTS %d\r\n", MBED_CONF_STMOD_CELLULAR_RTS, MBED_CONF_STMOD_CELLULAR_CTS);
         serial.set_flow_control(SerialBase::RTSCTS, MBED_CONF_STMOD_CELLULAR_RTS, MBED_CONF_STMOD_CELLULAR_CTS);
     }
     static STModCellular device(&serial);

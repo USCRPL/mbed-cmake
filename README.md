@@ -58,13 +58,12 @@ target_link_libraries(max31856 mbed-os)
 ```
 
 ## Bundled MBed
-This repository includes MBed OS 5.15.0 stable.  We will investigate releasing a MBed 6.0 version of mbed-cmake once a stable release comes out -- it is unknown if MBed 6.0 is drop-in compatible or not.
-
+This repository includes MBed OS 6.1.0 stable. 
 You should be able to use a different version of MBed by simply replacing the `mbed-src` folder, just be sure to copy CMakeLists.txt into the new mbed-src folder.  Note that unignore rules in the .mbedignore is currently an mbed-cmake extension and this functionality will be lost if you replace mbed-src.  We submitted a PR to upstream though!
 
 ## Limitations
-Currently MBed-cmake does not support toolchains other than GCC-ARM.  However this could be added without any major redesign if it was a desirable feature.
-
-Additionally, the full range of MBed CLI's upload methods are not supported yet.
+- Currently MBed-cmake does not support toolchains other than GCC-ARM.  However this could be added without any major redesign if it was a desirable feature.
+- The full range of MBed CLI's upload methods are not supported yet.
+- LTO is not currently supported though we plan to add this in the future.
 
 MBed-cmake was designed for use with a single processor target per project, and this is the most convenient way to use it.  However, you can also create a project that builds for multiple processors as long as you're OK with a few extra steps each time you switch processors (see [the instructions](https://github.com/USCRPL/mbed-cmake/wiki/Project-Configuration)).

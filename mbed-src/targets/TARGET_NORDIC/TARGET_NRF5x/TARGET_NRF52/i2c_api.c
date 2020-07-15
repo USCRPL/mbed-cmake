@@ -59,6 +59,17 @@
 #include "app_util_platform.h"
 #include "prs/nrfx_prs.h"
 
+#if DEVICE_I2CSLAVE
+#include "nrfx_twis.h"
+#endif
+
+#define TWI_PIN_INIT(_pin) nrf_gpio_cfg((_pin),                     \
+                                        NRF_GPIO_PIN_DIR_INPUT,     \
+                                        NRF_GPIO_PIN_INPUT_CONNECT, \
+                                        NRF_GPIO_PIN_PULLUP,        \
+                                        NRF_GPIO_PIN_S0D1,          \
+                                        NRF_GPIO_PIN_NOSENSE)
+
 #if 0
 #define DEBUG_PRINTF(...) printf(__VA_ARGS__)
 #else
@@ -128,6 +139,15 @@ void i2c_init(i2c_t *obj, PinName sda, PinName scl)
     config->mask = 0;
 #endif
 
+#if DEVICE_I2CSLAVE
+    /** was_slave is used to decide which driver call we need
+     * to use when uninitializing a given instance
+     */
+    config->was_slave = false;
+    config->is_slave = false;
+    config->slave_addr = 0;
+#endif
+
     /* Force reconfiguration */
     config->update = true;
 
@@ -155,6 +175,14 @@ void i2c_frequency(i2c_t *obj, int hz)
     struct i2c_s *config = &obj->i2c;
 #else
     struct i2c_s *config = obj;
+#endif
+
+
+#if DEVICE_I2CSLAVE
+    /* Slaves automatically get frequency from master, may be 100kHz or 400kHz */
+    if(config->is_slave) {
+    		return;
+    }
 #endif
 
     /* Round down to nearest valid frequency. */
@@ -225,7 +253,7 @@ const PinMap *i2c_slave_scl_pinmap()
 /*****************************************************************************/
 
 /* Global array for easy register selection for each instance. */
-static NRF_TWI_Type * nordic_nrf5_twi_register[2] = { NRF_TWI0, NRF_TWI1 };
+static NRF_TWI_Type *nordic_nrf5_twi_register[2] = { NRF_TWI0, NRF_TWI1 };
 
 /**
  * @brief      Reconfigure TWI register.
@@ -247,14 +275,14 @@ void i2c_configure_twi_instance(i2c_t *obj)
     struct i2c_s *config = obj;
 #endif
 
-	static nrfx_irq_handler_t const irq_handlers[NRFX_TWI_ENABLED_COUNT] = {
-			#if NRFX_CHECK(NRFX_TWI0_ENABLED)
-			nrfx_twi_0_irq_handler,
-			#endif
-			#if NRFX_CHECK(NRFX_TWI1_ENABLED)
-			nrfx_twi_1_irq_handler,
-			#endif
-		};
+    static nrfx_irq_handler_t const irq_handlers[NRFX_TWI_ENABLED_COUNT] = {
+#if NRFX_CHECK(NRFX_TWI0_ENABLED)
+        nrfx_twi_0_irq_handler,
+#endif
+#if NRFX_CHECK(NRFX_TWI1_ENABLED)
+        nrfx_twi_1_irq_handler,
+#endif
+    };
 
     int instance = config->instance;
 
@@ -280,22 +308,21 @@ void i2c_configure_twi_instance(i2c_t *obj)
         /* Force resource release. This is necessary because mbed drivers don't
          * deinitialize on object destruction.
          */
-        NRFX_IRQ_DISABLE((nrfx_get_irq_number((void const*)nordic_nrf5_twi_register[instance])));
-		/* Release and re-initialize the irq handlers.
-		 * observation: based on call flow, this is called only during i2c_reset and i2c_byte_write
-		 * The nrfx_prs_acquire is normally called in nrfx_twi_init which is part of the i2c_configure_driver_instance,
-		 * not i2c_configure_twi_intance. Hence I think the release and acquire is not doing any useful work here.
-		 * Keeping for reference and should clean up after testing if found not useful.
-		*/
+        NRFX_IRQ_DISABLE((nrfx_get_irq_number((void const *)nordic_nrf5_twi_register[instance])));
+        /* Release and re-initialize the irq handlers.
+         * observation: based on call flow, this is called only during i2c_reset and i2c_byte_write
+         * The nrfx_prs_acquire is normally called in nrfx_twi_init which is part of the i2c_configure_driver_instance,
+         * not i2c_configure_twi_intance. Hence I think the release and acquire is not doing any useful work here.
+         * Keeping for reference and should clean up after testing if found not useful.
+        */
 
-		nrfx_prs_release(nordic_nrf5_twi_register[instance]);
-		if (nrfx_prs_acquire(nordic_nrf5_twi_register[instance],
-				irq_handlers[instance]) != NRFX_SUCCESS)
-		{
-			DEBUG_PRINTF("Function: %s, nrfx_prs_acquire error code: %s.",
+        nrfx_prs_release(nordic_nrf5_twi_register[instance]);
+        if (nrfx_prs_acquire(nordic_nrf5_twi_register[instance],
+                             irq_handlers[instance]) != NRFX_SUCCESS) {
+            DEBUG_PRINTF("Function: %s, nrfx_prs_acquire error code: %s.",
                          __func__,
                          err_code);
-		}
+        }
 
         /* Reset shorts register. */
         nrf_twi_shorts_set(nordic_nrf5_twi_register[instance], 0);
@@ -329,6 +356,13 @@ void i2c_configure_twi_instance(i2c_t *obj)
         /* Set frequency. */
         nrf_twi_frequency_set(nordic_nrf5_twi_register[instance],
                               config->frequency);
+
+        /* To secure correct signal levels on the pins used by the TWI
+        master when the system is in OFF mode, and when the TWI master is
+        disabled, these pins must be configured in the GPIO peripheral.
+        */
+        TWI_PIN_INIT(config->scl);
+        TWI_PIN_INIT(config->sda);
 
         /* Enable TWI peripheral with new settings. */
         nrf_twi_enable(nordic_nrf5_twi_register[instance]);
@@ -491,7 +525,7 @@ int i2c_byte_read(i2c_t *obj, int last)
 
         /* Block until timeout or data ready event has been signaled. */
         while (((now_us - start_us) < timeout) &&
-               !(nrf_twi_event_check(nordic_nrf5_twi_register[instance], NRF_TWI_EVENT_RXDREADY))) {
+                !(nrf_twi_event_check(nordic_nrf5_twi_register[instance], NRF_TWI_EVENT_RXDREADY))) {
             now_us = tick2us * lp_ticker_read();
         }
 
@@ -530,7 +564,7 @@ int i2c_stop(i2c_t *obj)
     uint32_t now_us = start_us;
 
     while (((now_us - start_us) < MAXIMUM_TIMEOUT_US) &&
-           !(nrf_twi_event_check(nordic_nrf5_twi_register[instance], NRF_TWI_EVENT_STOPPED))) {
+            !(nrf_twi_event_check(nordic_nrf5_twi_register[instance], NRF_TWI_EVENT_STOPPED))) {
         now_us = tick2us * lp_ticker_read();
     }
 
@@ -574,6 +608,10 @@ void i2c_reset(i2c_t *obj)
 
 /* Global array holding driver configuration for easy access. */
 static const nrfx_twi_t nordic_nrf5_instance[2] = {  NRFX_TWI_INSTANCE(0),  NRFX_TWI_INSTANCE(1) };
+
+#if DEVICE_I2CSLAVE
+static const nrfx_twis_t nordic_nrf5_twis_instance[2] = { NRFX_TWIS_INSTANCE(0), NRFX_TWIS_INSTANCE(1) };
+#endif
 
 /* Forward declare interrupt handler. */
 #if DEVICE_I2C_ASYNCH
@@ -619,51 +657,90 @@ static void i2c_configure_driver_instance(i2c_t *obj)
 
         /* If the peripheral is already running, then disable it and use the driver API to uninitialize it.*/
         if (nordic_nrf5_instance[instance].p_twi->ENABLE) {
+#if DEVICE_I2CSLAVE
+        /* If it was a slave, we should disable it with the appropriate driver */
+        if(config->was_slave) {
+            nrfx_twis_disable(&nordic_nrf5_twis_instance[instance]);
+            nrfx_twis_uninit(&nordic_nrf5_twis_instance[instance]);
+        }
+        else {
             nrfx_twi_disable(&nordic_nrf5_instance[instance]);
             nrfx_twi_uninit(&nordic_nrf5_instance[instance]);
+        }
+
+#else
+        nrfx_twi_disable(&nordic_nrf5_instance[instance]);
+        nrfx_twi_uninit(&nordic_nrf5_instance[instance]);
+#endif
+
         }
 
         /* Force resource release. This is necessary because mbed drivers don't
          * deinitialize on object destruction.
          */
-        NRFX_IRQ_DISABLE((nrfx_get_irq_number((void const*)nordic_nrf5_twi_register[instance])));
+        NRFX_IRQ_DISABLE((nrfx_get_irq_number((void const *)nordic_nrf5_twi_register[instance])));
 
-        /* Configure driver with new settings. */
-        nrfx_twi_config_t twi_config = {
-            .scl = config->scl,
-            .sda = config->sda,
-            .frequency = config->frequency,
-            .interrupt_priority = APP_IRQ_PRIORITY_LOWEST,
-            .hold_bus_uninit = false
-        };
+#if DEVICE_I2CSLAVE
+        if(config->is_slave) {
+            /* Configure driver as slave with new settings. */
+            nrfx_twis_config_t twis_config = {
+                .addr = { (config->slave_addr >> 1), 0 },
+                .scl = config->scl,
+                .sda = config->sda,
+                .scl_pull = NRF_GPIO_PIN_NOPULL,
+                .sda_pull = NRF_GPIO_PIN_NOPULL,
+                .interrupt_priority = APP_IRQ_PRIORITY_LOWEST
+            };
+            /* Initialze driver in blocking mode. */
+            nrfx_twis_init(&nordic_nrf5_twis_instance[instance],
+                            &twis_config,
+                            NULL);
+
+            /* Enable peripheral (nrfx_twi_t and nrfx_twis_t are interchangeable). */
+            nrfx_twis_enable(&nordic_nrf5_twis_instance[instance]);
+        }
+        else {
+#endif
+
+            /* Configure driver with new settings. */
+            nrfx_twi_config_t twi_config = {
+                .scl = config->scl,
+                .sda = config->sda,
+                .frequency = config->frequency,
+                .interrupt_priority = APP_IRQ_PRIORITY_LOWEST,
+                .hold_bus_uninit = false
+            };
 
 #if DEVICE_I2C_ASYNCH
-        /* Set callback handler in asynchronous mode. */
-        if (config->handler) {
+            /* Set callback handler in asynchronous mode. */
+            if (config->handler) {
 
-            /* Initialze driver in non-blocking mode. */
-            nrfx_twi_init(&nordic_nrf5_instance[instance],
-                          &twi_config,
-                          nordic_nrf5_twi_event_handler,
-                          obj);
-        } else {
+                /* Initialze driver in non-blocking mode. */
+                nrfx_twi_init(&nordic_nrf5_instance[instance],
+                              &twi_config,
+                              nordic_nrf5_twi_event_handler,
+                              obj);
+            } else {
 
+                /* Initialze driver in blocking mode. */
+                nrfx_twi_init(&nordic_nrf5_instance[instance],
+                              &twi_config,
+                              NULL,
+                              NULL);
+            }
+#else
             /* Initialze driver in blocking mode. */
             nrfx_twi_init(&nordic_nrf5_instance[instance],
                           &twi_config,
                           NULL,
                           NULL);
-        }
-#else
-        /* Initialze driver in blocking mode. */
-        nrfx_twi_init(&nordic_nrf5_instance[instance],
-                      &twi_config,
-                      NULL,
-                      NULL);
 #endif
 
-        /* Enable peripheral. */
-        nrfx_twi_enable(&nordic_nrf5_instance[instance]);
+            /* Enable peripheral. */
+            nrfx_twi_enable(&nordic_nrf5_instance[instance]);
+#if DEVICE_I2CSLAVE
+        }
+#endif
     }
 }
 
@@ -695,9 +772,9 @@ int i2c_read(i2c_t *obj, int address, char *data, int length, int stop)
 
     /* Initialize transaction. */
     ret_code_t retval = nrfx_twi_rx(&nordic_nrf5_instance[instance],
-                                       address >> 1,
-                                       (uint8_t *) data,
-                                       length);
+                                    address >> 1,
+                                    (uint8_t *) data,
+                                    length);
 
     /* Set return value on success. */
     if (retval == NRF_SUCCESS) {
@@ -739,10 +816,10 @@ int i2c_write(i2c_t *obj, int address, const char *data, int length, int stop)
 
     /* Initialize transaction. */
     ret_code_t retval = nrfx_twi_tx(&nordic_nrf5_instance[instance],
-                                       address >> 1,
-                                       (const uint8_t *) data,
-                                       length,
-                                       !stop);
+                                    address >> 1,
+                                    (const uint8_t *) data,
+                                    length,
+                                    !stop);
 
     /* Set return value on success. */
     if (retval == NRF_SUCCESS) {
@@ -778,8 +855,7 @@ static void nordic_nrf5_twi_event_handler(nrfx_twi_evt_t const *p_event, void *p
     struct i2c_s *config = &obj->i2c;
 
     /* Translate event type from NRF driver values to mbed HAL values. */
-    switch (p_event->type)
-    {
+    switch (p_event->type) {
         /* Transfer completed event. */
         case NRFX_TWI_EVT_DONE:
             config->event = I2C_EVENT_TRANSFER_COMPLETE;
@@ -860,17 +936,17 @@ void i2c_transfer_asynch(i2c_t *obj,
 
     /* Configure TWI transfer. */
     const nrfx_twi_xfer_desc_t twi_config = NRFX_TWI_XFER_DESC_TXRX(address >> 1,
-                                                                          (uint8_t*) tx,
-                                                                          tx_length,
-                                                                          rx,
-                                                                          rx_length);
+                                                                    (uint8_t *) tx,
+                                                                    tx_length,
+                                                                    rx,
+                                                                    rx_length);
 
     uint32_t flags = (stop) ? 0 : NRFX_TWI_FLAG_TX_NO_STOP;
 
     /* Initiate TWI transfer using NRF driver. */
     ret_code_t result = nrfx_twi_xfer(&nordic_nrf5_instance[instance],
-                                         &twi_config,
-                                         flags);
+                                      &twi_config,
+                                      flags);
 
     /* Signal error if event mask matches and event handler is set. */
     if ((result != NRF_SUCCESS) && (mask & I2C_EVENT_ERROR) && handler) {
@@ -933,7 +1009,6 @@ void i2c_abort_asynch(i2c_t *obj)
 #endif // DEVICE_I2C_ASYNCH
 
 #if DEVICE_I2CSLAVE
-#warning DEVICE_I2CSLAVE
 
 /***
  *      _____ ___   _____    _____ _
@@ -953,6 +1028,25 @@ void i2c_abort_asynch(i2c_t *obj)
  */
 void i2c_slave_mode(i2c_t *obj, int enable_slave)
 {
+#if DEVICE_I2C_ASYNCH
+    struct i2c_s *config = &obj->i2c;
+#else
+    struct i2c_s *config = obj;
+#endif
+
+    /* Reconfigure this instance as an I2C slave */
+
+    /* Not configured yet, so this instance is and was a slave */
+    if(config->state == NRFX_DRV_STATE_UNINITIALIZED) {
+    		config->was_slave = enable_slave;
+    } else {
+        config->was_slave = config->is_slave;
+    }
+    config->is_slave = enable_slave;
+    config->update = true;
+
+    i2c_configure_driver_instance(obj);
+
     DEBUG_PRINTF("i2c_slave_mode\r\n");
 }
 
@@ -964,6 +1058,22 @@ void i2c_slave_mode(i2c_t *obj, int enable_slave)
 int i2c_slave_receive(i2c_t *obj)
 {
     DEBUG_PRINTF("i2c_slave_receive\r\n");
+
+#if DEVICE_I2C_ASYNCH
+    struct i2c_s *config = &obj->i2c;
+#else
+    struct i2c_s *config = obj;
+#endif
+
+    const nrfx_twis_t* twis_instance = &nordic_nrf5_twis_instance[config->instance];
+
+    if(nrfx_twis_is_waiting_rx_buff(twis_instance)) {
+    		return 3;
+    }
+
+    if(nrfx_twis_is_waiting_tx_buff(twis_instance)) {
+    		return 1;
+    }
 
     return 0;
 }
@@ -978,7 +1088,26 @@ int i2c_slave_read(i2c_t *obj, char *data, int length)
 {
     DEBUG_PRINTF("i2c_slave_read\r\n");
 
-    return 0;
+#if DEVICE_I2C_ASYNCH
+    struct i2c_s *config = &obj->i2c;
+#else
+    struct i2c_s *config = obj;
+#endif
+
+    const nrfx_twis_t* twis_instance = &nordic_nrf5_twis_instance[config->instance];
+
+    /* Wait until the master is trying to write data */
+    while(!nrfx_twis_is_waiting_rx_buff(twis_instance)) { }
+
+    /* Master is attempting to write, now we prepare the rx buffer */
+    nrfx_twis_rx_prepare(twis_instance,
+    		data,
+		length);
+
+    /* Wait until the transaction is over */
+    while(nrfx_twis_is_pending_rx(twis_instance)) { }
+
+    return nrfx_twis_rx_amount(twis_instance);
 }
 
 /** Configure I2C as slave or master.
@@ -991,7 +1120,26 @@ int i2c_slave_write(i2c_t *obj, const char *data, int length)
 {
     DEBUG_PRINTF("i2c_slave_write\r\n");
 
-    return 0;
+#if DEVICE_I2C_ASYNCH
+    struct i2c_s *config = &obj->i2c;
+#else
+    struct i2c_s *config = obj;
+#endif
+
+    const nrfx_twis_t* twis_instance = &nordic_nrf5_twis_instance[config->instance];
+
+    /* Wait until the master is trying to read data */
+    while(!nrfx_twis_is_waiting_tx_buff(twis_instance)) { }
+
+    /* Master is attempting to read, now we prepare the tx buffer */
+    nrfx_twis_tx_prepare(twis_instance,
+    		data,
+		length);
+
+    /* Wait until the transaction is over */
+    while(nrfx_twis_is_pending_tx(twis_instance)) { }
+
+    return nrfx_twis_tx_amount(twis_instance);
 }
 
 /** Configure I2C address.
@@ -1002,6 +1150,18 @@ int i2c_slave_write(i2c_t *obj, const char *data, int length)
  */
 void i2c_slave_address(i2c_t *obj, int idx, uint32_t address, uint32_t mask)
 {
+#if DEVICE_I2C_ASYNCH
+    struct i2c_s *config = &obj->i2c;
+#else
+    struct i2c_s *config = obj;
+#endif
+
+    /* Reconfigure this instance as an I2C slave with given address */
+    config->update = true;
+    config->slave_addr = (uint8_t) address;
+
+    i2c_configure_driver_instance(obj);
+
     DEBUG_PRINTF("i2c_slave_address\r\n");
 }
 

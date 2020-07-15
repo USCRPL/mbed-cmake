@@ -1,5 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2016 ARM Limited
+ * Copyright (c) 2006-2020 ARM Limited
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -73,6 +73,16 @@ uint32_t mbed_stack_isr_size = 0;
 
 void mbed_init(void)
 {
+#ifdef MBED_DEBUG
+    // Configs to make debugging easier
+#ifdef SCnSCB_ACTLR_DISDEFWBUF_Msk
+    // Disable write buffer to make BusFaults (eg write to ROM via NULL pointer) precise.
+    // Possible on Cortex-M3 and M4, not on M0, M7 or M33.
+    // Would be less necessary if ROM was write-protected in MPU to give a
+    // precise MemManage exception.
+    SCnSCB->ACTLR |= SCnSCB_ACTLR_DISDEFWBUF_Msk;
+#endif
+#endif
     mbed_mpu_manager_init();
     mbed_cpy_nvic();
     mbed_sdk_init();
@@ -84,7 +94,9 @@ void mbed_init(void)
 
 void mbed_start(void)
 {
+    mbed_rtos_init_singleton_mutex();
     mbed_toolchain_init();
+    mbed_tfm_init();
     mbed_main();
     mbed_error_initialize();
     main();
@@ -96,6 +108,11 @@ MBED_WEAK void mbed_sdk_init(void)
 }
 
 MBED_WEAK void software_init_hook_rtos()
+{
+    // Nothing by default
+}
+
+MBED_WEAK void mbed_tfm_init(void)
 {
     // Nothing by default
 }

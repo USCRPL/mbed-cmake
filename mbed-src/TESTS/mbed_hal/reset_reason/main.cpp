@@ -25,13 +25,11 @@
 #include "mbed.h"
 
 #if DEVICE_WATCHDOG
-#include "hal/watchdog_api.h"
-
-#define MSG_VALUE_WATCHDOG_STATUS "wdg_present"
-#define WDG_TIMEOUT_MS 50UL
-
+#   include "hal/watchdog_api.h"
+#   define MSG_VALUE_WATCHDOG_STATUS 1
+#   define WDG_TIMEOUT_MS 50UL
 #else
-#define MSG_VALUE_WATCHDOG_STATUS "no_wdg"
+#   define MSG_VALUE_WATCHDOG_STATUS 0
 #endif
 
 #define MSG_VALUE_DUMMY "0"
@@ -49,19 +47,20 @@
 #define MSG_KEY_RESET_REASON "reason"
 #define MSG_KEY_DEVICE_RESET "reset"
 
-/* To prevent loss of Greentea data, flush serial buffers before the UART peripheral shutdown. The UART shutdown happens when the
+/* To prevent a loss of Greentea data, the serial buffers have to be flushed
+ * before the UART peripheral shutdown. The UART shutdown happens when the
  * device is entering the deepsleep mode or performing a reset.
  *
  * With the current API, it is not possible to check if the hardware buffers
- * are empty. However, you can determine the amount of time required for the
+ * are empty. However, it is possible to determine the time required for the
  * buffers to flush.
  *
- * For example, NUMAKER_PFM_NUC472:
- * The UART peripheral has 16-byte Tx FIFO. With a baud rate of 9600,
- * flushing the Tx FIFO would take: 16 * 8 * 1000 / 9600 = 13.3 ms.
- * To be on the safe side, set the wait time to 20 ms.
+ * Assuming the biggest Tx FIFO of 128 bytes (as for CY8CPROTO_062_4343W)
+ * and a default UART config (9600, 8N1), flushing the Tx FIFO wold take:
+ * (1 start_bit + 8 data_bits + 1 stop_bit) * 128 * 1000 / 9600 = 133.3 ms.
+ * To be on the safe side, set the wait time to 150 ms.
  */
-#define SERIAL_FLUSH_TIME_MS    20
+#define SERIAL_FLUSH_TIME_MS 150
 
 typedef enum {
     CMD_STATUS_CONTINUE,
@@ -76,7 +75,7 @@ static cmd_status_t handle_command(const char *key, const char *value)
         int raw_reason_hex_str_len = snprintf(raw_reason_hex_str,
                                               sizeof raw_reason_hex_str, "%08lx", raw_reason);
 
-        if (raw_reason_hex_str_len != (sizeof raw_reason_hex_str) - 1) {
+        if (raw_reason_hex_str_len < 0) {
             TEST_ASSERT_MESSAGE(0, "Failed to compose raw reset reason hex string.");
             return CMD_STATUS_ERROR;
         }
@@ -99,7 +98,7 @@ static cmd_status_t handle_command(const char *key, const char *value)
 
     if (strcmp(key, MSG_KEY_DEVICE_RESET) == 0 && strcmp(value, MSG_VALUE_DEVICE_RESET_NVIC) == 0) {
         greentea_send_kv(MSG_KEY_DEVICE_RESET, MSG_VALUE_DEVICE_RESET_ACK);
-        wait_ms(SERIAL_FLUSH_TIME_MS); // Wait for the serial buffers to flush.
+        ThisThread::sleep_for(SERIAL_FLUSH_TIME_MS); // Wait for the serial buffers to flush.
         NVIC_SystemReset();
         TEST_ASSERT_MESSAGE(0, "NVIC_SystemReset did not reset the device as expected.");
         return CMD_STATUS_ERROR;
@@ -108,13 +107,13 @@ static cmd_status_t handle_command(const char *key, const char *value)
 #if DEVICE_WATCHDOG
     if (strcmp(key, MSG_KEY_DEVICE_RESET) == 0 && strcmp(value, MSG_VALUE_DEVICE_RESET_WATCHDOG) == 0) {
         greentea_send_kv(MSG_KEY_DEVICE_RESET, MSG_VALUE_DEVICE_RESET_ACK);
-        wait_ms(SERIAL_FLUSH_TIME_MS); // Wait for the serial buffers to flush.
+        ThisThread::sleep_for(SERIAL_FLUSH_TIME_MS); // Wait for the serial buffers to flush.
         watchdog_config_t config = { .timeout_ms = WDG_TIMEOUT_MS };
         if (hal_watchdog_init(&config) != WATCHDOG_STATUS_OK) {
             TEST_ASSERT_MESSAGE(0, "hal_watchdog_init() error.");
             return CMD_STATUS_ERROR;
         }
-        wait_ms(2 * WDG_TIMEOUT_MS); // Watchdog should fire before twice the timeout value.
+        ThisThread::sleep_for(2 * WDG_TIMEOUT_MS); // Watchdog should fire before twice the timeout value.
         TEST_ASSERT_MESSAGE(0, "Watchdog did not reset the device as expected.");
         return CMD_STATUS_ERROR;
     }
@@ -126,8 +125,18 @@ static cmd_status_t handle_command(const char *key, const char *value)
 
 void test_reset_reason()
 {
-    // Report readiness and watchdog status.
-    greentea_send_kv(MSG_KEY_DEVICE_READY, MSG_VALUE_WATCHDOG_STATUS);
+    reset_reason_capabilities_t rrcap = {};
+    hal_reset_reason_get_capabilities(&rrcap);
+    char msg_value[11];
+    int str_len = snprintf(msg_value, sizeof msg_value, "%08lx,%01x", rrcap.reasons, MSG_VALUE_WATCHDOG_STATUS);
+    if (str_len < 0) {
+        printf("Failed to compose a value string to be sent to host.");
+        GREENTEA_TESTSUITE_RESULT(0);
+        return;
+    }
+
+    // Report readiness, capabilities and watchdog status.
+    greentea_send_kv(MSG_KEY_DEVICE_READY, msg_value);
 
     cmd_status_t cmd_status = CMD_STATUS_CONTINUE;
     static char _key[MSG_KEY_LEN + 1] = { };

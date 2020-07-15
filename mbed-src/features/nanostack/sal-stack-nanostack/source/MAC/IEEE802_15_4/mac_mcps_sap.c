@@ -34,6 +34,7 @@
 #include "fhss_api.h"
 #include "platform/arm_hal_interrupt.h"
 #include "common_functions.h"
+#include "Core/include/ns_monitor.h"
 
 #include "MAC/IEEE802_15_4/sw_mac_internal.h"
 #include "MAC/IEEE802_15_4/mac_defines.h"
@@ -45,6 +46,7 @@
 #include "MAC/IEEE802_15_4/mac_mcps_sap.h"
 #include "MAC/IEEE802_15_4/mac_header_helper_functions.h"
 #include "MAC/IEEE802_15_4/mac_indirect_data.h"
+#include "MAC/IEEE802_15_4/mac_cca_threshold.h"
 #include "MAC/rf_driver_storage.h"
 
 #include "sw_mac.h"
@@ -73,8 +75,6 @@ static int8_t mcps_pd_data_cca_trig(protocol_interface_rf_mac_setup_s *rf_ptr, m
 static void mac_pd_data_confirm_failure_handle(protocol_interface_rf_mac_setup_s *rf_mac_setup);
 
 static int8_t mac_tasklet_event_handler = -1;
-
-static ns_mem_heap_size_t ns_dyn_mem_rate_limiting_threshold = 0xFFFFFFFF;
 
 /**
  * Get PHY time stamp.
@@ -228,8 +228,8 @@ void mcps_sap_data_req_handler_ext(protocol_interface_rf_mac_setup_s *rf_mac_set
         goto verify_status;
     }
 
-    if ((data_req->msduLength + ie_header_length + ie_payload_length) > rf_mac_setup->dev_driver->phy_driver->phy_MTU - MAC_DATA_PACKET_MIN_HEADER_LENGTH) {
-        tr_debug("packet %u, %u", data_req->msduLength, rf_mac_setup->dev_driver->phy_driver->phy_MTU);
+    if ((data_req->msduLength + ie_header_length + ie_payload_length) > rf_mac_setup->phy_mtu_size - MAC_DATA_PACKET_MIN_HEADER_LENGTH) {
+        tr_debug("packet %u, %u", data_req->msduLength, rf_mac_setup->phy_mtu_size);
         status = MLME_FRAME_TOO_LONG;
         goto verify_status;
     }
@@ -358,7 +358,7 @@ verify_status:
 static int8_t mac_virtual_data_req_handler(protocol_interface_rf_mac_setup_s *rf_mac_setup, const uint8_t *data_ptr, uint16_t data_length)
 {
 
-    if (!rf_mac_setup->macUpState || data_length > rf_mac_setup->dev_driver->phy_driver->phy_MTU) {
+    if (!rf_mac_setup->macUpState || data_length > rf_mac_setup->phy_mtu_size) {
         return -1;
     }
 
@@ -1196,6 +1196,9 @@ static void mac_mcps_sap_data_tasklet(arm_event_s *event)
         case MAC_MLME_SCAN_CONFIRM_HANDLER:
             mac_mlme_scan_confirmation_handle((protocol_interface_rf_mac_setup_s *) event->data_ptr);
             break;
+        case MAC_CCA_THR_UPDATE:
+            mac_cca_threshold_update((protocol_interface_rf_mac_setup_s *) event->data_ptr, event->event_data >> 8, (int8_t) event->event_data);
+            break;
         case MAC_SAP_TRIG_TX:
             mac_clear_active_event((protocol_interface_rf_mac_setup_s *) event->data_ptr, MAC_SAP_TRIG_TX);
             mac_mcps_trig_buffer_from_queue((protocol_interface_rf_mac_setup_s *) event->data_ptr);
@@ -1221,7 +1224,9 @@ mac_pre_build_frame_t *mcps_sap_prebuild_frame_buffer_get(uint16_t payload_size)
         return NULL;
     }
     memset(buffer, 0, sizeof(mac_pre_build_frame_t));
+    buffer->initial_tx_channel = 0xffff;
     buffer->aux_header.frameCounter = 0xffffffff;
+    buffer->DSN_allocated = false;
     if (payload_size) {
         //Mac interlnal payload allocate
         buffer->mac_payload = ns_dyn_mem_temporary_alloc(payload_size);
@@ -1321,7 +1326,7 @@ static void mac_common_data_confirmation_handle(protocol_interface_rf_mac_setup_
     timer_mac_stop(rf_mac_setup);
     if (m_event == MAC_CCA_FAIL) {
         sw_mac_stats_update(rf_mac_setup, STAT_MAC_TX_CCA_FAIL, 0);
-        tr_debug("MAC CCA fail");
+        tr_info("MAC CCA fail");
         /* CCA fail */
         //rf_mac_setup->cca_failure++;
         buf->status = MLME_BUSY_CHAN;
@@ -1329,7 +1334,7 @@ static void mac_common_data_confirmation_handle(protocol_interface_rf_mac_setup_
         sw_mac_stats_update(rf_mac_setup, STAT_MAC_TX_COUNT, buf->mac_payload_length);
         if (m_event == MAC_TX_FAIL) {
             sw_mac_stats_update(rf_mac_setup, STAT_MAC_TX_FAIL, 0);
-            tr_debug("MAC tx fail");
+            tr_info("MAC tx fail");
             buf->status = MLME_TX_NO_ACK;
         } else if (m_event == MAC_TX_DONE) {
             if (mac_is_ack_request_set(buf) == false) {
@@ -1430,7 +1435,7 @@ static void mcps_data_confirm_handle(protocol_interface_rf_mac_setup_s *rf_ptr, 
     if (rf_ptr->fhss_api && !buffer->asynch_request) {
         // FHSS checks if this failed buffer needs to be pushed back to TX queue and retransmitted
         if ((rf_ptr->mac_tx_result == MAC_TX_FAIL) || (rf_ptr->mac_tx_result == MAC_CCA_FAIL)) {
-            if (rf_ptr->fhss_api->data_tx_fail(rf_ptr->fhss_api, buffer->msduHandle, mac_convert_frame_type_to_fhss(buffer->fcf_dsn.frametype)) == true) {
+            if (rf_ptr->fhss_api->data_tx_fail(rf_ptr->fhss_api, buffer->msduHandle, mac_convert_frame_type_to_fhss(buffer->fcf_dsn.frametype), rf_ptr->mac_tx_start_channel) == true) {
 
                 if (rf_ptr->mac_tx_result == MAC_TX_FAIL) {
                     buffer->fhss_retry_count += 1 + rf_ptr->mac_tx_status.retry;
@@ -1498,7 +1503,10 @@ static void mcps_generic_sequence_number_allocate(protocol_interface_rf_mac_setu
         switch (buffer->fcf_dsn.frametype) {
             case MAC_FRAME_CMD:
             case MAC_FRAME_DATA:
-                buffer->fcf_dsn.DSN = mac_mlme_set_new_sqn(rf_ptr);
+                if (!buffer->DSN_allocated) {
+                    buffer->fcf_dsn.DSN = mac_mlme_set_new_sqn(rf_ptr);
+                    buffer->DSN_allocated = true;
+                }
                 break;
             case MAC_FRAME_BEACON:
                 buffer->fcf_dsn.DSN = mac_mlme_set_new_beacon_sqn(rf_ptr);
@@ -1576,7 +1584,7 @@ static int8_t mcps_generic_packet_build(protocol_interface_rf_mac_setup_s *rf_pt
     uint16_t mac_payload_length = frame_length;
 
     if (mac_payload_length > MAC_IEEE_802_15_4_MAX_MAC_SAFE_PAYLOAD_SIZE &&
-            dev_driver->phy_MTU == MAC_IEEE_802_15_4_MAX_PHY_PACKET_SIZE) {
+            rf_ptr->phy_mtu_size == MAC_IEEE_802_15_4_MAX_PHY_PACKET_SIZE) {
         /* IEEE 802.15.4-2003 only allowed unsecured payloads up to 102 bytes
         * (always leaving room for maximum MAC overhead).
         * IEEE 802.15.4-2006 allows bigger if MAC header is small enough, but
@@ -1596,8 +1604,8 @@ static int8_t mcps_generic_packet_build(protocol_interface_rf_mac_setup_s *rf_pt
 
     //Add MHR length to total length
     frame_length += buffer->mac_header_length_with_security + buffer->security_mic_len;
-    if ((frame_length) > dev_driver->phy_MTU - 2) {
-        tr_debug("Too Long %u, %u pa %u header %u mic %u", frame_length, mac_payload_length, buffer->mac_header_length_with_security,  buffer->security_mic_len, dev_driver->phy_MTU);
+    if ((frame_length) > rf_ptr->phy_mtu_size - 2) {
+        tr_debug("Too Long %u, %u pa %u header %u mic %u", frame_length, mac_payload_length, buffer->mac_header_length_with_security,  buffer->security_mic_len, rf_ptr->phy_mtu_size);
         buffer->status = MLME_FRAME_TOO_LONG;
         //decrement security counter
         if (key_desc) {
@@ -1745,8 +1753,8 @@ int8_t mcps_generic_ack_build(protocol_interface_rf_mac_setup_s *rf_ptr, bool in
     //Add MHR length to total length
     frame_length += buffer->mac_header_length_with_security + buffer->security_mic_len;
     uint16_t ack_mtu_size;
-    if (ENHANCED_ACK_MAX_LENGTH > dev_driver->phy_MTU) {
-        ack_mtu_size = dev_driver->phy_MTU;
+    if (ENHANCED_ACK_MAX_LENGTH > rf_ptr->phy_mtu_size) {
+        ack_mtu_size = rf_ptr->phy_mtu_size;
     } else {
         ack_mtu_size = ENHANCED_ACK_MAX_LENGTH;
     }
@@ -1921,6 +1929,7 @@ static int8_t mcps_pd_data_request(protocol_interface_rf_mac_setup_s *rf_ptr, ma
     memset(&(rf_ptr->mac_tx_status), 0, sizeof(mac_tx_status_t));
     rf_ptr->mac_cca_retry = 0;
     rf_ptr->mac_tx_retry = 0;
+    rf_ptr->mac_tx_start_channel = rf_ptr->mac_channel;
     mac_csma_param_init(rf_ptr);
     if (mcps_generic_packet_build(rf_ptr, buffer) != 0) {
         return -1;
@@ -2125,8 +2134,8 @@ void mcps_sap_pre_parsed_frame_buffer_free(mac_pre_parsed_frame_t *buf)
 mac_pre_parsed_frame_t *mcps_sap_pre_parsed_frame_buffer_get(const uint8_t *data_ptr, uint16_t frame_length)
 {
     // check that system has enough space to handle the new packet
-    const mem_stat_t *ns_dyn_mem_stat = ns_dyn_mem_get_mem_stat();
-    if (ns_dyn_mem_stat && ns_dyn_mem_stat->heap_sector_allocated_bytes > ns_dyn_mem_rate_limiting_threshold) {
+    if (!ns_monitor_packet_allocation_allowed()) {
+        // stack can not handle new packets for routing
         return NULL;
     }
 
@@ -2250,6 +2259,25 @@ void mcps_sap_trig_tx(void *mac_ptr)
     }
 }
 
+void mac_cca_threshold_event_send(protocol_interface_rf_mac_setup_s *rf_ptr, uint8_t channel, int16_t dbm)
+{
+    // Return if feature is not initialized
+    if (!rf_ptr->cca_threshold) {
+        return;
+    }
+    uint16_t data = channel << 8 | (uint8_t) dbm;
+    arm_event_s event = {
+        .receiver = mac_tasklet_event_handler,
+        .sender = 0,
+        .event_id = 0,
+        .event_data = data,
+        .data_ptr = rf_ptr,
+        .event_type = MAC_CCA_THR_UPDATE,
+        .priority = ARM_LIB_LOW_PRIORITY_EVENT,
+    };
+
+    eventOS_event_send(&event);
+}
 
 void mac_generic_event_trig(uint8_t event_type, void *mac_ptr, bool low_latency)
 {
@@ -2360,18 +2388,6 @@ uint8_t mcps_sap_purge_reg_handler(protocol_interface_rf_mac_setup_s *rf_mac_set
     }
 
     return confirmation.status;
-}
-
-int mcps_packet_ingress_rate_limit_by_memory(uint8_t free_heap_percentage)
-{
-    const mem_stat_t *ns_dyn_mem_stat = ns_dyn_mem_get_mem_stat();
-
-    if (ns_dyn_mem_stat && free_heap_percentage < 100) {
-        ns_dyn_mem_rate_limiting_threshold = ns_dyn_mem_stat->heap_sector_size / 100 * (100 - free_heap_percentage);
-        return 0;
-    }
-
-    return -1;
 }
 
 void mcps_pending_packet_counter_update_check(protocol_interface_rf_mac_setup_s *rf_mac_setup, mac_pre_build_frame_t *buffer)

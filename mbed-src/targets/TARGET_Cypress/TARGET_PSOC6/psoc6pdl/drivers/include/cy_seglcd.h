@@ -1,13 +1,13 @@
 /***************************************************************************//**
 * \file cy_seglcd.h
-* \version 1.0
+* \version 1.0.2
 *
 * \brief
 * Provides an API declaration of the Segment LCD driver.
 *
 ********************************************************************************
 * \copyright
-* Copyright 2019 Cypress Semiconductor Corporation
+* Copyright 2019-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,18 +43,16 @@
 *
 * \section group_seglcd_glossary Glossary
 * * LCD - Liquid Crystal Display
-* * Glass - An LCD glass that may contain a few displays
+* * Glass - An LCD glass with one or more displays
 *   (e.g. one 7-segment display and one bar-graph display).
 * * TN - A twisted nematic LCD glass.
 * * STN - A super-twisted nematic LCD glass.
-* * Display - A block of homogeneous symbols on an LCD glass
-*   intended to indicate a multi-digital number or character string.
-*   A few displays are possible whithin a single LCD glass.
-* * Symbol - A block of pixels on an LCD glass intended to indicate only digit or character.
-* * Pixel - A unity LCD displaying item with a binary state (on/off).
-*   It can be a segment of e.g. the 7-segment symbol (therefore may be called "segment"),
-*   a pixel of the matrix display, or a standalone arbitrarily-shaped display element.
-*   Each pixel has a unique set of common and segment lines in scope of the LCD glass.
+* * Display - A block of the same type of symbols on an LCD glass to indicate a multi-digital 
+*   number or character string. There may be one or more displays on a single LCD glass.
+* * Symbol - A block of pixels on an LCD glass to indicate a single digit or character.
+* * Pixel - A basic displaying item. This can be a segment of a 7-segment symbol (thus called a "segment"),
+*   a pixel of a dot-matrix display, or a stand-alone arbitrarily-shaped display element.
+*   Each pixel has a unique set of common and segment lines within one LCD glass.
 *   The API offers pixel identifiers - the 32-bit items of the display pixel map 
 *   (to use in the display structure definition, see \ref cy_stc_seglcd_disp_t),
 *   created by the \ref CY_SEGLCD_PIXEL macro.
@@ -102,6 +100,8 @@
 * For large High Speed clock frequencies, certain ratios between the contrast and frame
 * rate cannot be achieved due to the limited divider size. The \ref Cy_SegLCD_Init function
 * automatically restricts such incorrect combinations (returns \ref CY_SEGLCD_BAD_PARAM).
+* The peripheral clock divider can be adjusted to clock the LCD block with proper clock frequency:
+* \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_Clock
 *
 * Speed Mode Switching (\ref cy_stc_seglcd_config_t.speed)\n
 * The High Speed and Low Speed generators mostly duplicate each other,
@@ -110,12 +110,13 @@
 * typically has a frequency 30-100 times bigger than the 32 KHz clock fed to the Low Speed block. 
 * For MXLCD_ver2, both High Speed and Low Speed generators have similar 16-bit dividers,
 * because a possibility exists to source a Low Speed generator with a Medium Frequency clock
-* (see \ref group_sysclk_mf_funcs) that may be much higher than 32 KHz ILO.
+* (see \ref group_sysclk_mf_funcs) that may be much higher than 32 KHz ILO:
+* \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_MF_Clock
 * Switching between High Speed and Low Speed modes via the \ref Cy_SegLCD_Init function
 * causes the dividers to reconfigure.
 * Under possible restrictions related to certain ratios between contrast and frame rates 
 * (see Contrast vs. Frame Rate section above), switching between High Speed and the Low Speed modes
-* via the \ref Cy_SegLCD_Init function may set new dividers values that don’t give the same contrast value.
+* via the \ref Cy_SegLCD_Init function may set new dividers values that don't give the same contrast value.
 *
 * Driving Modes (\ref cy_stc_seglcd_config_t.drive)\n
 * SegLCD supports the following operating modes:
@@ -153,15 +154,15 @@
 *
 * Digital Correlation (\ref CY_SEGLCD_CORRELATION)\n
 * The principles of operation are illustrated by the example waveforms shown in the following figures.
-* Digital Correlation Example – Type-A:
+* Digital Correlation Example - Type-A:
 * \image html seglcd_DCA.png
-* Digital Correlation Example – Type-B:
+* Digital Correlation Example - Type-B:
 * \image html seglcd_DCB.png
 * As illustrated, instead of generating bias voltages between the rails, this approach takes advantage of the LCD displays characteristic:
 * the LCD segments' on-ness and off-ness degree is determined by the RMS voltage across the segments. In this approach, the correlation
 * coefficient between any given pair of COM and SEG signals determines whether the corresponding LCD segment is On or Off.
 * Thus, by doubling the base drive frequency of the COM signals in their inactive sub-frame intervals, the phase relationship of the COM and SEG
-* drive signals can be varied to turn segments on and off – rather than varying the DC levels of the signals as is used in the conventional approaches.
+* drive signals can be varied to turn segments on and off - rather than varying the DC levels of the signals as is used in the conventional approaches.
 *
 * PWM Drive (\ref CY_SEGLCD_PWM)\n
 * This approach duplicates the multi-voltage drive signals of the conventional method with bias B using a PWM output signal together
@@ -214,6 +215,16 @@
 * \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_InvPixel
 * \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_ActPixel
 *
+* The basic use case of the bar-graph display type:
+* \snippet seglcd/snippet/SegLCD_Snpt.h snippet_Cy_SegLCD_DefFrame
+* \snippet seglcd/snippet/SegLCD_Snpt.h snippet_Cy_SegLCD_BarLength
+* \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_BarGraphDisplay
+* \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_BarGraphValue
+* \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_SetFrame
+* \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_BarGraph
+* after which the next image on the glass appears:
+* \image html seglcd_bargraph.png
+*
 * Also, you can customize basic fonts, for example:
 * \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_CustomAsciiFont7seg
 * And now you can write characters and strings on a standard 7-segment display:
@@ -230,6 +241,10 @@
 * And now use all that together:
 * \snippet seglcd/snippet/SegLCD_Snpt.c snippet_Cy_SegLCD_Custom3x5_WriteNumber
 * \image html seglcd_3x5.png
+*
+* There are LCD-GPIO terminal mapping definitions for different device families 
+* used in the mentioned above commons and display pixel arrays:
+* \snippet seglcd/snippet/SegLCD_Snpt.h snippet_Cy_SegLCD_connectionRemapping
 *
 * \section group_seglcd_more_information More Information
 * Refer to the technical reference manual (TRM) and the device datasheet.
@@ -268,6 +283,11 @@
 * \section group_seglcd_changelog Changelog
 * <table class="doxtable">
 *   <tr><th>Version</th><th>Changes</th><th>Reason for Change</th></tr>
+*   <tr>
+*     <td>1.0.1</td>
+*     <td>Code snippets are extended to support the CY8C62x5 device family</td>
+*     <td>User experience improvement</td>
+*   </tr>
 *   <tr>
 *     <td>1.0</td>
 *     <td>Initial version</td>
@@ -476,7 +496,8 @@ typedef struct
                                  */
     uint8_t             frRate; /**< The LCD frame rate, the valid range is 30...150 */
     uint8_t           contrast; /**< The LCD contrast, the valid range is 0...100 */
-    uint32_t           clkFreq; /**< The LCD clock frequency (ignored for \ref CY_SEGLCD_SPEED_LOW mode),
+    uint32_t           clkFreq; /**< The LCD clock frequency (ignored for \ref CY_SEGLCD_LSCLK_LF mode,
+                                 *   or in \ref CY_SEGLCD_SPEED_LOW mode for MXLCD_ver1),
                                  *   the valid range is 10000...100000000 (Hz)
                                  */
 } cy_stc_seglcd_config_t;

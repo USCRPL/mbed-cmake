@@ -23,6 +23,8 @@
 #include "unity/unity.h"
 #include "utest/utest.h"
 #include "kvstore_global_api.h"
+#include "DeviceKey.h"
+#include <cstring>
 
 using namespace utest::v1;
 using namespace mbed;
@@ -83,6 +85,9 @@ static void kvstore_init()
     init_res = kv_reset(def_kv);
     TEST_SKIP_UNLESS_MESSAGE(init_res != MBED_ERROR_UNSUPPORTED, "Unsupported configuration. Test skipped.");
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, init_res);
+#if DEVICEKEY_ENABLED
+    DeviceKey::get_instance().generate_root_of_trust();
+#endif
 }
 
 /*----------------set()------------------*/
@@ -141,6 +146,7 @@ static void set_same_key_several_time()
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
 }
 
+#if defined(MBED_CONF_RTOS_PRESENT)
 static void test_thread_set(char *th_key)
 {
     TEST_SKIP_UNLESS(!init_res);
@@ -151,7 +157,6 @@ static void test_thread_set(char *th_key)
 //get several keys multithreaded
 static void set_several_keys_multithreaded()
 {
-#if defined(MBED_CONF_RTOS_PRESENT)
     TEST_SKIP_UNLESS(!init_res);
     rtos::Thread kvstore_thread[num_of_threads];
     osStatus threadStatus;
@@ -177,8 +182,8 @@ static void set_several_keys_multithreaded()
         res = kv_remove(keys[i]);
         TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
     }
-#endif
 }
+#endif
 
 //set key "write once" and try to set it again
 static void set_write_once_flag_try_set_twice()
@@ -205,6 +210,9 @@ static void set_write_once_flag_try_remove()
 
     res = kv_reset(def_kv);
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
+#if DEVICEKEY_ENABLED
+    DeviceKey::get_instance().generate_root_of_trust();
+#endif
 }
 
 //set key value one byte size
@@ -460,6 +468,7 @@ static void get_key_that_was_set_twice()
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
 }
 
+#if defined(MBED_CONF_RTOS_PRESENT)
 static void test_thread_get(const void *th_key)
 {
     TEST_SKIP_UNLESS(!init_res);
@@ -473,7 +482,6 @@ static void test_thread_get(const void *th_key)
 //get several keys multithreaded
 static void get_several_keys_multithreaded()
 {
-#if defined(MBED_CONF_RTOS_PRESENT)
     TEST_SKIP_UNLESS(!init_res);
     int i = 0, res = 0;
     rtos::Thread kvstore_thread[num_of_threads];
@@ -499,8 +507,8 @@ static void get_several_keys_multithreaded()
         res = kv_remove(keys[i]);
         TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
     }
-#endif
 }
+#endif
 
 /*----------------remove()------------------*/
 
@@ -620,6 +628,9 @@ static void get_info_existed_key()
 
     res = kv_reset(def_kv);
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
+#if DEVICEKEY_ENABLED
+    DeviceKey::get_instance().generate_root_of_trust();
+#endif
 }
 
 //get_info of overwritten key

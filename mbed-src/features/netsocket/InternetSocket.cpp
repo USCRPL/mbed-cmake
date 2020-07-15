@@ -21,12 +21,7 @@
 using namespace mbed;
 
 InternetSocket::InternetSocket()
-    : _stack(0), _socket(0), _timeout(osWaitForever),
-      _remote_peer(),
-      _readers(0), _writers(0),
-      _factory_allocated(false)
 {
-    core_util_atomic_flag_clear(&_pending);
     _socket_stats.stats_new_socket_entry(this);
 }
 
@@ -55,7 +50,7 @@ nsapi_error_t InternetSocket::open(NetworkStack *stack)
     _socket_stats.stats_update_socket_state(this, SOCK_OPEN);
     _socket = socket;
     _event = callback(this, &InternetSocket::event);
-    _stack->socket_attach(_socket, Callback<void()>::thunk, &_event);
+    _stack->socket_attach(_socket, _event.thunk, &_event);
     _interface_name[0] = '\0';
     _lock.unlock();
     return NSAPI_ERROR_OK;
@@ -119,18 +114,59 @@ int InternetSocket::leave_multicast_group(const SocketAddress &address)
     return modify_multicast_group(address, NSAPI_DROP_MEMBERSHIP);
 }
 
+int InternetSocket::get_rtt_estimate_to_address(const SocketAddress &address, uint32_t *rtt_estimate)
+{
+    nsapi_error_t ret;
+    nsapi_latency_req_t ns_api_latency_req;
+    unsigned opt_len = sizeof(nsapi_latency_req_t);
+
+    if (!rtt_estimate) {
+        return NSAPI_ERROR_PARAMETER;
+    }
+
+    // Set up address
+    memcpy(ns_api_latency_req.addr, address.get_ip_bytes(), 16);
+
+    ret = this->getsockopt(NSAPI_SOCKET, NSAPI_LATENCY, &ns_api_latency_req, &opt_len);
+    if (ret == NSAPI_ERROR_OK) {
+        // success, latency found. Convert to RTT.
+        *rtt_estimate = ns_api_latency_req.latency * 2;
+    }
+
+    return ret;
+}
+
+int InternetSocket::get_stagger_estimate_to_address(const SocketAddress &address, uint16_t data_amount, uint16_t *stagger_min, uint16_t *stagger_max, uint16_t *stagger_rand)
+{
+    nsapi_error_t ret;
+    nsapi_stagger_req_t nsapi_stagger;
+    unsigned opt_len = sizeof(nsapi_stagger_req_t);
+
+    // Set up address
+    memcpy(nsapi_stagger.addr, address.get_ip_bytes(), 16);
+    nsapi_stagger.data_amount = data_amount;
+
+    ret = this->getsockopt(NSAPI_SOCKET, NSAPI_STAGGER, &nsapi_stagger, &opt_len);
+    if (ret == NSAPI_ERROR_OK) {
+        // success, stagger found
+        if (stagger_min) {
+            *stagger_min = nsapi_stagger.stagger_min;
+        }
+        if (stagger_max) {
+            *stagger_max = nsapi_stagger.stagger_max;
+        }
+        if (stagger_rand) {
+            *stagger_rand = nsapi_stagger.stagger_rand;
+        }
+    }
+
+    return ret;
+}
 
 nsapi_error_t InternetSocket::bind(uint16_t port)
 {
     // Underlying bind is thread safe
     SocketAddress addr(0, port);
-    return bind(addr);
-}
-
-nsapi_error_t InternetSocket::bind(const char *address, uint16_t port)
-{
-    // Underlying bind is thread safe
-    SocketAddress addr(address, port);
     return bind(addr);
 }
 
@@ -215,11 +251,6 @@ void InternetSocket::sigio(Callback<void()> callback)
     core_util_critical_section_enter();
     _callback = callback;
     core_util_critical_section_exit();
-}
-
-void InternetSocket::attach(Callback<void()> callback)
-{
-    sigio(callback);
 }
 
 nsapi_error_t InternetSocket::getpeername(SocketAddress *address)

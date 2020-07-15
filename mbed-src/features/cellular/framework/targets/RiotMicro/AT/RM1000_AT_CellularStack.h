@@ -17,17 +17,20 @@
 #ifndef RM1000_AT_CELLULARSTACK_H_
 #define RM1000_AT_CELLULARSTACK_H_
 
+#include <chrono>
+
 #include "AT_CellularStack.h"
 #include "CellularUtil.h"
 #include "mbed_wait_api.h"
 #include "drivers/Timer.h"
 
+using namespace std::chrono;
 
 namespace mbed {
 
 class RM1000_AT_CellularStack : public AT_CellularStack {
 public:
-    RM1000_AT_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type);
+    RM1000_AT_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type, AT_CellularDevice &device);
     virtual ~RM1000_AT_CellularStack();
 
     virtual nsapi_error_t gethostbyname(const char *host,
@@ -54,20 +57,12 @@ protected: // AT_CellularStack
      * call to the functions here when they return NSAPI_ERROR_WOULD_BLOCK
      * and the user has set a larger timeout or full blocking.
      */
-    static const int SOCKET_TIMEOUT = 1000;
-
-    /** Maximum allowed sockets.
-     */
-    static const int RM1000_MAX_SOCKET = 7;
+    static constexpr seconds SOCKET_TIMEOUT = 1s;
 
     /** The maximum number of bytes in a packet that can be write/read from
      * the AT interface in one go.
      */
     static const int RM1000_MAX_PACKET_SIZE = 1024;
-
-    virtual int get_max_socket_count();
-
-    virtual bool is_protocol_supported(nsapi_protocol_t protocol);
 
     virtual nsapi_error_t create_socket_impl(CellularSocket *socket);
 

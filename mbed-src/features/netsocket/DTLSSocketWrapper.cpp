@@ -24,13 +24,16 @@
 #if defined(MBEDTLS_SSL_CLI_C)
 
 DTLSSocketWrapper::DTLSSocketWrapper(Socket *transport, const char *hostname, control_transport control) :
-    TLSSocketWrapper(transport, hostname, control),
-    _int_ms_tick(0),
-    _timer_event_id(0),
-    _timer_expired(false)
+    TLSSocketWrapper(transport, hostname, control)
 {
     mbedtls_ssl_conf_transport(get_ssl_config(), MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+
+    // Defines MBEDTLS_SSL_CONF_SET_TIMER/GET_TIMER define global functions which should be the same for all
+    // callers of mbedtls_ssl_set_timer_cb and there should be only one ssl context. If these rules don't apply,
+    // these defines can't be used
+#if !defined(MBEDTLS_SSL_CONF_SET_TIMER) && !defined(MBEDTLS_SSL_CONF_GET_TIMER)
     mbedtls_ssl_set_timer_cb(get_ssl_context(), this, timing_set_delay, timing_get_delay);
+#endif /* !defined(MBEDTLS_SSL_CONF_SET_TIMER) && !defined(MBEDTLS_SSL_CONF_GET_TIMER) */
 }
 
 void DTLSSocketWrapper::timing_set_delay(void *ctx, uint32_t int_ms, uint32_t fin_ms)
@@ -47,8 +50,11 @@ void DTLSSocketWrapper::timing_set_delay(void *ctx, uint32_t int_ms, uint32_t fi
         return;
     }
 
-    context->_int_ms_tick = rtos::Kernel::get_ms_count() + int_ms;
-    context->_timer_event_id = mbed::mbed_event_queue()->call_in(fin_ms, context, &DTLSSocketWrapper::timer_event);
+    auto int_duration = std::chrono::duration<uint32_t, std::milli>(int_ms);
+    auto fin_duration = std::chrono::duration<uint32_t, std::milli>(fin_ms);
+
+    context->_int_time = rtos::Kernel::Clock::now() + int_duration;
+    context->_timer_event_id = mbed::mbed_event_queue()->call_in(fin_duration, context, &DTLSSocketWrapper::timer_event);
 }
 
 int DTLSSocketWrapper::timing_get_delay(void *ctx)
@@ -61,7 +67,7 @@ int DTLSSocketWrapper::timing_get_delay(void *ctx)
         return -1;
     } else if (context->_timer_expired) {
         return 2;
-    } else if (context->_int_ms_tick < rtos::Kernel::get_ms_count()) {
+    } else if (context->_int_time < rtos::Kernel::Clock::now()) {
         return 1;
     } else {
         return 0;

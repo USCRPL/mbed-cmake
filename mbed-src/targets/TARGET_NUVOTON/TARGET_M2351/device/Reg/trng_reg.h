@@ -3,11 +3,19 @@
  * @version  V1.00
  * @brief    TRNG register definition header file
  *
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __TRNG_REG_H__
 #define __TRNG_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- True Random Number Generator -------------------------*/
 /**
@@ -124,6 +132,7 @@ typedef struct
 
 /**@}*/ /* TRNG_CONST */
 /**@}*/ /* end of TRNG register group */
+/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __TRNG_REG_H__ */

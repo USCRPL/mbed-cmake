@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -148,6 +149,7 @@
 #include <errno.h>
 
 using namespace mbed;
+using namespace std::chrono;
 
 #ifndef MBED_CONF_SD_CMD_TIMEOUT
 #define MBED_CONF_SD_CMD_TIMEOUT                 5000   /*!< Timeout in ms for response */
@@ -162,7 +164,7 @@ using namespace mbed;
 #endif
 
 
-#define SD_COMMAND_TIMEOUT                       MBED_CONF_SD_CMD_TIMEOUT
+#define SD_COMMAND_TIMEOUT                       milliseconds{MBED_CONF_SD_CMD_TIMEOUT}
 #define SD_CMD0_GO_IDLE_STATE_RETRIES            MBED_CONF_SD_CMD0_IDLE_STATE_RETRIES
 #define SD_DBG                                   0      /*!< 1 - Enable debugging */
 #define SD_CMD_TRACE                             0      /*!< 1 - Enable SD command tracing */
@@ -251,15 +253,14 @@ const uint32_t SDBlockDevice::_block_size = BLOCK_SIZE_HC;
 
 #if MBED_CONF_SD_CRC_ENABLED
 SDBlockDevice::SDBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName cs, uint64_t hz, bool crc_on)
-    : _sectors(0), _spi(mosi, miso, sclk), _cs(cs), _is_initialized(0),
-      _init_ref_count(0), _crc_on(crc_on), _crc16(0, 0, false, false)
+    : _sectors(0), _spi(mosi, miso, sclk, cs, use_gpio_ssel), _is_initialized(0),
+      _init_ref_count(0), _crc_on(crc_on)
 #else
 SDBlockDevice::SDBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName cs, uint64_t hz, bool crc_on)
-    : _sectors(0), _spi(mosi, miso, sclk), _cs(cs), _is_initialized(0),
+    : _sectors(0), _spi(mosi, miso, sclk, cs, use_gpio_ssel), _is_initialized(0),
       _init_ref_count(0)
 #endif
 {
-    _cs = 1;
     _card_type = SDCARD_NONE;
 
     // Set default to 100kHz for initialisation and 1MHz for data transfer
@@ -273,15 +274,14 @@ SDBlockDevice::SDBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName c
 
 #if MBED_CONF_SD_CRC_ENABLED
 SDBlockDevice::SDBlockDevice(const spi_pinmap_t &spi_pinmap, PinName cs, uint64_t hz, bool crc_on)
-    : _sectors(0), _spi(spi_pinmap), _cs(cs), _is_initialized(0),
+    : _sectors(0), _spi(spi_pinmap, cs), _is_initialized(0),
       _init_ref_count(0), _crc_on(crc_on)
 #else
 SDBlockDevice::SDBlockDevice(const spi_pinmap_t &spi_pinmap, PinName cs, uint64_t hz, bool crc_on)
-    : _sectors(0), _spi(spi_pinmap), _cs(cs), _is_initialized(0),
+    : _sectors(0), _spi(spi_pinmap, cs), _is_initialized(0),
       _init_ref_count(0)
 #endif
 {
-    _cs = 1;
     _card_type = SDCARD_NONE;
 
     // Set default to 100kHz for initialisation and 1MHz for data transfer
@@ -356,7 +356,7 @@ int SDBlockDevice::_initialise_card()
     _spi_timer.start();
     do {
         status = _cmd(ACMD41_SD_SEND_OP_COND, arg, 1, &response);
-    } while ((response & R1_IDLE_STATE) && (_spi_timer.read_ms() < SD_COMMAND_TIMEOUT));
+    } while ((response & R1_IDLE_STATE) && (_spi_timer.elapsed_time() < SD_COMMAND_TIMEOUT));
     _spi_timer.stop();
 
     // Initialization complete: ACMD41 successful
@@ -537,7 +537,7 @@ int SDBlockDevice::program(const void *b, bd_addr_t addr, bd_size_t size)
         _spi.write(SPI_STOP_TRAN);
     }
 
-    _deselect();
+    _postclock_then_deselect();
     unlock();
     return status;
 }
@@ -584,7 +584,7 @@ int SDBlockDevice::read(void *b, bd_addr_t addr, bd_size_t size)
         buffer += _block_size;
         --blockCnt;
     }
-    _deselect();
+    _postclock_then_deselect();
 
     // Send CMD12(0x00000000) to stop the transmission for multi-block transfer
     if (size > _block_size) {
@@ -700,10 +700,11 @@ uint8_t SDBlockDevice::_cmd_spi(SDBlockDevice::cmdSupported cmd, uint32_t arg)
     cmdPacket[4] = (arg >> 0);
 
 #if MBED_CONF_SD_CRC_ENABLED
-    uint32_t crc;
     if (_crc_on) {
-        _crc7.compute((void *)cmdPacket, 5, &crc);
-        cmdPacket[5] = (char)(crc | 0x01);
+        MbedCRC<POLY_7BIT_SD, 7> crc7;
+        uint32_t crc;
+        crc7.compute(cmdPacket, 5, &crc);
+        cmdPacket[5] = ((uint8_t) crc << 1) | 0x01;
     } else
 #endif
     {
@@ -751,7 +752,7 @@ int SDBlockDevice::_cmd(SDBlockDevice::cmdSupported cmd, uint32_t arg, bool isAc
 
     // Select card and wait for card to be ready before sending next command
     // Note: next command will fail if card is not ready
-    _select();
+    _preclock_then_select();
 
     // No need to wait for card to be ready when sending the stop command
     if (CMD12_STOP_TRANSMISSION != cmd) {
@@ -787,17 +788,17 @@ int SDBlockDevice::_cmd(SDBlockDevice::cmdSupported cmd, uint32_t arg, bool isAc
 
     // Process the response R1  : Exit on CRC/Illegal command error/No response
     if (R1_NO_RESPONSE == response) {
-        _deselect();
+        _postclock_then_deselect();
         debug_if(SD_DBG, "No response CMD:%d response: 0x%" PRIx32 "\n", cmd, response);
         return SD_BLOCK_DEVICE_ERROR_NO_DEVICE;         // No device
     }
     if (response & R1_COM_CRC_ERROR) {
-        _deselect();
+        _postclock_then_deselect();
         debug_if(SD_DBG, "CRC error CMD:%d response 0x%" PRIx32 "\n", cmd, response);
         return SD_BLOCK_DEVICE_ERROR_CRC;                // CRC error
     }
     if (response & R1_ILLEGAL_COMMAND) {
-        _deselect();
+        _postclock_then_deselect();
         debug_if(SD_DBG, "Illegal command CMD:%d response 0x%" PRIx32 "\n", cmd, response);
         if (CMD8_SEND_IF_COND == cmd) {                  // Illegal command is for Ver1 or not SD Card
             _card_type = CARD_UNKNOWN;
@@ -855,7 +856,7 @@ int SDBlockDevice::_cmd(SDBlockDevice::cmdSupported cmd, uint32_t arg, bool isAc
         return BD_ERROR_OK;
     }
     // Deselect card
-    _deselect();
+    _postclock_then_deselect();
     return status;
 }
 
@@ -894,7 +895,7 @@ uint32_t SDBlockDevice::_go_idle_state()
         if (R1_IDLE_STATE == response) {
             break;
         }
-        rtos::ThisThread::sleep_for(1);
+        rtos::ThisThread::sleep_for(1ms);
     }
     return response;
 }
@@ -906,7 +907,7 @@ int SDBlockDevice::_read_bytes(uint8_t *buffer, uint32_t length)
     // read until start byte (0xFE)
     if (false == _wait_token(SPI_START_BLOCK)) {
         debug_if(SD_DBG, "Read timeout\n");
-        _deselect();
+        _postclock_then_deselect();
         return SD_BLOCK_DEVICE_ERROR_NO_RESPONSE;
     }
 
@@ -921,19 +922,20 @@ int SDBlockDevice::_read_bytes(uint8_t *buffer, uint32_t length)
 
 #if MBED_CONF_SD_CRC_ENABLED
     if (_crc_on) {
+        mbed::MbedCRC<POLY_16BIT_CCITT, 16> crc16(0, 0, false, false);
         uint32_t crc_result;
         // Compute and verify checksum
-        _crc16.compute((void *)buffer, length, &crc_result);
-        if ((uint16_t)crc_result != crc) {
-            debug_if(SD_DBG, "_read_bytes: Invalid CRC received 0x%" PRIx16 " result of computation 0x%" PRIx16 "\n",
-                     crc, (uint16_t)crc_result);
-            _deselect();
+        crc16.compute(buffer, length, &crc_result);
+        if (crc_result != crc) {
+            debug_if(SD_DBG, "_read_bytes: Invalid CRC received 0x%" PRIx16 " result of computation 0x%" PRIx32 "\n",
+                     crc, crc_result);
+            _postclock_then_deselect();
             return SD_BLOCK_DEVICE_ERROR_CRC;
         }
     }
 #endif
 
-    _deselect();
+    _postclock_then_deselect();
     return 0;
 }
 
@@ -956,9 +958,10 @@ int SDBlockDevice::_read(uint8_t *buffer, uint32_t length)
 
 #if MBED_CONF_SD_CRC_ENABLED
     if (_crc_on) {
+        mbed::MbedCRC<POLY_16BIT_CCITT, 16> crc16(0, 0, false, false);
         uint32_t crc_result;
         // Compute and verify checksum
-        _crc16.compute((void *)buffer, length, &crc_result);
+        crc16.compute((void *)buffer, length, &crc_result);
         if ((uint16_t)crc_result != crc) {
             debug_if(SD_DBG, "_read_bytes: Invalid CRC received 0x%" PRIx16 " result of computation 0x%" PRIx16 "\n",
                      crc, (uint16_t)crc_result);
@@ -984,8 +987,9 @@ uint8_t SDBlockDevice::_write(const uint8_t *buffer, uint8_t token, uint32_t len
 
 #if MBED_CONF_SD_CRC_ENABLED
     if (_crc_on) {
+        mbed::MbedCRC<POLY_16BIT_CCITT, 16> crc16(0, 0, false, false);
         // Compute CRC
-        _crc16.compute((void *)buffer, length, &crc);
+        crc16.compute(buffer, length, &crc);
     }
 #endif
 
@@ -1090,7 +1094,7 @@ bool SDBlockDevice::_wait_token(uint8_t token)
             _spi_timer.stop();
             return true;
         }
-    } while (_spi_timer.read_ms() < 300);       // Wait for 300 msec for start token
+    } while (_spi_timer.elapsed_time() < 300ms);       // Wait for 300 msec for start token
     _spi_timer.stop();
     debug_if(SD_DBG, "_wait_token: timeout\n");
     return false;
@@ -1098,7 +1102,7 @@ bool SDBlockDevice::_wait_token(uint8_t token)
 
 // SPI function to wait till chip is ready
 // The host controller should wait for end of the process until DO goes high (a 0xFF is received).
-bool SDBlockDevice::_wait_ready(uint16_t ms)
+bool SDBlockDevice::_wait_ready(std::chrono::duration<uint32_t, std::milli> timeout)
 {
     uint8_t response;
     _spi_timer.reset();
@@ -1109,7 +1113,7 @@ bool SDBlockDevice::_wait_ready(uint16_t ms)
             _spi_timer.stop();
             return true;
         }
-    } while (_spi_timer.read_ms() < ms);
+    } while (_spi_timer.elapsed_time() < timeout);
     _spi_timer.stop();
     return false;
 }
@@ -1130,23 +1134,22 @@ void SDBlockDevice::_spi_init()
     _spi.format(8, 0);
     _spi.set_default_write_value(SPI_FILL_CHAR);
     // Initial 74 cycles required for few cards, before selecting SPI mode
-    _cs = 1;
     _spi_wait(10);
     _spi.unlock();
 }
 
-void SDBlockDevice::_select()
+void SDBlockDevice::_preclock_then_select()
 {
     _spi.lock();
     _spi.write(SPI_FILL_CHAR);
-    _cs = 0;
+    _spi.select();
+    _spi.unlock();
 }
 
-void SDBlockDevice::_deselect()
+void SDBlockDevice::_postclock_then_deselect()
 {
-    _cs = 1;
     _spi.write(SPI_FILL_CHAR);
-    _spi.unlock();
+    _spi.deselect();
 }
 
 #endif  /* DEVICE_SPI */

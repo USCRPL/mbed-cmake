@@ -6,7 +6,7 @@
 *
 ********************************************************************************
 * \copyright
-* Copyright 2019 Cypress Semiconductor Corporation
+* Copyright 2019-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,9 +37,9 @@ extern "C"
 /******************************************************
 *                 Constants
 ******************************************************/
-#define CY_RTOS_MIN_STACK_SIZE      300                     /** Minimum stack size */
+#define CY_RTOS_MIN_STACK_SIZE      300                     /** Minimum stack size in bytes */
 #define CY_RTOS_ALIGNMENT           0x00000008UL            /** Minimum alignment for RTOS objects */
-#define CY_RTOS_ALIGNMENT_MASK      0x00000007UL            /** Mask for checking the alignement of crated RTOS objects */
+#define CY_RTOS_ALIGNMENT_MASK      0x00000007UL            /** Mask for checking the alignment of created RTOS objects */
 
 
 /******************************************************
@@ -60,7 +60,7 @@ typedef enum
 } cy_thread_priority_t ;
 
 typedef osThreadId_t cy_thread_t;                      /** CMSIS definition of a thread handle */
-typedef uint32_t cy_thread_arg_t;                      /** Argument passed to the entry function of a thread */
+typedef void * cy_thread_arg_t;                        /** Argument passed to the entry function of a thread */
 typedef osMutexId_t cy_mutex_t;                        /** CMSIS definition of a mutex */
 typedef osSemaphoreId_t cy_semaphore_t;                /** CMSIS definition of a semaphore */
 typedef osEventFlagsId_t cy_event_t;                   /** CMSIS definition of an event */

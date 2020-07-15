@@ -25,6 +25,7 @@
 #include "6LoWPAN/ws/ws_common.h"
 
 #include "ws_management_api.h"
+#include "ns_time_api.h"
 
 #ifndef HAVE_WS
 int ws_management_node_init(
@@ -49,7 +50,51 @@ int ws_management_network_name_set(
     return -1;
 }
 
+int ws_management_network_name_get(
+    int8_t interface_id,
+    char *network_name_ptr)
+{
+    (void)interface_id;
+    (void)network_name_ptr;
+    return -1;
+}
+
+int ws_management_network_name_validate(
+    int8_t interface_id,
+    char *network_name_ptr)
+{
+    (void)interface_id;
+    (void)network_name_ptr;
+    return -1;
+}
+
 int ws_management_regulatory_domain_set(
+    int8_t interface_id,
+    uint8_t regulatory_domain,
+    uint8_t operating_class,
+    uint8_t operating_mode)
+{
+    (void)interface_id;
+    (void)regulatory_domain;
+    (void)operating_class;
+    (void)operating_mode;
+    return -1;
+}
+
+int ws_management_regulatory_domain_get(
+    int8_t interface_id,
+    uint8_t *regulatory_domain,
+    uint8_t *operating_class,
+    uint8_t *operating_mode)
+{
+    (void)interface_id;
+    (void)regulatory_domain;
+    (void)operating_class;
+    (void)operating_mode;
+    return -1;
+}
+
+int ws_management_regulatory_domain_validate(
     int8_t interface_id,
     uint8_t regulatory_domain,
     uint8_t operating_class,
@@ -71,7 +116,43 @@ int ws_management_network_size_set(
     return -1;
 }
 
+int ws_management_network_size_get(
+    int8_t interface_id,
+    uint8_t *network_size)
+{
+    (void)interface_id;
+    (void)network_size;
+    return -1;
+}
+
+int ws_management_network_size_validate(
+    int8_t interface_id,
+    uint8_t network_size)
+{
+    (void)interface_id;
+    (void)network_size;
+    return -1;
+}
+
 int ws_management_channel_mask_set(
+    int8_t interface_id,
+    uint32_t channel_mask[8])
+{
+    (void)interface_id;
+    (void)channel_mask;
+    return -1;
+}
+
+int ws_management_channel_mask_get(
+    int8_t interface_id,
+    uint32_t *channel_mask)
+{
+    (void)interface_id;
+    (void)channel_mask;
+    return -1;
+}
+
+int ws_management_channel_mask_validate(
     int8_t interface_id,
     uint32_t channel_mask[8])
 {
@@ -125,6 +206,32 @@ int ws_management_fhss_unicast_channel_function_configure(
     return -1;
 }
 
+int ws_management_fhss_unicast_channel_function_get(
+    int8_t interface_id,
+    uint8_t *channel_function,
+    uint16_t *fixed_channel,
+    uint8_t *dwell_interval)
+{
+    (void)interface_id;
+    (void)channel_function;
+    (void)fixed_channel;
+    (void)dwell_interval;
+    return -1;
+}
+
+int ws_management_fhss_unicast_channel_function_validate(
+    int8_t interface_id,
+    uint8_t channel_function,
+    uint16_t fixed_channel,
+    uint8_t dwell_interval)
+{
+    (void)interface_id;
+    (void)channel_function;
+    (void)fixed_channel;
+    (void)dwell_interval;
+    return -1;
+}
+
 int ws_management_fhss_broadcast_channel_function_configure(
     int8_t interface_id,
     uint8_t channel_function,
@@ -137,6 +244,81 @@ int ws_management_fhss_broadcast_channel_function_configure(
     (void)fixed_channel;
     (void)dwell_interval;
     (void)broadcast_interval;
+    return -1;
+}
+
+int ws_management_fhss_broadcast_channel_function_get(
+    int8_t interface_id,
+    uint8_t *channel_function,
+    uint16_t *fixed_channel,
+    uint8_t *dwell_interval,
+    uint32_t *broadcast_interval)
+{
+    (void)interface_id;
+    (void)channel_function;
+    (void)fixed_channel;
+    (void)dwell_interval;
+    (void)broadcast_interval;
+    return -1;
+}
+
+int ws_management_fhss_broadcast_channel_function_validate(
+    int8_t interface_id,
+    uint8_t channel_function,
+    uint16_t fixed_channel,
+    uint8_t dwell_interval,
+    uint32_t broadcast_interval)
+{
+    (void)interface_id;
+    (void)channel_function;
+    (void)fixed_channel;
+    (void)dwell_interval;
+    (void)broadcast_interval;
+    return -1;
+}
+
+int ws_management_timing_parameters_set(
+    int8_t interface_id,
+    uint16_t disc_trickle_imin,
+    uint16_t disc_trickle_imax,
+    uint8_t disc_trickle_k,
+    uint16_t pan_timeout)
+{
+    (void)interface_id;
+    (void)disc_trickle_imin;
+    (void)disc_trickle_imax;
+    (void)disc_trickle_k;
+    (void)pan_timeout;
+    return -1;
+}
+
+int ws_management_timing_parameters_get(
+    int8_t interface_id,
+    uint16_t *disc_trickle_imin,
+    uint16_t *disc_trickle_imax,
+    uint8_t *disc_trickle_k,
+    uint16_t *pan_timeout)
+{
+    (void)interface_id;
+    (void)disc_trickle_imin;
+    (void)disc_trickle_imax;
+    (void)disc_trickle_k;
+    (void)pan_timeout;
+    return -1;
+}
+
+int ws_management_timing_parameters_validate(
+    int8_t interface_id,
+    uint16_t disc_trickle_imin,
+    uint16_t disc_trickle_imax,
+    uint8_t disc_trickle_k,
+    uint16_t pan_timeout)
+{
+    (void)interface_id;
+    (void)disc_trickle_imin;
+    (void)disc_trickle_imax;
+    (void)disc_trickle_k;
+    (void)pan_timeout;
     return -1;
 }
 
@@ -209,6 +391,11 @@ int ws_statistics_stop(int8_t interface_id)
 {
     (void) interface_id;
     return -1;
+}
+
+void ns_time_api_system_time_callback_set(ns_time_api_system_time_callback callback)
+{
+    (void) callback;
 }
 
 #endif // no HAVE_WS

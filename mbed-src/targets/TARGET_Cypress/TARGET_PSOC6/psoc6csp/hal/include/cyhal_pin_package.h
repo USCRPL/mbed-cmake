@@ -3,10 +3,10 @@
 *
 * Description:
 * Provides definitions for the pinout for each supported device.
-* 
+*
 ********************************************************************************
 * \copyright
-* Copyright 2018-2019 Cypress Semiconductor Corporation
+* Copyright 2018-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,30 +37,34 @@
 extern "C" {
 #endif /* __cplusplus */
 
-/** Port names */
+/** Port definitions that individual pins can belong to. */
 typedef enum {
-    CYHAL_PORT_0  = 0x0,
-    CYHAL_PORT_1  = 0x1,
-    CYHAL_PORT_2  = 0x2,
-    CYHAL_PORT_3  = 0x3,
-    CYHAL_PORT_4  = 0x4,
-    CYHAL_PORT_5  = 0x5,
-    CYHAL_PORT_6  = 0x6,
-    CYHAL_PORT_7  = 0x7,
-    CYHAL_PORT_8  = 0x8,
-    CYHAL_PORT_9  = 0x9,
-    CYHAL_PORT_10 = 0xA,
-    CYHAL_PORT_11 = 0xB,
-    CYHAL_PORT_12 = 0xC,
-    CYHAL_PORT_13 = 0xD,
-    CYHAL_PORT_14 = 0xE,
-    CYHAL_PORT_15 = 0xF,
+    CYHAL_PORT_0  = 0x00,
+    CYHAL_PORT_1  = 0x01,
+    CYHAL_PORT_2  = 0x02,
+    CYHAL_PORT_3  = 0x03,
+    CYHAL_PORT_4  = 0x04,
+    CYHAL_PORT_5  = 0x05,
+    CYHAL_PORT_6  = 0x06,
+    CYHAL_PORT_7  = 0x07,
+    CYHAL_PORT_8  = 0x08,
+    CYHAL_PORT_9  = 0x09,
+    CYHAL_PORT_10 = 0x0A,
+    CYHAL_PORT_11 = 0x0B,
+    CYHAL_PORT_12 = 0x0C,
+    CYHAL_PORT_13 = 0x0D,
+    CYHAL_PORT_14 = 0x0E,
+    CYHAL_PORT_15 = 0x0F,
+    CYHAL_PORT_16 = 0x10,
+    CYHAL_PORT_17 = 0x11,
+    CYHAL_PORT_18 = 0x12,
+    CYHAL_PORT_19 = 0x13,
+    CYHAL_PORT_20 = 0x14,
 } cyhal_port_t;
 
-/** Bitfield representing the configuration of a GPIO (hsiom selection and mode).
-  * Use the CY_GPIO_CFG_GET_MODE and CY_GPIO_CFG_GET_HSIOM to extract the
-  * individual field values.
-  */
+/** \cond INTERNAL */
+/* The items in this cond block are DEPRECATED. They are only provided for mbed usage. */
+
 typedef uint16_t cyhal_gpio_mapping_cfg_t; // 8bit hsiom, 8bit mode
 
 /** Extract the GPIO mode setting from a cyhal_gpio_mapping_cfg_t */
@@ -68,12 +72,11 @@ typedef uint16_t cyhal_gpio_mapping_cfg_t; // 8bit hsiom, 8bit mode
 /** Extract the HSIOM selection from a cyhal_gpio_mapping_cfg_t */
 #define CY_GPIO_CFG_GET_HSIOM(x) ((en_hsiom_sel_t)(((x) >> 8) & 0xFF))
 
-/** \cond INTERNAL */
 #define CY_GPIO_CFG_CREATE(hsiom, mode)  ((cyhal_gpio_mapping_cfg_t)(((hsiom) << 8) + (mode)))
 
 #define CYHAL_PIN_OUT_FUNCTION(hsiom)           CY_GPIO_CFG_CREATE(hsiom, CY_GPIO_DM_STRONG_IN_OFF)
 #define CYHAL_PIN_OUT_BUF_FUNCTION(hsiom)       CY_GPIO_CFG_CREATE(hsiom, CY_GPIO_DM_STRONG)
-#define CYHAL_PIN_OD_FUNCTION(hsiom)            CY_GPIO_CFG_CREATE(hsiom, CY_GPIO_DM_OD_DRIVESLOW_IN_OFF)
+#define CYHAL_PIN_OD_FUNCTION(hsiom)            CY_GPIO_CFG_CREATE(hsiom, CY_GPIO_DM_OD_DRIVESLOW)
 #define CYHAL_PIN_IN_FUNCTION(hsiom)            CY_GPIO_CFG_CREATE(hsiom, CY_GPIO_DM_HIGHZ)
 #define CYHAL_PIN_PULLUP_FUNCTION(hsiom)        CY_GPIO_CFG_CREATE(hsiom, CY_GPIO_DM_PULLUP)
 #define CYHAL_PIN_ANALOG_FUNCTION(hsiom)        CY_GPIO_CFG_CREATE(HSIOM_SEL_GPIO, CY_GPIO_DM_ANALOG)
@@ -115,6 +118,8 @@ typedef uint16_t cyhal_gpio_mapping_cfg_t; // 8bit hsiom, 8bit mode
 #include "pin_packages/cyhal_psoc6_03_49_wlcsp.h"
 #elif defined(_GPIO_PSOC6_03_68_QFN_H_)
 #include "pin_packages/cyhal_psoc6_03_68_qfn.h"
+#elif defined(_GPIO_PLAYER_128_TQFP_H_)
+#include "pin_packages/cyhal_mxs28playermcuss_128_tqfp.h"
 #else
 #error "Unhandled Device/PinPackage combination"
 #endif
@@ -123,4 +128,4 @@ typedef uint16_t cyhal_gpio_mapping_cfg_t; // 8bit hsiom, 8bit mode
 }
 #endif /* __cplusplus */
 
-/** \} group_hal_adc */
+/** \} group_hal_psoc6 */

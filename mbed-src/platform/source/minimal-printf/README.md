@@ -1,7 +1,7 @@
 # Minimal printf and snprintf
 
 
-Library supports both printf and snprintf in 1252 bytes of flash.
+Library supports both printf and snprintf in around 1300 bytes of flash.
 
 Prints directly to stdio/UART without using malloc. All flags and precision modifiers are ignored.
 There is no error handling if a writing error occurs.
@@ -12,19 +12,51 @@ Supports:
 * %u: unsigned integer [h, hh, (none), l, ll, z, j, t].
 * %x: unsigned integer [h, hh, (none), l, ll, z, j, t], printed as hexadecimal number (e.g., ff).
 * %X: unsigned integer [h, hh, (none), l, ll, z, j, t], printed as hexadecimal number (e.g., FF).
-* %f: floating point (enabled by default).
-* %F: floating point (enabled by default, treated as %f).
-* %g: floating point (enabled by default, treated as %f).
-* %G: floating point (enabled by default, treated as %f).
+* %f: floating point (disabled by default).
+* %F: floating point (disabled by default, treated as %f).
+* %g: floating point (disabled by default, treated as %f).
+* %G: floating point (disabled by default, treated as %f).
 * %c: character.
 * %s: string.
 * %p: pointer (e.g. 0x00123456).
+
+Note that support for:
+* 64b modifiers is only present when `minimal-printf-enable-64-bit` config is set to `true` (default).
+* Floating point parameters is only present when `minimal-printf-enable-floating-point` config is set to `true` (disabled by default).
 
 Unrecognized format specifiers are treated as ordinary characters.
 
 Floating point limitations:
 * All floating points are treated as %f.
 * No support for inf, infinity or nan
+
+## Usage
+
+As of Mbed OS 6.0 this is enabled by default. To replace the standard implementation of the printf functions with the ones in this library for older versions of Mbed:
+
+Modify your application configuration file to override the parameter `target.printf_lib` with the value `minimal-printf` as shown below:
+
+```json
+{
+    "target_overrides": {
+        "*": {
+            "target.printf_lib": "minimal-printf"
+        }
+    }
+}
+```
+
+If your application requires more advanced functionality, you'll need to revert to using standard version of printf/snprintf. Please note that it will result in significant ROM usage increase. In case you are using minimal version of standard C library advanced functionality may not be present.
+
+Modify your application configuration in `mbed_app.json` file to override the parameter `target.printf_lib` with the value `std` as shown below:
+
+```json
+    "target_overrides": {
+        "*": {
+            "target.printf_lib": "std"
+        }
+    }
+```
 
 ## Configuration
 
@@ -36,46 +68,33 @@ Minimal printf is configured by the following parameters defined in `platform/mb
     "name": "platform",
     "config": {
         "minimal-printf-enable-64-bit": {
-            "help": "Enable printing 64 bit integers when using minimal-printf profile",
+            "help": "Enable printing 64 bit integers when using minimal printf library",
             "value": true
         },
         "minimal-printf-enable-floating-point": {
-            "help": "Enable floating point printing when using minimal-printf profile",
+            "help": "Enable floating point printing when using minimal printf library",
             "value": false
         },
         "minimal-printf-set-floating-point-max-decimals": {
-            "help": "Maximum number of decimals to be printed",
+            "help": "Maximum number of decimals to be printed when using minimal printf library",
             "value": 6
         }
-   }
+    }
 }
 ```
 
-By default, 64 bit integers support is enabled.
+By default, 64 bit integers support is enabled, but floating point support is disabled to increase memory savings.
 
-If your target does not require some options then you can override the default configuration in your application `mbed_app.json` and achieve further memory optimisation (see next section for size comparison numbers).
-
-In mbed_app.json:
-
+If your application needs to override the default configuration add following section to your `mbed_app.json`:
 ```json
     "target_overrides": {
         "*": {
+            "target.printf_lib": "minimal-printf",
             "platform.minimal-printf-enable-floating-point": false,
             "platform.minimal-printf-set-floating-point-max-decimals": 6,
             "platform.minimal-printf-enable-64-bit": false
         }
     }
-```
-
-## Usage
-
-
-To replace the standard implementation of the printf functions with the ones in this library:
-
-Compile with mbed-cli using the custom `minimal-printf` profile. For example, to compile in release mode:
-
-```
-$ mbed compile -t <toolchain> -m <target> --profile release --profile mbed-os/tools/profiles/extensions/minimal-printf.json
 ```
 
 ## Size comparison

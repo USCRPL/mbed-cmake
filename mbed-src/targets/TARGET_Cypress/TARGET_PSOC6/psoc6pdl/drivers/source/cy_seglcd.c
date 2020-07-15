@@ -1,13 +1,13 @@
 /***************************************************************************//**
 * \file cy_seglcd.c
-* \version 1.0
+* \version 1.0.2
 *
 * \brief
 * Provides an API implementation of the SegLCD driver
 *
 ********************************************************************************
 * \copyright
-* Copyright 2019 Cypress Semiconductor Corporation
+* Copyright 2019-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,15 +95,15 @@
 #define CY_SEGLCD_IS_LSCLK_VALID(lsClk)     ((CY_SEGLCD_LSCLK_LF == (lsClk)) || \
                                              (CY_SEGLCD_LSCLK_MF == (lsClk)))
 
-#define CY_SEGLCD_FR_RATE_MIN               (30)
-#define CY_SEGLCD_FR_RATE_MAX               (150)
+#define CY_SEGLCD_FR_RATE_MIN               (30U)
+#define CY_SEGLCD_FR_RATE_MAX               (150U)
 #define CY_SEGLCD_IS_RATE_VALID(frRate)     (((frRate) >= CY_SEGLCD_FR_RATE_MIN) && ((frRate) <= CY_SEGLCD_FR_RATE_MAX))
 
 #define CY_SEGLCD_CNTR_MAX                  (100UL)
 #define CY_SEGLCD_IS_CNTR_VALID(contrast)   (((uint32_t)(contrast)) <= CY_SEGLCD_CNTR_MAX)
 
-#define CY_SEGLCD_FREQ_MIN                  (10000)
-#define CY_SEGLCD_FREQ_MAX                  (100000000)
+#define CY_SEGLCD_FREQ_MIN                  (10000UL)
+#define CY_SEGLCD_FREQ_MAX                  (100000000UL)
 #define CY_SEGLCD_IS_FREQ_VALID(freq)       (((freq) >= CY_SEGLCD_FREQ_MIN) && ((freq) <= CY_SEGLCD_FREQ_MAX))
 
 #define CY_SEGLCD_SPACE(disp)               (((disp)->font->ascii) ? ' ' : CY_SEGLCD_NUM_BLANK)

@@ -9,7 +9,8 @@
         "CMD_TIMEOUT": 10000,
         "CMD0_IDLE_STATE_RETRIES": 5,
         "INIT_FREQUENCY": 100000,
-        "CRC_ENABLED": 1,
+        "TRX_FREQUENCY": 1000000,
+        "CRC_ENABLED": 0,
         "TEST_BUFFER": 8192
     },
     "target_overrides": {
@@ -30,15 +31,6 @@
         },
         "NUCLEO_F091RC": {
              "TEST_BUFFER": 4096
-        },
-        "NUCLEO_F410RB": {
-             "TEST_BUFFER": 4096
-        },
-        "K20D50M": {
-             "SPI_MOSI": "PTD2",
-             "SPI_MISO": "PTD3",
-             "SPI_CLK":  "PTD1",
-             "SPI_CS":   "PTC2"
         },
         "KL22F": {
              "SPI_MOSI": "PTD6",
@@ -70,12 +62,6 @@
              "SPI_CLK":  "PTE2",
              "SPI_CS":   "PTE4"
         },
-        "LPC11U37H_401": {
-             "SPI_MOSI": "SDMOSI",
-             "SPI_MISO": "SDMISO",
-             "SPI_CLK":  "SDSCLK",
-             "SPI_CS":   "SDSSEL"
-        },
         "LPC2368": {
              "SPI_MOSI": "p11",
              "SPI_MISO": "p12",
@@ -100,30 +86,6 @@
              "SPI_CLK":  "PD_14",
              "SPI_CS":   "PD_13"
         },
-        "nRF51822": {
-             "SPI_MOSI": "p12",
-             "SPI_MISO": "p13",
-             "SPI_CLK":  "p15",
-             "SPI_CS":   "p14"
-        },
-        "UBLOX_C030": {
-             "SPI_MOSI": "D11",
-             "SPI_MISO": "D12",
-             "SPI_CLK":  "D13",
-             "SPI_CS":   "D10"
-        },
-        "UBLOX_EVK_ODIN_W2": {
-            "SPI_CS": "D9",
-            "SPI_MOSI": "D11",
-            "SPI_MISO": "D12",
-            "SPI_CLK": "D13"
-        },
-        "MTB_UBLOX_ODIN_W2": {
-            "SPI_CS": "PG_4",
-            "SPI_MOSI": "PE_14",
-            "SPI_MISO": "PE_13",
-            "SPI_CLK": "PE_12"
-       },
         "RZ_A1H": {
              "SPI_MOSI": "P8_5",
              "SPI_MISO": "P8_6",
@@ -142,12 +104,6 @@
              "SPI_CLK":  "PTE2",
              "SPI_CS":   "PTE4"
         },
-        "MTB_MTS_DRAGONFLY": {
-             "SPI_MOSI": "SPI2_MOSI",
-             "SPI_MISO": "SPI2_MISO",
-             "SPI_CLK":  "SPI2_SCK",
-             "SPI_CS":   "SPI_CS2"
-        },
         "TB_SENSE_12": {
              "SPI_MOSI": "PC6",
              "SPI_MISO": "PC7",
@@ -159,12 +115,6 @@
             "SPI_MISO": "p6",
             "SPI_CLK": "p7",
             "SPI_CS": "p8"
-        },
-        "REALTEK_RTL8195AM": {
-            "SPI_MOSI": "D11",
-            "SPI_MISO": "D12",
-            "SPI_CLK": "D13",
-            "SPI_CS": "D10"
         },
         "CC3220SF_LAUNCHXL": {
             "SPI_MOSI": "D11",

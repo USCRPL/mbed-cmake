@@ -137,11 +137,11 @@ static void thread_bootstrap_pbbr_update_done(struct protocol_interface_info_ent
 static void thread_neighbor_remove(mac_neighbor_table_entry_t *entry_ptr, void *user_data)
 {
     protocol_interface_info_entry_t *cur = user_data;
-    lowpan_adaptation_remove_free_indirect_table(cur, entry_ptr);
+    lowpan_adaptation_neigh_remove_free_tx_tables(cur, entry_ptr);
 
     thread_reset_neighbour_info(cur, entry_ptr);
     //Removes ETX neighbor
-    etx_neighbor_remove(cur->id, entry_ptr->index);
+    etx_neighbor_remove(cur->id, entry_ptr->index, entry_ptr->mac64);
     //Remove MLE frame counter info
     mle_service_frame_counter_entry_delete(cur->id, entry_ptr->index);
 }
@@ -955,7 +955,7 @@ static void thread_interface_bootsrap_mode_init(protocol_interface_info_entry_t 
         cur->thread_info->thread_device_mode = THREAD_DEVICE_MODE_SLEEPY_END_DEVICE;
         //SET Sleepy Host To RX on Idle mode for bootsrap
         nwk_thread_host_control(cur, NET_HOST_RX_ON_IDLE, 0);
-        cur->thread_info->childUpdateReqTimer = 0.8 * cur->thread_info->host_link_timeout;
+        cur->thread_info->childUpdateReqTimer = 8 * cur->thread_info->host_link_timeout / 10;
     } else {
         tr_debug("Set End node Mode");
         cur->thread_info->thread_device_mode = THREAD_DEVICE_MODE_END_DEVICE;

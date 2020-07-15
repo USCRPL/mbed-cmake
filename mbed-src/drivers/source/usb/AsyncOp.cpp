@@ -38,7 +38,7 @@ AsyncOp::~AsyncOp()
     MBED_ASSERT(_list == NULL);
 }
 
-void AsyncOp::wait(rtos::Mutex *host_mutex, uint32_t milliseconds)
+void AsyncOp::wait(rtos::Mutex *host_mutex, rtos::Kernel::Clock::duration_u32 rel_time)
 {
     // Optimization so semaphore is only created if necessary
     core_util_critical_section_enter();
@@ -63,7 +63,7 @@ void AsyncOp::wait(rtos::Mutex *host_mutex, uint32_t milliseconds)
         return;
     }
 
-    if (sem.try_acquire_for(milliseconds)) {
+    if (sem.try_acquire_for(rel_time)) {
         // Operation completion signaled semaphore
         return;
     }
@@ -85,9 +85,9 @@ void AsyncOp::complete()
     core_util_critical_section_enter();
 
     mbed::Callback<void()> cb = _callback;
-    _callback = NULL;
-    _list = NULL;
-    if (_wait != NULL) {
+    _callback = nullptr;
+    _list = nullptr;
+    if (_wait != nullptr) {
         _wait->release();
     }
 
@@ -115,11 +115,11 @@ void AsyncOp::_abort(bool timeout)
     core_util_critical_section_enter();
     OperationListBase *list = _list;
     if (list) {
-        _callback = NULL;
+        _callback = nullptr;
         _aborted = true;
-        _wait = NULL;
+        _wait = nullptr;
         _timeout = timeout;
-        _list = NULL;
+        _list = nullptr;
     }
     core_util_critical_section_exit();
     if (list) {

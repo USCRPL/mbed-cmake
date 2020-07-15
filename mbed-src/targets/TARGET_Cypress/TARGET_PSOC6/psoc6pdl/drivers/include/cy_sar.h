@@ -1,12 +1,12 @@
 /***************************************************************************//**
 * \file cy_sar.h
-* \version 1.20.1
+* \version 1.20.3
 *
 * Header file for the SAR driver.
 *
 ********************************************************************************
 * \copyright
-* Copyright 2017-2019 Cypress Semiconductor Corporation
+* Copyright 2017-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,9 +27,9 @@
 * \{
 * This driver configures and controls the SAR ADC subsystem block.
 *
-* The functions and other declarations used in this driver are in cy_sar.h. 
-* You can include cy_pdl.h (ModusToolbox only) to get access to all functions 
-* and declarations in the PDL. 
+* The functions and other declarations used in this driver are in cy_sar.h.
+* You can include cy_pdl.h to get access to all functions
+* and declarations in the PDL.
 *
 * This SAR ADC subsystem is comprised of:
 *   - a 12-bit SAR converter (SARADC)
@@ -496,12 +496,24 @@
 * are connected to the SARADC as separate single-ended channels and as a differential-pair channel.
 * Note that separate function calls are needed to route the device pins to the SARMUX. The AMUXBUSes
 * are separated into multiple segments and these segments are connected/disconnected using the AMUX_SPLIT_CTL
-* registers in the HSIOM. In the following code snippet, to connect Port 1 to the SARMUX, the left and right
-* switches of AMUX_SPLIT_CTL[1] and AMUX_SPLIT_CTL[6] need to be closed.
+* registers in the HSIOM.
 *
 * \image html sar_sarmux_amuxbus.png
 *
 * \snippet sar/snippet/main.c SNIPPET_SAR_SARMUX_AMUXBUS
+*
+*
+* To connect SARMUX to any other non-dedicated port, you may need to close additional HSIOM switches to route signals
+* through AMUXBUS.
+* For more detail, see the device TRM, AMUX splitting.
+*
+* The following code snippet is an alternative pin configuration. To connect Port 1 to AMUXBUS, close the left and
+* right switches of AMUX_SPLIT_CTL[1] and AMUX_SPLIT_CTL[6].
+*
+* \warning
+* This snippet shows how to configure pins for CY8C6347BZI-BLD53.
+*
+* \snippet sar/snippet/main.c SNIPPET_SAR_SARMUX_CUSTOM_PORT
 *
 * \section group_sar_low_power Low Power Support
 * This SAR driver provides a callback function to handle power mode transitions.
@@ -546,6 +558,16 @@
 * <table class="doxtable">
 *   <tr><th>Version</th><th>Changes</th><th>Reason for Change</th></tr>
 *   <tr>
+*     <td>1.20.3</td>
+*     <td>Minor documentation updates.</td>
+*     <td>Documentation enhancement.</td>
+*   </tr>
+*   <tr>
+*     <td>1.20.2</td>
+*     <td>Code snippets update.</td>
+*     <td>PDL infrastructure update, documentation enhancement.</td>
+*   </tr>
+*   <tr>
 *     <td>1.20.1</td>
 *     <td>Code snippets update.</td>
 *     <td>PDL infrastructure update, documentation enhancement.</td>
@@ -558,7 +580,7 @@
 *   <tr>
 *     <td>Added register access layer. Use register access macros instead
 *         of direct register access using dereferenced pointers.</td>
-*     <td>Makes register access device-independent, so that the PDL does 
+*     <td>Makes register access device-independent, so that the PDL does
 *         not need to be recompiled for each supported part number.</td>
 *   </tr>
 *   <tr>
@@ -567,8 +589,8 @@
 *     <td> Correct CAP_TRIM is necessary achieving specified SAR ADC linearity</td>
 *   </tr>
 *   <tr>
-*     <td> Turn off the entire hardware block only if the SARMUX is not enabled 
-*          for Deep Sleep operation.                
+*     <td> Turn off the entire hardware block only if the SARMUX is not enabled
+*          for Deep Sleep operation.
 *     </td>
 *     <td> Improvement of the \ref Cy_SAR_DeepSleep flow</td>
 *   </tr>
@@ -1327,7 +1349,7 @@ typedef struct
 * \{
 */
 
-/** This macro is for backward compatibility macro for driver v1.10 and before, 
+/** This macro is for backward compatibility macro for driver v1.10 and before,
  * the preferred API is \ref Cy_SAR_DeepSleep */
 #define Cy_SAR_Sleep    Cy_SAR_DeepSleep
 
@@ -2133,4 +2155,3 @@ __STATIC_INLINE void Cy_SAR_SetVssaSarSeqCtrl(SAR_Type *base, cy_en_sar_switch_s
 /** \} group_sar */
 
 /* [] END OF FILE */
-

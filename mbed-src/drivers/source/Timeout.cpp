@@ -15,14 +15,48 @@
  * limitations under the License.
  */
 #include "drivers/Timeout.h"
+#include "drivers/LowPowerTimeout.h"
+#include "drivers/HighResClock.h"
+#include "drivers/LowPowerClock.h"
+#include "drivers/RealTimeClock.h"
+
+using namespace std::chrono;
 
 namespace mbed {
 
-void Timeout::handler()
+void TimeoutBase::handler()
 {
-    Callback<void()> local = _function;
-    detach();
-    local.call();
+    if (_function) {
+        Callback<void()> function_to_call = _function;
+        // Clean up state to "detached" before calling callback; it may attach
+        // a new callback. Equivalent to detach(), but skips the remove();
+        // it's unnecessary because we're in the ticker's handler.
+        _function = nullptr;
+        if (_lock_deepsleep) {
+            sleep_manager_unlock_deep_sleep();
+        }
+        function_to_call();
+    }
 }
+
+Timeout::Timeout() : TimeoutBase(get_us_ticker_data(), true)
+{
+}
+
+#if DEVICE_LPTICKER
+LowPowerTimeout::LowPowerTimeout() : TimeoutBase(get_lp_ticker_data(), false)
+{
+}
+#endif
+
+/* A few miscellaneous out-of-line static members from various related classes,
+ * just to save them getting needing their own cpp file for one line.
+ * (In C++17 could avoid the need for this by making the members inline).
+ */
+const bool HighResClock::is_steady;
+#if DEVICE_LPTICKER
+const bool LowPowerClock::is_steady;
+#endif
+const bool RealTimeClock::is_steady;
 
 } // namespace mbed

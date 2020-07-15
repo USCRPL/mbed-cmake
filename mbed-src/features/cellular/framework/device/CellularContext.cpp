@@ -18,6 +18,8 @@
 #include "CellularLog.h"
 #include "ThisThread.h"
 
+using namespace std::chrono_literals;
+
 MBED_WEAK CellularInterface *CellularInterface::get_target_default_instance()
 {
     return mbed::CellularContext::get_default_instance();
@@ -32,12 +34,7 @@ MBED_WEAK CellularContext *CellularContext::get_default_instance()
         return NULL;
     }
 
-    static CellularContext *context = dev->create_context(NULL, NULL, MBED_CONF_CELLULAR_CONTROL_PLANE_OPT);
-#if (DEVICE_SERIAL && DEVICE_INTERRUPTIN) || defined(DOXYGEN_ONLY)
-#if defined(MDMDCD) && defined(MDM_PIN_POLARITY)
-    context->set_file_handle(static_cast<UARTSerial *>(&dev->get_file_handle()), MDMDCD, MDM_PIN_POLARITY);
-#endif // #if defined(MDMDCD) && defined(MDM_PIN_POLARITY)
-#endif // #if DEVICE_SERIAL
+    static CellularContext *context = dev->create_context(NULL, MBED_CONF_CELLULAR_CONTROL_PLANE_OPT);
     return context;
 }
 
@@ -49,26 +46,24 @@ MBED_WEAK CellularContext *CellularContext::get_default_nonip_instance()
         return NULL;
     }
 
-    static CellularContext *context = dev->create_context(NULL, NULL, MBED_CONF_CELLULAR_CONTROL_PLANE_OPT, true);
-#if (DEVICE_SERIAL && DEVICE_INTERRUPTIN) || defined(DOXYGEN_ONLY)
-#if defined(MDMDCD) && defined(MDM_PIN_POLARITY)
-    context->set_file_handle(static_cast<UARTSerial *>(&dev->get_file_handle()), MDMDCD, MDM_PIN_POLARITY);
-#endif // #if defined(MDMDCD) && defined(MDM_PIN_POLARITY)
-#endif // #if DEVICE_SERIAL
+    static CellularContext *context = dev->create_context(NULL, MBED_CONF_CELLULAR_CONTROL_PLANE_OPT, true);
     return context;
 }
 
 CellularContext::CellularContext() : _next(0), _stack(0), _pdp_type(DEFAULT_PDP_TYPE),
-    _authentication_type(CellularContext::CHAP), _connect_status(NSAPI_STATUS_DISCONNECTED), _status_cb(0),
+    _authentication_type(CellularContext::CHAP), _connect_status(NSAPI_STATUS_DISCONNECTED), _status_cb(),
     _cid(-1), _new_context_set(false), _is_context_active(false), _is_context_activated(false),
-    _apn(0), _uname(0), _pwd(0), _dcd_pin(NC), _active_high(false), _cp_netif(0), _retry_array_length(0),
-    _retry_count(0), _device(0), _nw(0), _is_blocking(true), _nonip_req(false), _cp_in_use(false)
+    _apn(0), _uname(0), _pwd(0), _cp_netif(0), _retry_timeout_array(),
+    _retry_array_length(0), _retry_count(0), _device(0), _nw(0), _is_blocking(true), _nonip_req(false), _cp_in_use(false)
 {
-    memset(_retry_timeout_array, 0, sizeof(_retry_timeout_array));
 }
 
 void CellularContext::cp_data_received()
 {
+    if (!_cp_netif) {
+        tr_warn("Cellular Non-IP callback missing");
+        return;
+    }
     _cp_netif->data_received();
 }
 
@@ -90,7 +85,7 @@ void CellularContext::set_authentication_type(AuthenticationType type)
 void CellularContext::validate_ip_address()
 {
     const int IP_MAX_TRIES = 10; // maximum of 2 seconds as we wait 200ms between tries
-    const int IP_WAIT_INTERVAL = 200; // 200 ms between retries
+    const auto IP_WAIT_INTERVAL = 200ms; // 200 ms between retries
     SocketAddress ip;
     int i = 0;
 
@@ -107,6 +102,27 @@ void CellularContext::validate_ip_address()
         rtos::ThisThread::sleep_for(IP_WAIT_INTERVAL);
         i++;
     }
+}
+
+CellularContext::pdp_type_t CellularContext::string_to_pdp_type(const char *pdp_type_str)
+{
+    pdp_type_t pdp_type = DEFAULT_PDP_TYPE;
+    int len = strlen(pdp_type_str);
+
+    if (len == 6 && memcmp(pdp_type_str, "IPV4V6", len) == 0) {
+        pdp_type = IPV4V6_PDP_TYPE;
+    } else if (len == 4 && memcmp(pdp_type_str, "IPV6", len) == 0) {
+        pdp_type = IPV6_PDP_TYPE;
+    } else if (len == 2 && memcmp(pdp_type_str, "IP", len) == 0) {
+        pdp_type = IPV4_PDP_TYPE;
+    } else if (len == 6 && memcmp(pdp_type_str, "Non-IP", len) == 0) {
+        pdp_type = NON_IP_PDP_TYPE;
+    } else if (get_nonip_context_type_str() &&
+               len == strlen(get_nonip_context_type_str()) &&
+               memcmp(pdp_type_str, get_nonip_context_type_str(), len) == 0) {
+        pdp_type = NON_IP_PDP_TYPE;
+    }
+    return pdp_type;
 }
 
 void CellularContext::do_connect_with_retry()
@@ -137,7 +153,7 @@ void CellularContext::do_connect_with_retry()
     if (_is_blocking) {
         while (_retry_count < _retry_array_length) {
             tr_debug("SYNC do_connect failed with %d, retry after %d seconds", _cb_data.error, _retry_timeout_array[_retry_count]);
-            rtos::ThisThread::sleep_for(_retry_timeout_array[_retry_count] * 1000);
+            rtos::ThisThread::sleep_for(_retry_timeout_array[_retry_count] * 1s);
             do_connect();
             if (_cb_data.error == NSAPI_ERROR_OK) {
                 return;
@@ -151,7 +167,7 @@ void CellularContext::do_connect_with_retry()
                 _cb_data.final_try = true;
             }
             tr_debug("ASYNC do_connect failed with %d, retry after %d seconds", _cb_data.error, _retry_timeout_array[_retry_count]);
-            int id = _device->get_queue()->call_in(_retry_timeout_array[_retry_count] * 1000, this, &CellularContext::do_connect_with_retry);
+            int id = _device->get_queue()->call_in(_retry_timeout_array[_retry_count] * 1s, this, &CellularContext::do_connect_with_retry);
             if (id == 0) {
                 tr_error("Failed call via eventqueue in do_connect_with_retry()");
 #if !NSAPI_PPP_AVAILABLE

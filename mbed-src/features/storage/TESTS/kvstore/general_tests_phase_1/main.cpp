@@ -14,13 +14,11 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#if !defined(MBED_CONF_RTOS_PRESENT)
-#error [NOT_SUPPORTED] Kvstore API test cases require a RTOS to run
-#else
-
 #include "SecureStore.h"
 #include "TDBStore.h"
+#ifdef MBED_CONF_RTOS_PRESENT
 #include "Thread.h"
+#endif
 #include "mbed_error.h"
 #include "FlashSimBlockDevice.h"
 #include "SlicingBlockDevice.h"
@@ -28,12 +26,13 @@
 #include "unity/unity.h"
 #include "utest/utest.h"
 #include "FileSystemStore.h"
+#include "DeviceKey.h"
 
 using namespace utest::v1;
 using namespace mbed;
 
-#if !defined(TARGET_K64F) && !defined(TARGET_ARM_FM) && !defined(TARGET_MCU_PSOC6)
-#error [NOT_SUPPORTED] Kvstore API tests run only on K64F devices, Fastmodels, and PSoC 6
+#if !SECURESTORE_ENABLED
+#error [NOT_SUPPORTED] SecureStore need to be enabled for this test
 #else
 
 static const char   data[] = "data";
@@ -44,7 +43,9 @@ static size_t       actual_size = 0;
 static const size_t buffer_size = 20;
 static const int    num_of_threads = 3;
 
+#ifdef MBED_CONF_RTOS_PRESENT
 static const char *keys[] = {"key1", "key2", "key3"};
+#endif
 
 KVStore::info_t info;
 KVStore::iterator_t kvstore_it;
@@ -78,6 +79,12 @@ static inline uint32_t align_up(uint32_t val, uint32_t size)
 //init the blockdevice
 static void kvstore_init()
 {
+    // This directly corresponds to the pages allocated for each of the SecureStore block devices
+    // For the others it may not match exactly to the space that is used, but it is expected to
+    // be a close enough approximation to act as a guideline for how much of the block device we
+    // need to erase in order to ensure a stable initial condition.
+    const size_t PAGES_ESTIMATE = 40;
+
     int res;
     size_t program_size, erase_size, ul_bd_size, rbp_bd_size;
     BlockDevice *sec_bd;
@@ -85,6 +92,11 @@ static void kvstore_init()
     res = bd->init();
     TEST_ASSERT_EQUAL_ERROR_CODE(0, res);
     int erase_val = bd->get_erase_value();
+    // Clear out any stale data that might be left from a previous test.
+    // Multiply by 2 because SecureStore requires two underlying block devices of this size
+    size_t bytes_to_erase = align_up(2 * PAGES_ESTIMATE * bd->get_program_size(), bd->get_erase_size());
+
+    bd->erase(0, bytes_to_erase);
     res = bd->deinit();
     TEST_ASSERT_EQUAL_ERROR_CODE(0, res);
 
@@ -120,8 +132,10 @@ static void kvstore_init()
         program_size  = sec_bd->get_program_size();
         erase_size = sec_bd->get_erase_size();
         // We must be able to hold at least 10 small keys (20 program sectors) and master record + internal data
-        ul_bd_size  = align_up(program_size * 40, erase_size);
-        rbp_bd_size = align_up(program_size * 40, erase_size);
+        // but minimum of 2 erase sectors, so that the garbage collection way work
+        ul_bd_size  = align_up(program_size * PAGES_ESTIMATE, erase_size * 2);
+        rbp_bd_size = align_up(program_size * PAGES_ESTIMATE, erase_size * 2);
+        TEST_ASSERT((ul_bd_size + rbp_bd_size) < sec_bd->size());
 
         res = sec_bd->deinit();
         TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
@@ -139,6 +153,9 @@ static void kvstore_init()
 
     res = kvstore->init();
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
+#if DEVICEKEY_ENABLED
+    DeviceKey::get_instance().generate_root_of_trust();
+#endif
 }
 
 //deinit the blockdevice
@@ -248,6 +265,7 @@ static void set_same_key_several_time()
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
 }
 
+#ifdef MBED_CONF_RTOS_PRESENT
 static void test_thread_set(char *th_key)
 {
     int res = kvstore->set((char *)th_key, data, data_size, 0);
@@ -285,17 +303,25 @@ static void set_several_keys_multithreaded()
         TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
     }
 }
+#endif
 
 //set key "write once" and try to set it again
 static void set_write_once_flag_try_set_twice()
 {
+    char buf[10];
+    size_t len;
     TEST_SKIP_UNLESS(kvstore != NULL);
 
-    int res = kvstore->set(key, data, data_size, KVStore::WRITE_ONCE_FLAG);
+    int res = kvstore->set(key, "ONCE", 5, KVStore::WRITE_ONCE_FLAG);
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
 
-    res = kvstore->set(key, data, data_size, KVStore::WRITE_ONCE_FLAG);
+    res = kvstore->set(key, "TWICE", 6, KVStore::WRITE_ONCE_FLAG);
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_ERROR_WRITE_PROTECTED, res);
+
+    res = kvstore->get(key, buf, 10, &len);
+    TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
+    TEST_ASSERT_EQUAL(len, 5);
+    TEST_ASSERT_EQUAL_STRING_LEN(buf, "ONCE", 5);
 
     res = kvstore->reset();
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
@@ -304,13 +330,23 @@ static void set_write_once_flag_try_set_twice()
 //set key "write once" and try to remove it
 static void set_write_once_flag_try_remove()
 {
+    char buf[20];
+    size_t len;
     TEST_SKIP_UNLESS(kvstore != NULL);
 
-    int res = kvstore->set(key, data, data_size, KVStore::WRITE_ONCE_FLAG);
+    int res = kvstore->set(key, "TO_BE_REMOVED", 14, KVStore::WRITE_ONCE_FLAG);
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
+
+    res = kvstore->get(key, buf, 20, &len);
+    TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
+    TEST_ASSERT_EQUAL(len, 14);
+    TEST_ASSERT_EQUAL_STRING_LEN(buf, "TO_BE_REMOVED", 14);
 
     res = kvstore->remove(key);
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_ERROR_WRITE_PROTECTED, res);
+
+    res = kvstore->get(key, buf, 20, &len);
+    TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
 
     res = kvstore->reset();
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
@@ -672,6 +708,7 @@ static void get_key_that_was_set_twice()
     TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
 }
 
+#ifdef MBED_CONF_RTOS_PRESENT
 static void test_thread_get(const void *th_key)
 {
     int res = kvstore->get((char *)th_key, buffer, buffer_size, &actual_size, 0);
@@ -707,7 +744,7 @@ static void get_several_keys_multithreaded()
         TEST_ASSERT_EQUAL_ERROR_CODE(MBED_SUCCESS, res);
     }
 }
-
+#endif
 
 /*----------------remove()------------------*/
 
@@ -792,7 +829,9 @@ template_case_t template_cases[] = {
     {"set_key_undefined_flags", set_key_undefined_flags, greentea_failure_handler},
     {"set_buffer_size_is_zero", set_buffer_size_is_zero, greentea_failure_handler},
     {"set_same_key_several_time", set_same_key_several_time, greentea_failure_handler},
+#ifdef MBED_CONF_RTOS_PRESENT
     {"set_several_keys_multithreaded", set_several_keys_multithreaded, greentea_failure_handler},
+#endif
     {"set_write_once_flag_try_set_twice", set_write_once_flag_try_set_twice, greentea_failure_handler},
     {"set_write_once_flag_try_remove", set_write_once_flag_try_remove, greentea_failure_handler},
     {"set_key_value_one_byte_size", set_key_value_one_byte_size, greentea_failure_handler},
@@ -817,7 +856,9 @@ template_case_t template_cases[] = {
     {"get_non_existing_key", get_non_existing_key, greentea_failure_handler},
     {"get_removed_key", get_removed_key, greentea_failure_handler},
     {"get_key_that_was_set_twice", get_key_that_was_set_twice, greentea_failure_handler},
+#ifdef MBED_CONF_RTOS_PRESENT
     {"get_several_keys_multithreaded", get_several_keys_multithreaded, greentea_failure_handler},
+#endif
 
     {"remove_key_null", remove_key_null, greentea_failure_handler},
     {"remove_key_length_exceeds_max", remove_key_length_exceeds_max, greentea_failure_handler},
@@ -871,12 +912,10 @@ int main()
             total_num_cases++;
         }
     }
-
     Specification specification(greentea_test_setup, cases, total_num_cases,
-                                greentea_test_teardown_handler, (test_failure_handler_t)greentea_failure_handler);
+                                greentea_test_teardown_handler, default_handler);
 
     return !Harness::run(specification);
 }
 
-#endif // !defined(TARGET_K64F) && !defined(TARGET_ARM_FM)
-#endif // !defined(MBED_CONF_RTOS_PRESENT)
+#endif //!SECURESTORE_ENABLED

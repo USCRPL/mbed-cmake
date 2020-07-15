@@ -52,9 +52,9 @@
 extern "C" {
 #endif
 
-#include "nrf_uart.h"
+#include "nrf_uarte.h"
 
-#if defined(FEATURE_CRYPTOCELL310)
+#if MBED_CONF_CRYPTOCELL310_PRESENT
 #include "objects_cryptocell.h"
 #else
 struct trng_s {
@@ -68,9 +68,9 @@ struct serial_s {
     uint32_t            rx;
     uint32_t            cts;
     uint32_t            rts;
-    nrf_uart_hwfc_t     hwfc;
-    nrf_uart_parity_t   parity;
-    nrf_uart_baudrate_t baudrate;
+    nrf_uarte_hwfc_t     hwfc;
+    nrf_uarte_parity_t   parity;
+    nrf_uarte_baudrate_t baudrate;
     uint32_t            context;
     uint32_t            handler;
     uint32_t            mask;
@@ -127,6 +127,12 @@ struct i2c_s {
     uint32_t handler;
     uint32_t mask;
     uint32_t event;
+#endif
+
+#if DEVICE_I2CSLAVE
+    bool was_slave;
+    bool is_slave;
+    uint8_t slave_addr;
 #endif
 };
 

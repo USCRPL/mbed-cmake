@@ -20,29 +20,25 @@
 #include "GEMALTO_CINTERION.h"
 #include "CellularLog.h"
 
-// defines as per ELS61-E2_ATC_V01.000 and BGS2-W_ATC_V00.100
-#define SOCKET_MAX 10
-#define UDP_PACKET_SIZE 1460
-#define FAILURE_TIMEOUT (30*1000) // failure timeout in milliseconds on modem side
+using namespace std::chrono_literals;
 
-/*
- * Use connection profile 0 and Internet service profiles starting from 0 for sockets.
- */
-#define CONNECTION_PROFILE_ID 0
+// defines as per ELS61-E2_ATC_V01.000 and BGS2-W_ATC_V00.100
+#define UDP_PACKET_SIZE 1460
+#define FAILURE_TIMEOUT 30s // failure timeout on modem side
 
 using namespace mbed;
 
 GEMALTO_CINTERION_CellularStack::GEMALTO_CINTERION_CellularStack(ATHandler &atHandler, const char *apn, const char *user, const char *password,
-                                                                 int cid, nsapi_ip_stack_t stack_type) : AT_CellularStack(atHandler, cid, stack_type), _apn(apn),
-    _user(user), _password(password)
+                                                                 int cid, nsapi_ip_stack_t stack_type, AT_CellularDevice &device) :
+    AT_CellularStack(atHandler, cid, stack_type, device), _apn(apn), _user(user), _password(password)
 {
 }
 
 GEMALTO_CINTERION_CellularStack::~GEMALTO_CINTERION_CellularStack()
 {
-    _at.set_urc_handler("^SIS:", 0);
-    _at.set_urc_handler("^SISW:", 0);
-    _at.set_urc_handler("^SISR:", 0);
+    _at.set_urc_handler("^SIS:", nullptr);
+    _at.set_urc_handler("^SISW:", nullptr);
+    _at.set_urc_handler("^SISR:", nullptr);
 }
 
 void GEMALTO_CINTERION_CellularStack::urc_sis()
@@ -58,6 +54,17 @@ void GEMALTO_CINTERION_CellularStack::urc_sis()
                 sock->started = true;
                 sock->tx_ready = true;
                 sock->_cb(sock->_data);
+            }
+        }
+        if (urc_code == 0) {
+            int urc_info_id = _at.read_int();
+            if (urc_info_id == 48) {
+                tr_info("Socket closed %d", sock_id);
+                sock->closed = true;
+                if (sock->_cb) {
+                    sock->_cb(sock->_data);
+                }
+
             }
         }
     }
@@ -109,33 +116,22 @@ void GEMALTO_CINTERION_CellularStack::sisr_urc_handler(int sock_id, int urc_code
 nsapi_error_t GEMALTO_CINTERION_CellularStack::socket_stack_init()
 {
     _at.lock();
-    int connection_profile_id = CONNECTION_PROFILE_ID;
-    nsapi_error_t err = create_connection_profile(connection_profile_id);
+    nsapi_error_t err = create_connection_profile(_cid);
     if (!err) {
         _at.set_urc_handler("^SIS:", mbed::Callback<void()>(this, &GEMALTO_CINTERION_CellularStack::urc_sis));
         _at.set_urc_handler("^SISW:", mbed::Callback<void()>(this, &GEMALTO_CINTERION_CellularStack::urc_sisw));
         _at.set_urc_handler("^SISR:", mbed::Callback<void()>(this, &GEMALTO_CINTERION_CellularStack::urc_sisr));
     } else { // recovery cleanup
         // close all Internet and connection profiles
-        for (int i = 0; i < SOCKET_MAX; i++) {
+        for (int i = 0; i < _device.get_property(AT_CellularDevice::PROPERTY_SOCKET_COUNT); i++) {
             _at.clear_error();
             socket_close_impl(i);
         }
         _at.clear_error();
-        close_connection_profile(connection_profile_id);
+        close_connection_profile(_cid);
     }
     _at.unlock();
     return err;
-}
-
-int GEMALTO_CINTERION_CellularStack::get_max_socket_count()
-{
-    return SOCKET_MAX;
-}
-
-bool GEMALTO_CINTERION_CellularStack::is_protocol_supported(nsapi_protocol_t protocol)
-{
-    return (protocol == NSAPI_UDP || protocol == NSAPI_TCP);
 }
 
 nsapi_error_t GEMALTO_CINTERION_CellularStack::socket_close_impl(int sock_id)
@@ -157,8 +153,6 @@ nsapi_error_t GEMALTO_CINTERION_CellularStack::socket_close_impl(int sock_id)
 
 nsapi_error_t GEMALTO_CINTERION_CellularStack::socket_open_defer(CellularSocket *socket, const SocketAddress *address)
 {
-    int connection_profile_id = CONNECTION_PROFILE_ID;
-
     int retry_open = 1;
 retry_open:
     // setup internet session profile
@@ -193,7 +187,7 @@ retry_open:
                     }
                     if (strcmp(paramTag, "conId") == 0) {
                         char buf[10];
-                        std::sprintf(buf, "%d", connection_profile_id);
+                        std::sprintf(buf, "%d", _cid);
                         if (strcmp(paramValue, buf) == 0) {
                             foundConIdType = true;
                         }
@@ -209,7 +203,7 @@ retry_open:
     }
 
     if (!foundConIdType) {
-        _at.at_cmd_discard("^SISS", "=", "%d%s%d", internet_service_id, "conId", connection_profile_id);
+        _at.at_cmd_discard("^SISS", "=", "%d%s%d", internet_service_id, "conId", _cid);
     }
 
     // host address (IPv4) and local+remote port is needed only for BGS2 which does not support UDP server socket
@@ -238,7 +232,7 @@ retry_open:
     _at.at_cmd_discard("^SISO", "=", "%d", internet_service_id);
 
     if (_at.get_last_error()) {
-        tr_error("Socket %d open failed!", socket->id);
+        tr_error("Socket %d open failed!", internet_service_id);
         _at.clear_error();
         socket_close_impl(internet_service_id); // socket may already be open on modem if app and modem are not in sync, as a recovery, try to close the socket so open succeeds the next time
         if (retry_open--) {
@@ -390,7 +384,7 @@ nsapi_size_or_error_t GEMALTO_CINTERION_CellularStack::socket_recvfrom_impl(Cell
     if (!socket->pending_bytes) {
         _at.process_oob(); // check for ^SISR URC
         if (!socket->pending_bytes) {
-            tr_debug("Socekt %d recv would block", socket->id);
+            tr_debug("Socket %d recv would block", socket->id);
             return NSAPI_ERROR_WOULD_BLOCK;
         }
     }

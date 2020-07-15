@@ -59,7 +59,7 @@
             "value": false
         },
         "socket-max": {
-            "help": "Maximum number of open TCPServer, TCPSocket and UDPSocket instances allowed, including one used internally for DNS.  Each requires 236 bytes of pre-allocated RAM",
+            "help": "Maximum number of open TCPSocket and UDPSocket instances allowed, including one used internally for DNS.  Each requires 236 bytes of pre-allocated RAM",
             "value": 4
         },
         "tcp-enabled": {
@@ -67,7 +67,7 @@
             "value": true
         },
         "tcp-server-max": {
-            "help": "Maximum number of open TCPServer instances allowed.  Each requires 72 bytes of pre-allocated RAM",
+            "help": "Maximum number of open TCP server instances allowed.  Each requires 72 bytes of pre-allocated RAM",
             "value": 4
         },
         "tcp-socket-max": {
@@ -89,14 +89,6 @@
         "tcp-mss": {
             "help": "TCP Maximum segment size, see LWIP opt.h for more information. Current default is 536.",
             "value": 536
-        },
-        "tcpip-mbox-size": {
-            "help": "TCPIP mailbox size",
-            "value": 8
-        },
-        "default-tcp-recvmbox-size": {
-            "help": "Default TCPIP receive mailbox size",
-            "value": 8
         },
         "mbox-size": {
             "help": "mailbox size",
@@ -164,13 +156,6 @@
         }
     },
     "target_overrides": {
-        "REALTEK_RTL8195AM": {
-            "tcpip-thread-stacksize": 1600,
-            "mem-size": 12800
-        },
-        "UBLOX_EVK_ODIN_W2": {
-            "pbuf-pool-size" :  10
-        },
         "STM": {
             "mem-size": 2310
         },
@@ -178,15 +163,6 @@
             "mem-size": 33270
         },
         "LPC1768": {
-            "mem-size": 16362
-        },
-        "LPC4088": {
-            "mem-size": 15360
-        },
-        "LPC4088_DM": {
-            "mem-size": 15360
-        },
-        "UBLOX_C027": {
             "mem-size": 16362
         },
         "ARCH_PRO": {

@@ -128,6 +128,8 @@ typedef enum nsapi_security {
     NSAPI_SECURITY_EAP_TLS      = 0x7,      /*!< phrase conforms to EAP-TLS */
     NSAPI_SECURITY_PEAP         = 0x8,      /*!< phrase conforms to PEAP */
     NSAPI_SECURITY_WPA2_ENT     = 0x9,      /*!< phrase conforms to WPA2-AES and WPA-TKIP with enterprise security */
+    NSAPI_SECURITY_WPA3         = 0xA,      /*!< phrase conforms to WPA3 */
+    NSAPI_SECURITY_WPA3_WPA2    = 0xB,      /*!< phrase conforms to WPA3_WPA2 */
     NSAPI_SECURITY_UNKNOWN      = 0xFF,     /*!< unknown/unsupported security in scan results */
 } nsapi_security_t;
 
@@ -267,7 +269,9 @@ typedef enum nsapi_socket_option {
     NSAPI_RCVBUF,            /*!< Sets recv buffer size */
     NSAPI_ADD_MEMBERSHIP,    /*!< Add membership to multicast address */
     NSAPI_DROP_MEMBERSHIP,   /*!< Drop membership to multicast address */
-    NSAPI_BIND_TO_DEVICE,        /*!< Bind socket network interface name*/
+    NSAPI_BIND_TO_DEVICE,    /*!< Bind socket network interface name*/
+    NSAPI_LATENCY,           /*!< Read estimated latency to destination */
+    NSAPI_STAGGER,           /*!< Read estimated stagger value to destination */
 } nsapi_socket_option_t;
 
 typedef enum nsapi_tlssocket_level {
@@ -337,6 +341,23 @@ typedef struct nsapi_ip_mreq {
     nsapi_addr_t imr_multiaddr; /* IP multicast address of group */
     nsapi_addr_t imr_interface; /* local IP address of interface */
 } nsapi_ip_mreq_t;
+
+/** nsapi_latency_req structure
+ */
+typedef struct nsapi_latency_req {
+    uint8_t addr[16];   /* [IN] Destination address to estimate latency */
+    uint32_t latency;   /* [OUT] Latency value */
+} nsapi_latency_req_t;
+
+/** nsapi_stagger_req structure
+ */
+typedef struct nsapi_stagger_req {
+    uint8_t addr[16];       /* [IN] Destination address to estimate stagger */
+    uint16_t data_amount;   /* [IN] Amount of data to be sent in kilobytes */
+    uint16_t stagger_min;   /* [OUT] Minimum stagger value in seconds */
+    uint16_t stagger_max;   /* [OUT] Maximum stagger value in seconds */
+    uint16_t stagger_rand;  /* [OUT] Randomized stagger value in seconds */
+} nsapi_stagger_req_t;
 
 /** nsapi_stack_api structure
  *

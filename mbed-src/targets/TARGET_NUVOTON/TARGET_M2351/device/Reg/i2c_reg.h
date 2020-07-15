@@ -3,11 +3,18 @@
  * @version  V1.00
  * @brief    I2C register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __I2C_REG_H__
 #define __I2C_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Inter-IC Bus Controller -------------------------*/
 /**
@@ -703,6 +710,7 @@ typedef struct
 
 /**@}*/ /* I2C_CONST */
 /**@}*/ /* end of I2C register group */
+/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __I2C_REG_H__ */

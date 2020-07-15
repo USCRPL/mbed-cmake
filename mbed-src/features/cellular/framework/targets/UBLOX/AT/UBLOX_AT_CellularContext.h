@@ -28,7 +28,9 @@ public:
     virtual ~UBLOX_AT_CellularContext();
 
     virtual void do_connect();
-    virtual const char *get_gateway();
+#ifndef UBX_MDM_SARA_R41XM
+    virtual void do_disconnect();
+#endif
     virtual nsapi_error_t get_gateway(SocketAddress *addr);
 
     const char *get_apn(void);

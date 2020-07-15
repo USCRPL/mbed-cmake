@@ -123,7 +123,7 @@ public:
         SecurityEntryIdentityDbCb_t;
     typedef mbed::Callback<void(Span<SecurityEntryIdentity_t>&, size_t count)>
         IdentitylistDbCb_t;
-    typedef mbed::Callback<void(::Gap::Whitelist_t*)>
+    typedef mbed::Callback<void(::ble::whitelist_t*)>
         WhitelistDbCb_t;
 
     SecurityDb() : _local_sign_counter(0) { };
@@ -425,6 +425,31 @@ public:
         _local_sign_counter = sign_counter;
     }
 
+    /* local identity */
+    /**
+     * Update the local identity.
+     *
+     * @param[in] csrk new CSRK value
+     */
+    virtual void set_local_identity(
+            const irk_t &irk,
+            const address_t &identity_address,
+            bool public_address
+    )  {
+        _local_identity.irk = irk;
+        _local_identity.identity_address = identity_address;
+        _local_identity.identity_address_is_public = public_address;
+    }
+
+    /**
+     * Return local irk.
+     *
+     * @return irk
+     */
+    virtual irk_t get_local_irk() {
+        return _local_identity.irk;
+    }
+
     /* list management */
 
     /**
@@ -567,7 +592,7 @@ public:
      */
     virtual void get_whitelist(
         WhitelistDbCb_t cb,
-        ::Gap::Whitelist_t *whitelist
+        ::ble::whitelist_t *whitelist
     ) {
         /*TODO: fill whitelist*/
         cb(whitelist);
@@ -582,7 +607,7 @@ public:
      */
     virtual void generate_whitelist_from_bond_table(
         WhitelistDbCb_t cb,
-        ::Gap::Whitelist_t *whitelist
+        ::ble::whitelist_t *whitelist
     ) {
         for (size_t i = 0; i < get_entry_count() && whitelist->size < whitelist->capacity; i++) {
             entry_handle_t db_handle = get_entry_handle_by_index(i);
@@ -592,21 +617,32 @@ public:
                 continue;
             }
 
+            // Add the connection address
+            whitelist->addresses[whitelist->size].address = flags->peer_address.data();
+
+            if (flags->peer_address_is_public) {
+                whitelist->addresses[whitelist->size].type = peer_address_type_t::PUBLIC;
+            } else {
+                whitelist->addresses[whitelist->size].type = peer_address_type_t::RANDOM;
+            }
+
+            whitelist->size++;
+            if (whitelist->size == whitelist->capacity) {
+                break;
+            }
+
+            // Add the identity address
             SecurityEntryIdentity_t* identity = read_in_entry_peer_identity(db_handle);
             if (!identity) {
                 continue;
             }
 
-            memcpy(
-                whitelist->addresses[whitelist->size].address,
-                identity->identity_address.data(),
-                sizeof(BLEProtocol::AddressBytes_t)
-            );
+            whitelist->addresses[whitelist->size].address = identity->identity_address;
 
             if (identity->identity_address_is_public) {
-                whitelist->addresses[whitelist->size].type = BLEProtocol::AddressType::PUBLIC;
+                whitelist->addresses[whitelist->size].type = peer_address_type_t::PUBLIC_IDENTITY;
             } else {
-                whitelist->addresses[whitelist->size].type = BLEProtocol::AddressType::RANDOM_STATIC;
+                whitelist->addresses[whitelist->size].type = peer_address_type_t::RANDOM_STATIC_IDENTITY;
             }
 
             whitelist->size++;
@@ -620,7 +656,7 @@ public:
      *
      * @param[in] whitelist
      */
-    virtual void set_whitelist(const ::Gap::Whitelist_t &whitelist) { };
+    virtual void set_whitelist(const ::ble::whitelist_t &whitelist) { };
 
     /**
      * Add a new entry to the whitelist in the NVM.

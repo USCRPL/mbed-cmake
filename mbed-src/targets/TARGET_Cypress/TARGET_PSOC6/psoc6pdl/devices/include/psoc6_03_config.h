@@ -5,11 +5,11 @@
 * PSoC6_03 device configuration header
 *
 * \note
-* Generator version: 1.5.0.1287
+* Generator version: 1.6.0.225
 *
 ********************************************************************************
 * \copyright
-* Copyright 2016-2019 Cypress Semiconductor Corporation
+* Copyright 2016-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1058,12 +1058,6 @@ typedef enum
     TRIG_OUT_1TO1_4_CAN_FIFO1_TO_PDMA1_TR_IN31 = 0x40001402u /* From canfd[0].tr_fifo1[0] to cpuss.dw1_tr_in[31] */
 } en_trig_output_1to1_can_dw_tr_t;
 
-/* Trigger Output Group 7 - Acknowledge dma request triggers from DW0 to CAN (OneToOne) */
-typedef enum
-{
-    TRIG_OUT_1TO1_7_PDMA1_TR_OUT29_ACK_TO_CAN_0 = 0x40001700u /* From cpuss.dw1_tr_out[29] to canfd[0].tr_dbg_dma_ack[0] */
-} en_trig_output_1to1_can0_dw_ack_t;
-
 /* Trigger Output Group 5 - USB PDMA0 Triggers (OneToOne) */
 typedef enum
 {
@@ -1090,6 +1084,12 @@ typedef enum
     TRIG_OUT_1TO1_6_PDMA0_TR_OUT15_TO_USB_ACK7 = 0x40001607u /* From cpuss.dw0_tr_out[15] to usb.dma_burstend[7] */
 } en_trig_output_1to1_usb_pdma0_ack_tr_t;
 
+/* Trigger Output Group 7 - Acknowledge dma request triggers from DW0 to CAN (OneToOne) */
+typedef enum
+{
+    TRIG_OUT_1TO1_7_PDMA1_TR_OUT29_ACK_TO_CAN_0 = 0x40001700u /* From cpuss.dw1_tr_out[29] to canfd[0].tr_dbg_dma_ack[0] */
+} en_trig_output_1to1_can0_dw_ack_t;
+
 /* Level or edge detection setting for a trigger mux */
 typedef enum
 {
@@ -1101,59 +1101,59 @@ typedef enum
 } en_trig_type_t;
 
 /* Trigger Type Defines */
-/* TCPWM Trigger Types */
-#define TRIGGER_TYPE_TCPWM_LINE                 TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_TCPWM_LINE_COMPL           TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_TCPWM_TR_OVERFLOW          TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_TCPWM_TR_COMPARE_MATCH     TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_TCPWM_TR_UNDERFLOW         TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_TCPWM_TR_IN__LEVEL         TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_TCPWM_TR_IN__EDGE          TRIGGER_TYPE_EDGE
+/* CANFD Trigger Types */
+#define TRIGGER_TYPE_CANFD_TR_DBG_DMA_ACK       TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CANFD_TR_DBG_DMA_REQ       TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_CANFD_TR_EVT_SWT_IN        TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CANFD_TR_FIFO0             TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_CANFD_TR_FIFO1             TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_CANFD_TR_TMP_RTP_OUT       TRIGGER_TYPE_EDGE
+/* CPUSS Trigger Types */
+#define TRIGGER_TYPE_CPUSS_CTI_TR_IN            TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_CTI_TR_OUT           TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_DMAC_TR_IN__LEVEL    TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_CPUSS_DMAC_TR_IN__EDGE     TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_DMAC_TR_OUT          TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_DW0_TR_IN__LEVEL     TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_CPUSS_DW0_TR_IN__EDGE      TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_DW0_TR_OUT           TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_DW1_TR_IN__LEVEL     TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_CPUSS_DW1_TR_IN__EDGE      TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_DW1_TR_OUT           TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_CPUSS_TR_FAULT             TRIGGER_TYPE_EDGE
 /* CSD Trigger Types */
 #define TRIGGER_TYPE_CSD_DSI_SAMPLE_OUT         TRIGGER_TYPE_EDGE
-/* SCB Trigger Types */
-#define TRIGGER_TYPE_SCB_TR_I2C_SCL_FILTERED    TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_SCB_TR_TX_REQ              TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_SCB_TR_RX_REQ              TRIGGER_TYPE_LEVEL
+/* LPCOMP Trigger Types */
+#define TRIGGER_TYPE_LPCOMP_DSI_COMP0           TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_LPCOMP_DSI_COMP1           TRIGGER_TYPE_LEVEL
+/* PASS Trigger Types */
+#define TRIGGER_TYPE_PASS_TR_SAR_IN__LEVEL      TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_PASS_TR_SAR_IN__EDGE       TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_PASS_TR_SAR_OUT            TRIGGER_TYPE_EDGE
 /* PERI Trigger Types */
+#define TRIGGER_TYPE_PERI_TR_DBG_FREEZE         TRIGGER_TYPE_LEVEL
 #define TRIGGER_TYPE_PERI_TR_IO_INPUT__LEVEL    TRIGGER_TYPE_LEVEL
 #define TRIGGER_TYPE_PERI_TR_IO_INPUT__EDGE     TRIGGER_TYPE_EDGE
 #define TRIGGER_TYPE_PERI_TR_IO_OUTPUT__LEVEL   TRIGGER_TYPE_LEVEL
 #define TRIGGER_TYPE_PERI_TR_IO_OUTPUT__EDGE    TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_PERI_TR_DBG_FREEZE         TRIGGER_TYPE_LEVEL
-/* CPUSS Trigger Types */
-#define TRIGGER_TYPE_CPUSS_DW0_TR_IN__LEVEL     TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_CPUSS_DW0_TR_IN__EDGE      TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_DW1_TR_IN__LEVEL     TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_CPUSS_DW1_TR_IN__EDGE      TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_DMAC_TR_IN__LEVEL    TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_CPUSS_DMAC_TR_IN__EDGE     TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_DW0_TR_OUT           TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_DW1_TR_OUT           TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_DMAC_TR_OUT          TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_CTI_TR_OUT           TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_TR_FAULT             TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CPUSS_CTI_TR_IN            TRIGGER_TYPE_EDGE
-/* CANFD Trigger Types */
-#define TRIGGER_TYPE_CANFD_TR_TMP_RTP_OUT       TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CANFD_TR_EVT_SWT_IN        TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_CANFD_TR_DBG_DMA_REQ       TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_CANFD_TR_FIFO0             TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_CANFD_TR_FIFO1             TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_CANFD_TR_DBG_DMA_ACK       TRIGGER_TYPE_EDGE
-/* LPCOMP Trigger Types */
-#define TRIGGER_TYPE_LPCOMP_DSI_COMP0           TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_LPCOMP_DSI_COMP1           TRIGGER_TYPE_LEVEL
+/* SCB Trigger Types */
+#define TRIGGER_TYPE_SCB_TR_I2C_SCL_FILTERED    TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_SCB_TR_RX_REQ              TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_SCB_TR_TX_REQ              TRIGGER_TYPE_LEVEL
 /* SMIF Trigger Types */
-#define TRIGGER_TYPE_SMIF_TR_TX_REQ             TRIGGER_TYPE_LEVEL
 #define TRIGGER_TYPE_SMIF_TR_RX_REQ             TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_SMIF_TR_TX_REQ             TRIGGER_TYPE_LEVEL
+/* TCPWM Trigger Types */
+#define TRIGGER_TYPE_TCPWM_LINE                 TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_TCPWM_LINE_COMPL           TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_TCPWM_TR_COMPARE_MATCH     TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_TCPWM_TR_IN__LEVEL         TRIGGER_TYPE_LEVEL
+#define TRIGGER_TYPE_TCPWM_TR_IN__EDGE          TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_TCPWM_TR_OVERFLOW          TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_TCPWM_TR_UNDERFLOW         TRIGGER_TYPE_EDGE
 /* USB Trigger Types */
-#define TRIGGER_TYPE_USB_DMA_REQ                TRIGGER_TYPE_EDGE
 #define TRIGGER_TYPE_USB_DMA_BURSTEND           TRIGGER_TYPE_EDGE
-/* PASS Trigger Types */
-#define TRIGGER_TYPE_PASS_TR_SAR_OUT            TRIGGER_TYPE_EDGE
-#define TRIGGER_TYPE_PASS_TR_SAR_IN__LEVEL      TRIGGER_TYPE_LEVEL
-#define TRIGGER_TYPE_PASS_TR_SAR_IN__EDGE       TRIGGER_TYPE_EDGE
+#define TRIGGER_TYPE_USB_DMA_REQ                TRIGGER_TYPE_EDGE
 
 /* Bus masters */
 typedef enum
@@ -1267,92 +1267,273 @@ typedef PASS_AREF_V1_Type PASS_AREF_Type;
 typedef PASS_V1_Type PASS_Type;
 
 /* Parameter Defines */
-/* Number of regulator modules instantiated within SRSS, start with estimate,
-   update after CMR feedback */
-#define SRSS_NUM_ACTREG_PWRMOD          2u
-/* Number of shorting switches between vccd and vccact (target dynamic voltage
-   drop < 10mV) */
-#define SRSS_NUM_ACTIVE_SWITCH          3u
-/* ULP linear regulator system is present */
-#define SRSS_ULPLINREG_PRESENT          1u
-/* HT linear regulator system is present */
-#define SRSS_HTLINREG_PRESENT           0u
-/* Low-current buck regulator present. Can be derived from S40S_SISOBUCKLC_PRESENT
-   or SIMOBUCK_PRESENT. */
-#define SRSS_BUCKCTL_PRESENT            1u
-/* Low-current SISO buck core regulator is present. Only compatible with ULP
-   linear regulator system (ULPLINREG_PRESENT==1). */
-#define SRSS_S40S_SISOBUCKLC_PRESENT    1u
-/* SIMO buck core regulator is present. Only compatible with ULP linear regulator
-   system (ULPLINREG_PRESENT==1). */
-#define SRSS_SIMOBUCK_PRESENT           0u
-/* Precision ILO (PILO) is present */
-#define SRSS_PILO_PRESENT               0u
-/* External Crystal Oscillator is present (high frequency) */
-#define SRSS_ECO_PRESENT                1u
-/* System Buck-Boost is present */
-#define SRSS_SYSBB_PRESENT              0u
-/* Number of clock paths. Must be > 0 */
-#define SRSS_NUM_CLKPATH                5u
-/* Number of PLLs present. Must be <= NUM_CLKPATH */
-#define SRSS_NUM_PLL                    1u
-/* Number of HFCLK roots present. Must be > 0 */
-#define SRSS_NUM_HFROOT                 5u
-/* Number of PWR_HIB_DATA registers, should not be needed if BACKUP_PRESENT */
-#define SRSS_NUM_HIBDATA                1u
-/* Backup domain is present (includes RTC and WCO) */
-#define SRSS_BACKUP_PRESENT             1u
-/* Mask of HFCLK root clock supervisors (CSV). For each clock root i, bit[i] of
-   mask indicates presence of a CSV. */
-#define SRSS_MASK_HFCSV                 0u
-/* Clock supervisor is present on WCO. Must be 0 if BACKUP_PRESENT==0. */
-#define SRSS_WCOCSV_PRESENT             0u
-/* Number of software watchdog timers. */
-#define SRSS_NUM_MCWDT                  2u
-/* Number of DSI inputs into clock muxes. This is used for logic optimization. */
-#define SRSS_NUM_DSI                    0u
-/* Alternate high-frequency clock is present. This is used for logic optimization. */
-#define SRSS_ALTHF_PRESENT              0u
-/* Alternate low-frequency clock is present. This is used for logic optimization. */
-#define SRSS_ALTLF_PRESENT              0u
-/* Use the hardened clkactfllmux block */
-#define SRSS_USE_HARD_CLKACTFLLMUX      1u
-/* Number of clock paths, including direct paths in hardened clkactfllmux block
-   (Must be >= NUM_CLKPATH) */
-#define SRSS_HARD_CLKPATH               6u
-/* Number of clock paths with muxes in hardened clkactfllmux block (Must be >=
-   NUM_PLL+1) */
-#define SRSS_HARD_CLKPATHMUX            6u
-/* Number of HFCLKS present in hardened clkactfllmux block (Must be >= NUM_HFROOT) */
-#define SRSS_HARD_HFROOT                6u
-/* ECO mux is present in hardened clkactfllmux block (Must be >= ECO_PRESENT) */
-#define SRSS_HARD_ECOMUX_PRESENT        1u
-/* ALTHF mux is present in hardened clkactfllmux block (Must be >= ALTHF_PRESENT) */
-#define SRSS_HARD_ALTHFMUX_PRESENT      1u
-/* SRSS version is at least SRSS_VER1P3. Set to 1 for new products. Set to 0 for
-   PSoC6ABLE2, PSoC6A2M. */
-#define SRSS_SRSS_VER1P3                1u
-/* Backup memory is present (only used when BACKUP_PRESENT==1) */
-#define SRSS_BACKUP_BMEM_PRESENT        0u
-/* Number of Backup registers to include (each is 32b). Only used when
-   BACKUP_PRESENT==1. */
-#define SRSS_BACKUP_NUM_BREG            16u
-/* Number of AMUX splitter cells */
-#define IOSS_HSIOM_AMUX_SPLIT_NR        6u
-/* Number of HSIOM ports in device (same as GPIO.GPIO_PRT_NR) */
-#define IOSS_HSIOM_HSIOM_PORT_NR        15u
-/* Number of PWR/GND MONITOR CELLs in the device */
-#define IOSS_HSIOM_MONITOR_NR           0u
-/* Number of PWR/GND MONITOR CELLs in range 0..31 */
-#define IOSS_HSIOM_MONITOR_NR_0_31      0u
-/* Number of PWR/GND MONITOR CELLs in range 32..63 */
-#define IOSS_HSIOM_MONITOR_NR_32_63     0u
-/* Number of PWR/GND MONITOR CELLs in range 64..95 */
-#define IOSS_HSIOM_MONITOR_NR_64_95     0u
-/* Number of PWR/GND MONITOR CELLs in range 96..127 */
-#define IOSS_HSIOM_MONITOR_NR_96_127    0u
-/* Indicates the presence of alternate JTAG interface */
-#define IOSS_HSIOM_ALTJTAG_PRESENT      0u
+/* Number of TTCAN instances */
+#define CANFD_CAN_NR                    1u
+/* ECC logic present or not */
+#define CANFD_ECC_PRESENT               0u
+/* address included in ECC logic or not */
+#define CANFD_ECC_ADDR_PRESENT          0u
+/* Time Stamp counter present or not (required for instance 0, otherwise not
+   allowed) */
+#define CANFD_TS_PRESENT                1u
+/* Message RAM size in KB */
+#define CANFD_MRAM_SIZE                 4u
+/* Message RAM address width */
+#define CANFD_MRAM_ADDR_WIDTH           10u
+/* UDB present or not ('0': no, '1': yes) */
+#define CPUSS_UDB_PRESENT               0u
+/* MBIST MMIO for Synopsys MBIST ('0': no, '1': yes). Set this to '1' only for the
+   chips which doesn't use mxdft. */
+#define CPUSS_MBIST_MMIO_PRESENT        1u
+/* System RAM 0 size in kilobytes */
+#define CPUSS_SRAM0_SIZE                256u
+/* Number of macros used to implement System RAM 0. Example: 8 if 256 KB System
+   SRAM0 is implemented with 8 32KB macros. */
+#define CPUSS_RAMC0_MACRO_NR            8u
+/* System RAM 1 present or not (0=No, 1=Yes) */
+#define CPUSS_RAMC1_PRESENT             0u
+/* System RAM 1 size in kilobytes */
+#define CPUSS_SRAM1_SIZE                1u
+/* Number of macros used to implement System RAM 1. Example: 8 if 256 KB System
+   RAM 1 is implemented with 8 32KB macros. */
+#define CPUSS_RAMC1_MACRO_NR            1u
+/* System RAM 2 present or not (0=No, 1=Yes) */
+#define CPUSS_RAMC2_PRESENT             0u
+/* System RAM 2 size in kilobytes */
+#define CPUSS_SRAM2_SIZE                1u
+/* Number of macros used to implement System RAM 2. Example: 8 if 256 KB System
+   RAM 2 is implemented with 8 32KB macros. */
+#define CPUSS_RAMC2_MACRO_NR            1u
+/* System SRAM(s) ECC present or not ('0': no, '1': yes) */
+#define CPUSS_RAMC_ECC_PRESENT          0u
+/* System SRAM(s) address ECC present or not ('0': no, '1': yes) */
+#define CPUSS_RAMC_ECC_ADDR_PRESENT     0u
+/* ECC present in either system RAM or interrupt handler (RAMC_ECC_PRESENT) */
+#define CPUSS_ECC_PRESENT               0u
+/* DataWire SRAMs ECC present or not ('0': no, '1': yes) */
+#define CPUSS_DW_ECC_PRESENT            0u
+/* DataWire SRAMs address ECC present or not ('0': no, '1': yes) */
+#define CPUSS_DW_ECC_ADDR_PRESENT       0u
+/* System ROM size in KB */
+#define CPUSS_ROM_SIZE                  64u
+/* Number of macros used to implement system ROM. Example: 4 if 512 KB system ROM
+   is implemented with 4 128KB macros. */
+#define CPUSS_ROMC_MACRO_NR             1u
+/* Flash memory type ('0' : SONOS, '1': ECT) */
+#define CPUSS_FLASHC_ECT                0u
+/* Flash main region size in KB */
+#define CPUSS_FLASH_SIZE                512u
+/* Flash work region size in KB (EEPROM emulation, data) */
+#define CPUSS_WFLASH_SIZE               32u
+/* Flash supervisory region size in KB */
+#define CPUSS_SFLASH_SIZE               32u
+/* Flash data output word size (in Bytes) */
+#define CPUSS_FLASHC_MAIN_DATA_WIDTH    16u
+/* SONOS Flash RWW present or not ('0': no, '1': yes) When RWW is '0', No special
+   sectors present in Flash. Part of main sector 0 is allowcated for Supervisory
+   Flash, and no Work Flash present. */
+#define CPUSS_FLASHC_SONOS_RWW          1u
+/* SONOS Flash, number of main sectors. */
+#define CPUSS_FLASHC_SONOS_MAIN_SECTORS 2u
+/* SONOS Flash, number of rows per main sector. */
+#define CPUSS_FLASHC_SONOS_MAIN_ROWS    512u
+/* SONOS Flash, number of words per row of main sector. */
+#define CPUSS_FLASHC_SONOS_MAIN_WORDS   128u
+/* SONOS Flash, number of special sectors. */
+#define CPUSS_FLASHC_SONOS_SPL_SECTORS  2u
+/* SONOS Flash, number of rows per special sector. */
+#define CPUSS_FLASHC_SONOS_SPL_ROWS     64u
+/* Flash memory ECC present or not ('0': no, '1': yes) */
+#define CPUSS_FLASHC_FLASH_ECC_PRESENT  0u
+/* Flash cache SRAM(s) ECC present or not ('0': no, '1': yes) */
+#define CPUSS_FLASHC_RAM_ECC_PRESENT    0u
+/* Number of external slaves directly connected to slow AHB-Lite infrastructure.
+   Maximum nubmer of slave supported is 4. Width of this parameter is 4-bits.
+   1-bit mask for each slave indicating present or not. Example: 4'b0011 - slave
+   0 and slave 1 are present. Note: The SLOW_SLx_ADDR and SLOW_SLx_MASK
+   parameters (for the slaves present) should be derived from the Memory Map. */
+#define CPUSS_SLOW_SL_PRESENT           1u
+/* Number of external slaves directly connected to fast AHB-Lite infrastructure.
+   Maximum nubmer of slave supported is 4. Width of this parameter is 4-bits.
+   1-bit mask for each slave indicating present or not. Example: 4'b0011 - slave
+   0 and slave 1 are present. Note: The FAST_SLx_ADDR and FAST_SLx_MASK
+   parameters (for the slaves present) should be derived from the Memory Map. */
+#define CPUSS_FAST_SL_PRESENT           1u
+/* Number of external masters driving the slow AHB-Lite infrastructure. Maximum
+   number of masters supported is 2. Width of this parameter is 2-bits. 1-bit
+   mask for each master indicating present or not. Example: 2'b01 - master 0 is
+   present. */
+#define CPUSS_SLOW_MS_PRESENT           1u
+/* System interrupt functionality present or not ('0': no; '1': yes). Not used for
+   CM0+ PCU, which always uses system interrupt functionality. */
+#define CPUSS_SYSTEM_IRQ_PRESENT        0u
+/* Number of total interrupt request inputs to CPUSS */
+#define CPUSS_SYSTEM_INT_NR             174u
+/* Number of DeepSleep wakeup interrupt inputs to CPUSS */
+#define CPUSS_SYSTEM_DPSLP_INT_NR       39u
+/* Width of the CM4 interrupt priority bits. Legal range [3,8] Example: 3 = 8
+   levels of priority 8 = 256 levels of priority */
+#define CPUSS_CM4_LVL_WIDTH             3u
+/* CM4 Floating point unit present or not (0=No, 1=Yes) */
+#define CPUSS_CM4_FPU_PRESENT           1u
+/* Debug level. Legal range [0,3] (0= No support, 1= Minimum: CM0/4 both 2
+   breakpoints +1 watchpoint, 2= Full debug: CM0/4 have 4/6 breakpoints, 2/4
+   watchpoints and 0/2 literal compare, 3= Full debug + data matching) */
+#define CPUSS_DEBUG_LVL                 3u
+/* Trace level. Legal range [0,2] (0= No tracing, 1= ITM + TPIU + SWO, 2= ITM +
+   ETM + TPIU + SWO) Note: CM4 HTM is not supported. Hence vaule 3 for trace
+   level is not supported in CPUSS. */
+#define CPUSS_TRACE_LVL                 2u
+/* Embedded Trace Buffer present or not (0=No, 1=Yes) */
+#define CPUSS_ETB_PRESENT               0u
+/* CM0+ MTB SRAM buffer size in kilobytes. Legal vaules 4, 8 or 16 */
+#define CPUSS_MTB_SRAM_SIZE             4u
+/* CM4 ETB SRAM buffer size in kilobytes. Legal vaules 4, 8 or 16 */
+#define CPUSS_ETB_SRAM_SIZE             8u
+/* PTM interface present (0=No, 1=Yes) */
+#define CPUSS_PTM_PRESENT               0u
+/* Width of the PTM interface in bits ([2,32]) */
+#define CPUSS_PTM_WIDTH                 1u
+/* Width of the TPIU interface in bits ([1,4]) */
+#define CPUSS_TPIU_WIDTH                4u
+/* CoreSight Part Identification Number */
+#define CPUSS_JEPID                     52u
+/* CoreSight Part Identification Number */
+#define CPUSS_JEPCONTINUATION           0u
+/* CoreSight Part Identification Number */
+#define CPUSS_FAMILYID                  261u
+/* ROM trim register width (for ARM 3, for Synopsys 5) */
+#define CPUSS_ROM_TRIM_WIDTH            5u
+/* ROM trim register default (for both ARM and Synopsys 0x0000_0012) */
+#define CPUSS_ROM_TRIM_DEFAULT          18u
+/* RAM trim register width (for ARM 8, for Synopsys 15) */
+#define CPUSS_RAM_TRIM_WIDTH            15u
+/* RAM trim register default (for ARM 0x0000_0062 and for Synopsys 0x0000_6012) */
+#define CPUSS_RAM_TRIM_DEFAULT          24594u
+/* Cryptography IP present or not (0=No, 1=Yes) */
+#define CPUSS_CRYPTO_PRESENT            1u
+/* DataWire and DMAC SW trigger per channel present or not ('0': no, '1': yes) */
+#define CPUSS_SW_TR_PRESENT             0u
+/* DataWire 0 present or not (0=No, 1=Yes) */
+#define CPUSS_DW0_PRESENT               1u
+/* Number of DataWire 0 channels (8, 16 or 32) */
+#define CPUSS_DW0_CH_NR                 29u
+/* DataWire 1 present or not (0=No, 1=Yes) */
+#define CPUSS_DW1_PRESENT               1u
+/* Number of DataWire 1 channels (8, 16 or 32) */
+#define CPUSS_DW1_CH_NR                 32u
+/* DMA controller present or not ('0': no, '1': yes) */
+#define CPUSS_DMAC_PRESENT              1u
+/* Number of DMA controller channels ([1, 8]) */
+#define CPUSS_DMAC_CH_NR                2u
+/* DMAC SW trigger per channel present or not ('0': no, '1': yes) */
+#define CPUSS_CH_SW_TR_PRESENT          0u
+/* Copy value from Globals */
+#define CPUSS_CHIP_TOP_PROFILER_PRESENT 0u
+/* ETAS Calibration support pin out present (automotive only) */
+#define CPUSS_CHIP_TOP_CAL_SUP_NZ_PRESENT 0u
+/* TRACE_LVL>0 */
+#define CPUSS_CHIP_TOP_TRACE_PRESENT    1u
+/* DataWire SW trigger per channel present or not ('0': no, '1': yes) */
+#define CPUSS_CH_STRUCT_SW_TR_PRESENT   0u
+/* Number of DataWire controllers present (max 2) (same as DW.NR above) */
+#define CPUSS_CPUSS_DW_DW_NR            2u
+/* Number of channels in each DataWire controller */
+#define CPUSS_CPUSS_DW_DW_NR0_DW_CH_NR  29u
+/* Width of a channel number in bits */
+#define CPUSS_CPUSS_DW_DW_NR0_DW_CH_NR_WIDTH 5u
+/* Number of channels in each DataWire controller */
+#define CPUSS_CPUSS_DW_DW_NR1_DW_CH_NR  32u
+/* Width of a channel number in bits */
+#define CPUSS_CPUSS_DW_DW_NR1_DW_CH_NR_WIDTH 5u
+/* Cryptography SRAMs ECC present or not ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_ECC_PRESENT        0u
+/* Cryptography SRAMs address ECC present or not ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_ECC_ADDR_PRESENT   0u
+/* AES cipher support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_AES                1u
+/* (Tripple) DES cipher support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_DES                1u
+/* Chacha support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_CHACHA             1u
+/* Pseudo random number generation support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_PR                 1u
+/* SHA1 hash support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_SHA1               1u
+/* SHA2 hash support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_SHA2               1u
+/* SHA3 hash support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_SHA3               1u
+/* Cyclic Redundancy Check support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_CRC                1u
+/* True random number generation support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_TR                 1u
+/* Vector unit support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_VU                 1u
+/* Galios/Counter Mode (GCM) support ('0': no, '1': yes) */
+#define CPUSS_CRYPTO_GCM                1u
+/* Number of 32-bit words in the IP internal memory buffer (from the set [64, 128,
+   256, 512, 1024, 2048, 4096], to allow for a 256 B, 512 B, 1 kB, 2 kB, 4 kB, 8
+   kB and 16 kB memory buffer) */
+#define CPUSS_CRYPTO_BUFF_SIZE          1024u
+/* Number of DMA controller channels ([1, 8]) */
+#define CPUSS_DMAC_CH_NR                2u
+/* Number of DataWire controllers present (max 2) */
+#define CPUSS_DW_NR                     2u
+/* DataWire SRAMs ECC present or not ('0': no, '1': yes) */
+#define CPUSS_DW_ECC_PRESENT            0u
+/* Number of fault structures. Legal range [1, 4] */
+#define CPUSS_FAULT_FAULT_NR            2u
+/* Number of Flash BIST_DATA registers */
+#define CPUSS_FLASHC_FLASHC_BIST_DATA_NR 4u
+/* Page size in # of 32-bit words (1: 4 bytes, 2: 8 bytes, ... */
+#define CPUSS_FLASHC_PA_SIZE            128u
+/* SONOS Flash is used or not ('0': no, '1': yes) */
+#define CPUSS_FLASHC_FLASHC_IS_SONOS    1u
+/* eCT Flash is used or not ('0': no, '1': yes) */
+#define CPUSS_FLASHC_FLASHC_IS_ECT      0u
+/* Number of IPC structures. Legal range [1, 16] */
+#define CPUSS_IPC_IPC_NR                16u
+/* Number of IPC interrupt structures. Legal range [1, 16] */
+#define CPUSS_IPC_IPC_IRQ_NR            16u
+/* Master 0 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS0_PC_NR_MINUS1 7u
+/* Master 1 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS1_PC_NR_MINUS1 0u
+/* Master 2 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS2_PC_NR_MINUS1 0u
+/* Master 3 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS3_PC_NR_MINUS1 0u
+/* Master 4 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS4_PC_NR_MINUS1 0u
+/* Master 5 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS5_PC_NR_MINUS1 7u
+/* Master 6 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS6_PC_NR_MINUS1 0u
+/* Master 7 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS7_PC_NR_MINUS1 0u
+/* Master 8 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS8_PC_NR_MINUS1 0u
+/* Master 9 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS9_PC_NR_MINUS1 0u
+/* Master 10 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS10_PC_NR_MINUS1 0u
+/* Master 11 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS11_PC_NR_MINUS1 0u
+/* Master 12 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS12_PC_NR_MINUS1 0u
+/* Master 13 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS13_PC_NR_MINUS1 0u
+/* Master 14 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS14_PC_NR_MINUS1 7u
+/* Master 15 protect contexts minus one */
+#define CPUSS_PROT_SMPU_MS15_PC_NR_MINUS1 7u
+/* Number of SMPU protection structures */
+#define CPUSS_PROT_SMPU_STRUCT_NR       16u
+/* Number of protection contexts supported minus 1. Legal range [1,16] */
+#define CPUSS_SMPU_STRUCT_PC_NR_MINUS1  7u
+/* Number of instantiated eFUSE macros (256 bit macros). Legal range [1, 16] */
+#define EFUSE_EFUSE_NR                  4u
 /* Number of GPIO ports in range 0..31 */
 #define IOSS_GPIO_GPIO_PORT_NR_0_31     15u
 /* Number of GPIO ports in range 32..63 */
@@ -1693,8 +1874,65 @@ typedef PASS_V1_Type PASS_Type;
 #define IOSS_GPIO_GPIO_PORT_NR14_GPIO_PRT_SLOW_IO6 0u
 /* Indicates that pin #7 exists for this port with slew control feature */
 #define IOSS_GPIO_GPIO_PORT_NR14_GPIO_PRT_SLOW_IO7 0u
+/* Number of AMUX splitter cells */
+#define IOSS_HSIOM_AMUX_SPLIT_NR        6u
+/* Number of HSIOM ports in device (same as GPIO.GPIO_PRT_NR) */
+#define IOSS_HSIOM_HSIOM_PORT_NR        15u
+/* Number of PWR/GND MONITOR CELLs in the device */
+#define IOSS_HSIOM_MONITOR_NR           0u
+/* Number of PWR/GND MONITOR CELLs in range 0..31 */
+#define IOSS_HSIOM_MONITOR_NR_0_31      0u
+/* Number of PWR/GND MONITOR CELLs in range 32..63 */
+#define IOSS_HSIOM_MONITOR_NR_32_63     0u
+/* Number of PWR/GND MONITOR CELLs in range 64..95 */
+#define IOSS_HSIOM_MONITOR_NR_64_95     0u
+/* Number of PWR/GND MONITOR CELLs in range 96..127 */
+#define IOSS_HSIOM_MONITOR_NR_96_127    0u
+/* Indicates the presence of alternate JTAG interface */
+#define IOSS_HSIOM_ALTJTAG_PRESENT      0u
 /* Mask of SMARTIO instances presence */
 #define IOSS_SMARTIO_SMARTIO_MASK       768u
+/* Number of ports supoprting up to 4 COMs */
+#define LCD_NUMPORTS                    8u
+/* Number of ports supporting up to 8 COMs */
+#define LCD_NUMPORTS8                   8u
+/* Number of ports supporting up to 16 COMs */
+#define LCD_NUMPORTS16                  0u
+/* Max number of LCD commons supported */
+#define LCD_CHIP_TOP_COM_NR             8u
+/* Max number of LCD pins (total) supported */
+#define LCD_CHIP_TOP_PIN_NR             60u
+/* Number of IREF outputs from AREF */
+#define PASS_NR_IREFS                   4u
+/* Number of CTBs in the Subsystem */
+#define PASS_NR_CTBS                    0u
+/* Number of CTDACs in the Subsystem */
+#define PASS_NR_CTDACS                  0u
+/* CTB0 Exists */
+#define PASS_CTB0_EXISTS                0u
+/* CTB1 Exists */
+#define PASS_CTB1_EXISTS                0u
+/* CTB2 Exists */
+#define PASS_CTB2_EXISTS                0u
+/* CTB3 Exists */
+#define PASS_CTB3_EXISTS                0u
+/* CTDAC0 Exists */
+#define PASS_CTDAC0_EXISTS              0u
+/* CTDAC1 Exists */
+#define PASS_CTDAC1_EXISTS              0u
+/* CTDAC2 Exists */
+#define PASS_CTDAC2_EXISTS              0u
+/* CTDAC3 Exists */
+#define PASS_CTDAC3_EXISTS              0u
+#define PASS_CTBM_CTDAC_PRESENT         0u
+/* Number of SAR channels */
+#define PASS_SAR_SAR_CHANNELS           16u
+/* Averaging logic present in SAR */
+#define PASS_SAR_SAR_AVERAGE            1u
+/* Range detect logic present in SAR */
+#define PASS_SAR_SAR_RANGEDET           1u
+/* Support for UAB sampling */
+#define PASS_SAR_SAR_UAB                0u
 /* The number of protection contexts ([2, 16]). */
 #define PERI_PC_NR                      8u
 /* Master interface presence mask (4 bits) */
@@ -2305,264 +2543,6 @@ typedef PASS_V1_Type PASS_Type;
 #define PERI_TR_1TO1_GROUP_NR7_TR_1TO1_GROUP_TR_1TO1_MANIPULATION_PRESENT 1u
 /* Number of AHB-Lite "hmaster[]" bits ([1, 8]). */
 #define PERI_MASTER_WIDTH               8u
-/* UDB present or not ('0': no, '1': yes) */
-#define CPUSS_UDB_PRESENT               0u
-/* MBIST MMIO for Synopsys MBIST ('0': no, '1': yes). Set this to '1' only for the
-   chips which doesn't use mxdft. */
-#define CPUSS_MBIST_MMIO_PRESENT        1u
-/* System RAM 0 size in kilobytes */
-#define CPUSS_SRAM0_SIZE                256u
-/* Number of macros used to implement System RAM 0. Example: 8 if 256 KB System
-   SRAM0 is implemented with 8 32KB macros. */
-#define CPUSS_RAMC0_MACRO_NR            8u
-/* System RAM 1 present or not (0=No, 1=Yes) */
-#define CPUSS_RAMC1_PRESENT             0u
-/* System RAM 1 size in kilobytes */
-#define CPUSS_SRAM1_SIZE                1u
-/* Number of macros used to implement System RAM 1. Example: 8 if 256 KB System
-   RAM 1 is implemented with 8 32KB macros. */
-#define CPUSS_RAMC1_MACRO_NR            1u
-/* System RAM 2 present or not (0=No, 1=Yes) */
-#define CPUSS_RAMC2_PRESENT             0u
-/* System RAM 2 size in kilobytes */
-#define CPUSS_SRAM2_SIZE                1u
-/* Number of macros used to implement System RAM 2. Example: 8 if 256 KB System
-   RAM 2 is implemented with 8 32KB macros. */
-#define CPUSS_RAMC2_MACRO_NR            1u
-/* System SRAM(s) ECC present or not ('0': no, '1': yes) */
-#define CPUSS_RAMC_ECC_PRESENT          0u
-/* System SRAM(s) address ECC present or not ('0': no, '1': yes) */
-#define CPUSS_RAMC_ECC_ADDR_PRESENT     0u
-/* ECC present in either system RAM or interrupt handler (RAMC_ECC_PRESENT) */
-#define CPUSS_ECC_PRESENT               0u
-/* DataWire SRAMs ECC present or not ('0': no, '1': yes) */
-#define CPUSS_DW_ECC_PRESENT            0u
-/* DataWire SRAMs address ECC present or not ('0': no, '1': yes) */
-#define CPUSS_DW_ECC_ADDR_PRESENT       0u
-/* System ROM size in KB */
-#define CPUSS_ROM_SIZE                  64u
-/* Number of macros used to implement system ROM. Example: 4 if 512 KB system ROM
-   is implemented with 4 128KB macros. */
-#define CPUSS_ROMC_MACRO_NR             1u
-/* Flash memory type ('0' : SONOS, '1': ECT) */
-#define CPUSS_FLASHC_ECT                0u
-/* Flash main region size in KB */
-#define CPUSS_FLASH_SIZE                512u
-/* Flash work region size in KB (EEPROM emulation, data) */
-#define CPUSS_WFLASH_SIZE               32u
-/* Flash supervisory region size in KB */
-#define CPUSS_SFLASH_SIZE               32u
-/* Flash data output word size (in Bytes) */
-#define CPUSS_FLASHC_MAIN_DATA_WIDTH    16u
-/* SONOS Flash RWW present or not ('0': no, '1': yes) When RWW is '0', No special
-   sectors present in Flash. Part of main sector 0 is allowcated for Supervisory
-   Flash, and no Work Flash present. */
-#define CPUSS_FLASHC_SONOS_RWW          1u
-/* SONOS Flash, number of main sectors. */
-#define CPUSS_FLASHC_SONOS_MAIN_SECTORS 2u
-/* SONOS Flash, number of rows per main sector. */
-#define CPUSS_FLASHC_SONOS_MAIN_ROWS    512u
-/* SONOS Flash, number of words per row of main sector. */
-#define CPUSS_FLASHC_SONOS_MAIN_WORDS   128u
-/* SONOS Flash, number of special sectors. */
-#define CPUSS_FLASHC_SONOS_SPL_SECTORS  2u
-/* SONOS Flash, number of rows per special sector. */
-#define CPUSS_FLASHC_SONOS_SPL_ROWS     64u
-/* Flash memory ECC present or not ('0': no, '1': yes) */
-#define CPUSS_FLASHC_FLASH_ECC_PRESENT  0u
-/* Flash cache SRAM(s) ECC present or not ('0': no, '1': yes) */
-#define CPUSS_FLASHC_RAM_ECC_PRESENT    0u
-/* Number of external slaves directly connected to slow AHB-Lite infrastructure.
-   Maximum nubmer of slave supported is 4. Width of this parameter is 4-bits.
-   1-bit mask for each slave indicating present or not. Example: 4'b0011 - slave
-   0 and slave 1 are present. Note: The SLOW_SLx_ADDR and SLOW_SLx_MASK
-   parameters (for the slaves present) should be derived from the Memory Map. */
-#define CPUSS_SLOW_SL_PRESENT           1u
-/* Number of external slaves directly connected to fast AHB-Lite infrastructure.
-   Maximum nubmer of slave supported is 4. Width of this parameter is 4-bits.
-   1-bit mask for each slave indicating present or not. Example: 4'b0011 - slave
-   0 and slave 1 are present. Note: The FAST_SLx_ADDR and FAST_SLx_MASK
-   parameters (for the slaves present) should be derived from the Memory Map. */
-#define CPUSS_FAST_SL_PRESENT           1u
-/* Number of external masters driving the slow AHB-Lite infrastructure. Maximum
-   number of masters supported is 2. Width of this parameter is 2-bits. 1-bit
-   mask for each master indicating present or not. Example: 2'b01 - master 0 is
-   present. */
-#define CPUSS_SLOW_MS_PRESENT           1u
-/* System interrupt functionality present or not ('0': no; '1': yes). Not used for
-   CM0+ PCU, which always uses system interrupt functionality. */
-#define CPUSS_SYSTEM_IRQ_PRESENT        0u
-/* Number of total interrupt request inputs to CPUSS */
-#define CPUSS_SYSTEM_INT_NR             174u
-/* Number of DeepSleep wakeup interrupt inputs to CPUSS */
-#define CPUSS_SYSTEM_DPSLP_INT_NR       39u
-/* Width of the CM4 interrupt priority bits. Legal range [3,8] Example: 3 = 8
-   levels of priority 8 = 256 levels of priority */
-#define CPUSS_CM4_LVL_WIDTH             3u
-/* CM4 Floating point unit present or not (0=No, 1=Yes) */
-#define CPUSS_CM4_FPU_PRESENT           1u
-/* Debug level. Legal range [0,3] (0= No support, 1= Minimum: CM0/4 both 2
-   breakpoints +1 watchpoint, 2= Full debug: CM0/4 have 4/6 breakpoints, 2/4
-   watchpoints and 0/2 literal compare, 3= Full debug + data matching) */
-#define CPUSS_DEBUG_LVL                 3u
-/* Trace level. Legal range [0,2] (0= No tracing, 1= ITM + TPIU + SWO, 2= ITM +
-   ETM + TPIU + SWO) Note: CM4 HTM is not supported. Hence vaule 3 for trace
-   level is not supported in CPUSS. */
-#define CPUSS_TRACE_LVL                 2u
-/* Embedded Trace Buffer present or not (0=No, 1=Yes) */
-#define CPUSS_ETB_PRESENT               0u
-/* CM0+ MTB SRAM buffer size in kilobytes. Legal vaules 4, 8 or 16 */
-#define CPUSS_MTB_SRAM_SIZE             4u
-/* CM4 ETB SRAM buffer size in kilobytes. Legal vaules 4, 8 or 16 */
-#define CPUSS_ETB_SRAM_SIZE             8u
-/* PTM interface present (0=No, 1=Yes) */
-#define CPUSS_PTM_PRESENT               0u
-/* Width of the PTM interface in bits ([2,32]) */
-#define CPUSS_PTM_WIDTH                 1u
-/* Width of the TPIU interface in bits ([1,4]) */
-#define CPUSS_TPIU_WIDTH                4u
-/* CoreSight Part Identification Number */
-#define CPUSS_JEPID                     52u
-/* CoreSight Part Identification Number */
-#define CPUSS_JEPCONTINUATION           0u
-/* CoreSight Part Identification Number */
-#define CPUSS_FAMILYID                  261u
-/* ROM trim register width (for ARM 3, for Synopsys 5) */
-#define CPUSS_ROM_TRIM_WIDTH            5u
-/* ROM trim register default (for both ARM and Synopsys 0x0000_0012) */
-#define CPUSS_ROM_TRIM_DEFAULT          18u
-/* RAM trim register width (for ARM 8, for Synopsys 15) */
-#define CPUSS_RAM_TRIM_WIDTH            15u
-/* RAM trim register default (for ARM 0x0000_0062 and for Synopsys 0x0000_6012) */
-#define CPUSS_RAM_TRIM_DEFAULT          24594u
-/* Cryptography IP present or not (0=No, 1=Yes) */
-#define CPUSS_CRYPTO_PRESENT            1u
-/* DataWire and DMAC SW trigger per channel present or not ('0': no, '1': yes) */
-#define CPUSS_SW_TR_PRESENT             0u
-/* DataWire 0 present or not (0=No, 1=Yes) */
-#define CPUSS_DW0_PRESENT               1u
-/* Number of DataWire 0 channels (8, 16 or 32) */
-#define CPUSS_DW0_CH_NR                 29u
-/* DataWire 1 present or not (0=No, 1=Yes) */
-#define CPUSS_DW1_PRESENT               1u
-/* Number of DataWire 1 channels (8, 16 or 32) */
-#define CPUSS_DW1_CH_NR                 32u
-/* DMA controller present or not ('0': no, '1': yes) */
-#define CPUSS_DMAC_PRESENT              1u
-/* Number of DMA controller channels ([1, 8]) */
-#define CPUSS_DMAC_CH_NR                2u
-/* Number of Flash BIST_DATA registers */
-#define CPUSS_FLASHC_FLASHC_BIST_DATA_NR 4u
-/* Page size in # of 32-bit words (1: 4 bytes, 2: 8 bytes, ... */
-#define CPUSS_FLASHC_PA_SIZE            128u
-/* SONOS Flash is used or not ('0': no, '1': yes) */
-#define CPUSS_FLASHC_FLASHC_IS_SONOS    1u
-/* eCT Flash is used or not ('0': no, '1': yes) */
-#define CPUSS_FLASHC_FLASHC_IS_ECT      0u
-/* Cryptography SRAMs ECC present or not ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_ECC_PRESENT        0u
-/* Cryptography SRAMs address ECC present or not ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_ECC_ADDR_PRESENT   0u
-/* AES cipher support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_AES                1u
-/* (Tripple) DES cipher support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_DES                1u
-/* Chacha support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_CHACHA             1u
-/* Pseudo random number generation support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_PR                 1u
-/* SHA1 hash support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_SHA1               1u
-/* SHA2 hash support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_SHA2               1u
-/* SHA3 hash support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_SHA3               1u
-/* Cyclic Redundancy Check support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_CRC                1u
-/* True random number generation support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_TR                 1u
-/* Vector unit support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_VU                 1u
-/* Galios/Counter Mode (GCM) support ('0': no, '1': yes) */
-#define CPUSS_CRYPTO_GCM                1u
-/* Number of 32-bit words in the IP internal memory buffer (from the set [64, 128,
-   256, 512, 1024, 2048, 4096], to allow for a 256 B, 512 B, 1 kB, 2 kB, 4 kB, 8
-   kB and 16 kB memory buffer) */
-#define CPUSS_CRYPTO_BUFF_SIZE          1024u
-/* Number of fault structures. Legal range [1, 4] */
-#define CPUSS_FAULT_FAULT_NR            2u
-/* Number of IPC structures. Legal range [1, 16] */
-#define CPUSS_IPC_IPC_NR                16u
-/* Number of IPC interrupt structures. Legal range [1, 16] */
-#define CPUSS_IPC_IPC_IRQ_NR            16u
-/* Master 0 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS0_PC_NR_MINUS1 7u
-/* Master 1 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS1_PC_NR_MINUS1 0u
-/* Master 2 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS2_PC_NR_MINUS1 0u
-/* Master 3 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS3_PC_NR_MINUS1 0u
-/* Master 4 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS4_PC_NR_MINUS1 0u
-/* Master 5 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS5_PC_NR_MINUS1 7u
-/* Master 6 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS6_PC_NR_MINUS1 0u
-/* Master 7 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS7_PC_NR_MINUS1 0u
-/* Master 8 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS8_PC_NR_MINUS1 0u
-/* Master 9 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS9_PC_NR_MINUS1 0u
-/* Master 10 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS10_PC_NR_MINUS1 0u
-/* Master 11 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS11_PC_NR_MINUS1 0u
-/* Master 12 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS12_PC_NR_MINUS1 0u
-/* Master 13 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS13_PC_NR_MINUS1 0u
-/* Master 14 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS14_PC_NR_MINUS1 7u
-/* Master 15 protect contexts minus one */
-#define CPUSS_PROT_SMPU_MS15_PC_NR_MINUS1 7u
-/* Number of SMPU protection structures */
-#define CPUSS_PROT_SMPU_STRUCT_NR       16u
-/* Number of protection contexts supported minus 1. Legal range [1,16] */
-#define CPUSS_SMPU_STRUCT_PC_NR_MINUS1  7u
-/* Number of DataWire controllers present (max 2) */
-#define CPUSS_DW_NR                     2u
-/* DataWire SRAMs ECC present or not ('0': no, '1': yes) */
-#define CPUSS_DW_ECC_PRESENT            0u
-/* DataWire SW trigger per channel present or not ('0': no, '1': yes) */
-#define CPUSS_CH_STRUCT_SW_TR_PRESENT   0u
-/* Number of DataWire controllers present (max 2) (same as DW.NR above) */
-#define CPUSS_CPUSS_DW_DW_NR            2u
-/* Number of channels in each DataWire controller */
-#define CPUSS_CPUSS_DW_DW_NR0_DW_CH_NR  29u
-/* Width of a channel number in bits */
-#define CPUSS_CPUSS_DW_DW_NR0_DW_CH_NR_WIDTH 5u
-/* Number of channels in each DataWire controller */
-#define CPUSS_CPUSS_DW_DW_NR1_DW_CH_NR  32u
-/* Width of a channel number in bits */
-#define CPUSS_CPUSS_DW_DW_NR1_DW_CH_NR_WIDTH 5u
-/* Number of DMA controller channels ([1, 8]) */
-#define CPUSS_DMAC_CH_NR                2u
-/* DMAC SW trigger per channel present or not ('0': no, '1': yes) */
-#define CPUSS_CH_SW_TR_PRESENT          0u
-/* Copy value from Globals */
-#define CPUSS_CHIP_TOP_PROFILER_PRESENT 0u
-/* ETAS Calibration support pin out present (automotive only) */
-#define CPUSS_CHIP_TOP_CAL_SUP_NZ_PRESENT 0u
-/* TRACE_LVL>0 */
-#define CPUSS_CHIP_TOP_TRACE_PRESENT    1u
-/* Number of instantiated eFUSE macros (256 bit macros). Legal range [1, 16] */
-#define EFUSE_EFUSE_NR                  4u
-/* SONOS Flash is used or not ('0': no, '1': yes) */
-#define SFLASH_FLASHC_IS_SONOS          1u
-/* CPUSS_WOUNDING_PRESENT or not ('0': no, '1': yes) */
-#define SFLASH_CPUSS_WOUNDING_PRESENT   0u
 /* DeepSleep support ('0':no, '1': yes) */
 #define SCB0_DEEPSLEEP                  0u
 /* Externally clocked support? ('0': no, '1': yes) */
@@ -2913,55 +2893,51 @@ typedef PASS_V1_Type PASS_Type;
 #define SCB6_I2C_FAST_PLUS              1u
 /* Number of used spi_select signals (max 4) */
 #define SCB6_CHIP_TOP_SPI_SEL_NR        1u
-/* Number of counters per IP (1..32) */
-#define TCPWM0_CNT_NR                   4u
-/* Counter width (in number of bits) */
-#define TCPWM0_CNT_CNT_WIDTH            32u
-/* Number of counters per IP (1..32) */
-#define TCPWM1_CNT_NR                   8u
-/* Counter width (in number of bits) */
-#define TCPWM1_CNT_CNT_WIDTH            16u
-/* Number of ports supoprting up to 4 COMs */
-#define LCD_NUMPORTS                    8u
-/* Number of ports supporting up to 8 COMs */
-#define LCD_NUMPORTS8                   8u
-/* Number of ports supporting up to 16 COMs */
-#define LCD_NUMPORTS16                  0u
-/* Max number of LCD commons supported */
-#define LCD_CHIP_TOP_COM_NR             8u
-/* Max number of LCD pins (total) supported */
-#define LCD_CHIP_TOP_PIN_NR             60u
-/* Number of IREF outputs from AREF */
-#define PASS_NR_IREFS                   4u
-/* Number of CTBs in the Subsystem */
-#define PASS_NR_CTBS                    0u
-/* Number of CTDACs in the Subsystem */
-#define PASS_NR_CTDACS                  0u
-/* CTB0 Exists */
-#define PASS_CTB0_EXISTS                0u
-/* CTB1 Exists */
-#define PASS_CTB1_EXISTS                0u
-/* CTB2 Exists */
-#define PASS_CTB2_EXISTS                0u
-/* CTB3 Exists */
-#define PASS_CTB3_EXISTS                0u
-/* CTDAC0 Exists */
-#define PASS_CTDAC0_EXISTS              0u
-/* CTDAC1 Exists */
-#define PASS_CTDAC1_EXISTS              0u
-/* CTDAC2 Exists */
-#define PASS_CTDAC2_EXISTS              0u
-/* CTDAC3 Exists */
-#define PASS_CTDAC3_EXISTS              0u
-/* Number of SAR channels */
-#define PASS_SAR_SAR_CHANNELS           16u
-/* Averaging logic present in SAR */
-#define PASS_SAR_SAR_AVERAGE            1u
-/* Range detect logic present in SAR */
-#define PASS_SAR_SAR_RANGEDET           1u
-/* Support for UAB sampling */
-#define PASS_SAR_SAR_UAB                0u
-#define PASS_CTBM_CTDAC_PRESENT         0u
+/* Basically the max packet size, which gets double buffered in RAM 0: 512B
+   (implies 1KB of RAM space for data) 1: 1KB (implies 2KB of RAM space for
+   data) */
+#define SDHC_MAX_BLK_SIZE               0u
+/* 0: No Command Queuing Engine present 1: Command Queuing Engine present; this
+   adds 288 bytes of space to the RAM for this purpose. */
+#define SDHC_CQE_PRESENT                0u
+/* 0: no retention of any SDHC_CORE regs 1: retention of SDHC_CORE regs that have
+   the Retention flag (Note, CTL.ENABLE is always retained irrespective of this
+   parameter) */
+#define SDHC_RETENTION_PRESENT          1u
+/* Chip top connect all 8 data pins (0= connect 4 data pins, 1= connect 8 data
+   pins) */
+#define SDHC_CHIP_TOP_DATA8_PRESENT     0u
+/* Chip top connect card_detect */
+#define SDHC_CHIP_TOP_CARD_DETECT_PRESENT 1u
+/* Chip top connect card_mech_write_prot_in */
+#define SDHC_CHIP_TOP_CARD_WRITE_PROT_PRESENT 1u
+/* Chip top connect led_ctrl_out and led_ctrl_out_en */
+#define SDHC_CHIP_TOP_LED_CTRL_PRESENT  0u
+/* Chip top connect io_volt_sel_out and io_volt_sel_out_en */
+#define SDHC_CHIP_TOP_IO_VOLT_SEL_PRESENT 1u
+/* Chip top connect io_drive_strength_out and io_drive_strength_out_en */
+#define SDHC_CHIP_TOP_IO_DRIVE_STRENGTH_PRESENT 0u
+/* Chip top connect card_if_pwr_en_out and card_if_pwr_en_out_en */
+#define SDHC_CHIP_TOP_CARD_IF_PWR_EN_PRESENT 1u
+/* Chip top connect card_emmc_reset_n_out and card_emmc_reset_n_out_en */
+#define SDHC_CHIP_TOP_CARD_EMMC_RESET_PRESENT 0u
+/* Chip top connect interrupt_wakeup (not used for eMMC) */
+#define SDHC_CHIP_TOP_INTERRUPT_WAKEUP_PRESENT 1u
+/* Basically the max packet size, which gets double buffered in RAM 0: 512B
+   (implies 1KB of RAM space for data) 1: 1KB (implies 2KB of RAM space for
+   data) */
+#define SDHC_CORE_MAX_BLK_SIZE          0u
+/* 0: No Command Queuing Engine present 1: Command Queuing Engine present; this
+   adds 288 bytes of space to the RAM for this purpose. */
+#define SDHC_CORE_CQE_PRESENT           0u
+/* 0: no retention of any SDHC_CORE regs 1: retention of SDHC_CORE regs that have
+   the Retention flag (Note, CTL.ENABLE is always retained irrespective of this
+   parameter) */
+#define SDHC_CORE_RETENTION_PRESENT     1u
+/* SONOS Flash is used or not ('0': no, '1': yes) */
+#define SFLASH_FLASHC_IS_SONOS          1u
+/* CPUSS_WOUNDING_PRESENT or not ('0': no, '1': yes) */
+#define SFLASH_CPUSS_WOUNDING_PRESENT   0u
 /* Base address of the SMIF XIP memory region. This address must be a multiple of
    the SMIF XIP memory capacity. This address must be a multiple of 64 KB. This
    address must be in the [0x0000:0000, 0x1fff:ffff] memory region. The XIP
@@ -2987,60 +2963,84 @@ typedef PASS_V1_Type PASS_Type;
 #define SMIF_CHIP_TOP_DATA8_PRESENT     0u
 /* Number of used spi_select signals (max 4) */
 #define SMIF_CHIP_TOP_SPI_SEL_NR        3u
-/* Basically the max packet size, which gets double buffered in RAM 0: 512B
-   (implies 1KB of RAM space for data) 1: 1KB (implies 2KB of RAM space for
-   data) */
-#define SDHC_MAX_BLK_SIZE               0u
-/* 0: No Command Queuing Engine present 1: Command Queuing Engine present; this
-   adds 288 bytes of space to the RAM for this purpose. */
-#define SDHC_CQE_PRESENT                0u
-/* 0: no retention of any SDHC_CORE regs 1: retention of SDHC_CORE regs that have
-   the Retention flag (Note, CTL.ENABLE is always retained irrespective of this
-   parameter) */
-#define SDHC_RETENTION_PRESENT          1u
-/* Basically the max packet size, which gets double buffered in RAM 0: 512B
-   (implies 1KB of RAM space for data) 1: 1KB (implies 2KB of RAM space for
-   data) */
-#define SDHC_CORE_MAX_BLK_SIZE          0u
-/* 0: No Command Queuing Engine present 1: Command Queuing Engine present; this
-   adds 288 bytes of space to the RAM for this purpose. */
-#define SDHC_CORE_CQE_PRESENT           0u
-/* 0: no retention of any SDHC_CORE regs 1: retention of SDHC_CORE regs that have
-   the Retention flag (Note, CTL.ENABLE is always retained irrespective of this
-   parameter) */
-#define SDHC_CORE_RETENTION_PRESENT     1u
-/* Chip top connect all 8 data pins (0= connect 4 data pins, 1= connect 8 data
-   pins) */
-#define SDHC_CHIP_TOP_DATA8_PRESENT     0u
-/* Chip top connect card_detect */
-#define SDHC_CHIP_TOP_CARD_DETECT_PRESENT 1u
-/* Chip top connect card_mech_write_prot_in */
-#define SDHC_CHIP_TOP_CARD_WRITE_PROT_PRESENT 1u
-/* Chip top connect led_ctrl_out and led_ctrl_out_en */
-#define SDHC_CHIP_TOP_LED_CTRL_PRESENT  0u
-/* Chip top connect io_volt_sel_out and io_volt_sel_out_en */
-#define SDHC_CHIP_TOP_IO_VOLT_SEL_PRESENT 1u
-/* Chip top connect io_drive_strength_out and io_drive_strength_out_en */
-#define SDHC_CHIP_TOP_IO_DRIVE_STRENGTH_PRESENT 0u
-/* Chip top connect card_if_pwr_en_out and card_if_pwr_en_out_en */
-#define SDHC_CHIP_TOP_CARD_IF_PWR_EN_PRESENT 1u
-/* Chip top connect card_emmc_reset_n_out and card_emmc_reset_n_out_en */
-#define SDHC_CHIP_TOP_CARD_EMMC_RESET_PRESENT 0u
-/* Chip top connect interrupt_wakeup (not used for eMMC) */
-#define SDHC_CHIP_TOP_INTERRUPT_WAKEUP_PRESENT 1u
-/* Number of TTCAN instances */
-#define CANFD_CAN_NR                    1u
-/* ECC logic present or not */
-#define CANFD_ECC_PRESENT               0u
-/* address included in ECC logic or not */
-#define CANFD_ECC_ADDR_PRESENT          0u
-/* Time Stamp counter present or not (required for instance 0, otherwise not
-   allowed) */
-#define CANFD_TS_PRESENT                1u
-/* Message RAM size in KB */
-#define CANFD_MRAM_SIZE                 4u
-/* Message RAM address width */
-#define CANFD_MRAM_ADDR_WIDTH           10u
+/* Number of regulator modules instantiated within SRSS, start with estimate,
+   update after CMR feedback */
+#define SRSS_NUM_ACTREG_PWRMOD          2u
+/* Number of shorting switches between vccd and vccact (target dynamic voltage
+   drop < 10mV) */
+#define SRSS_NUM_ACTIVE_SWITCH          3u
+/* ULP linear regulator system is present */
+#define SRSS_ULPLINREG_PRESENT          1u
+/* HT linear regulator system is present */
+#define SRSS_HTLINREG_PRESENT           0u
+/* Low-current buck regulator present. Can be derived from S40S_SISOBUCKLC_PRESENT
+   or SIMOBUCK_PRESENT. */
+#define SRSS_BUCKCTL_PRESENT            1u
+/* Low-current SISO buck core regulator is present. Only compatible with ULP
+   linear regulator system (ULPLINREG_PRESENT==1). */
+#define SRSS_S40S_SISOBUCKLC_PRESENT    1u
+/* SIMO buck core regulator is present. Only compatible with ULP linear regulator
+   system (ULPLINREG_PRESENT==1). */
+#define SRSS_SIMOBUCK_PRESENT           0u
+/* Precision ILO (PILO) is present */
+#define SRSS_PILO_PRESENT               0u
+/* External Crystal Oscillator is present (high frequency) */
+#define SRSS_ECO_PRESENT                1u
+/* System Buck-Boost is present */
+#define SRSS_SYSBB_PRESENT              0u
+/* Number of clock paths. Must be > 0 */
+#define SRSS_NUM_CLKPATH                5u
+/* Number of PLLs present. Must be <= NUM_CLKPATH */
+#define SRSS_NUM_PLL                    1u
+/* Number of HFCLK roots present. Must be > 0 */
+#define SRSS_NUM_HFROOT                 5u
+/* Number of PWR_HIB_DATA registers, should not be needed if BACKUP_PRESENT */
+#define SRSS_NUM_HIBDATA                1u
+/* Backup domain is present (includes RTC and WCO) */
+#define SRSS_BACKUP_PRESENT             1u
+/* Mask of HFCLK root clock supervisors (CSV). For each clock root i, bit[i] of
+   mask indicates presence of a CSV. */
+#define SRSS_MASK_HFCSV                 0u
+/* Clock supervisor is present on WCO. Must be 0 if BACKUP_PRESENT==0. */
+#define SRSS_WCOCSV_PRESENT             0u
+/* Number of software watchdog timers. */
+#define SRSS_NUM_MCWDT                  2u
+/* Number of DSI inputs into clock muxes. This is used for logic optimization. */
+#define SRSS_NUM_DSI                    0u
+/* Alternate high-frequency clock is present. This is used for logic optimization. */
+#define SRSS_ALTHF_PRESENT              0u
+/* Alternate low-frequency clock is present. This is used for logic optimization. */
+#define SRSS_ALTLF_PRESENT              0u
+/* Use the hardened clkactfllmux block */
+#define SRSS_USE_HARD_CLKACTFLLMUX      1u
+/* Number of clock paths, including direct paths in hardened clkactfllmux block
+   (Must be >= NUM_CLKPATH) */
+#define SRSS_HARD_CLKPATH               6u
+/* Number of clock paths with muxes in hardened clkactfllmux block (Must be >=
+   NUM_PLL+1) */
+#define SRSS_HARD_CLKPATHMUX            6u
+/* Number of HFCLKS present in hardened clkactfllmux block (Must be >= NUM_HFROOT) */
+#define SRSS_HARD_HFROOT                6u
+/* ECO mux is present in hardened clkactfllmux block (Must be >= ECO_PRESENT) */
+#define SRSS_HARD_ECOMUX_PRESENT        1u
+/* ALTHF mux is present in hardened clkactfllmux block (Must be >= ALTHF_PRESENT) */
+#define SRSS_HARD_ALTHFMUX_PRESENT      1u
+/* SRSS version is at least SRSS_VER1P3. Set to 1 for new products. Set to 0 for
+   PSoC6ABLE2, PSoC6A2M. */
+#define SRSS_SRSS_VER1P3                1u
+/* Backup memory is present (only used when BACKUP_PRESENT==1) */
+#define SRSS_BACKUP_BMEM_PRESENT        0u
+/* Number of Backup registers to include (each is 32b). Only used when
+   BACKUP_PRESENT==1. */
+#define SRSS_BACKUP_NUM_BREG            16u
+/* Number of counters per IP (1..32) */
+#define TCPWM0_CNT_NR                   4u
+/* Counter width (in number of bits) */
+#define TCPWM0_CNT_CNT_WIDTH            32u
+/* Number of counters per IP (1..32) */
+#define TCPWM1_CNT_NR                   8u
+/* Counter width (in number of bits) */
+#define TCPWM1_CNT_CNT_WIDTH            16u
 
 /* MMIO Targets Defines */
 #define CY_MMIO_CRYPTO_GROUP_NR         1u
@@ -3109,6 +3109,231 @@ typedef PASS_V1_Type PASS_Type;
 /* Backward compatibility definitions */
 #define CPUSS_IRQ_NR                    CPUSS_SYSTEM_INT_NR
 #define CPUSS_DPSLP_IRQ_NR              CPUSS_SYSTEM_DPSLP_INT_NR
+
+/* Protection regions */
+typedef enum
+{
+    PROT_PERI_MAIN                  =   0,      /* Address 0x40000000, size 0x00002000 */
+    PROT_PERI_GR0_GROUP             =   1,      /* Address 0x40004010, size 0x00000004 */
+    PROT_PERI_GR1_GROUP             =   2,      /* Address 0x40004030, size 0x00000004 */
+    PROT_PERI_GR2_GROUP             =   3,      /* Address 0x40004050, size 0x00000004 */
+    PROT_PERI_GR3_GROUP             =   4,      /* Address 0x40004060, size 0x00000020 */
+    PROT_PERI_GR4_GROUP             =   5,      /* Address 0x40004080, size 0x00000020 */
+    PROT_PERI_GR5_GROUP             =   6,      /* Address 0x400040a0, size 0x00000020 */
+    PROT_PERI_GR6_GROUP             =   7,      /* Address 0x400040c0, size 0x00000020 */
+    PROT_PERI_GR9_GROUP             =   8,      /* Address 0x40004120, size 0x00000020 */
+    PROT_PERI_TR                    =   9,      /* Address 0x40008000, size 0x00008000 */
+    PROT_CRYPTO_MAIN                =  10,      /* Address 0x40100000, size 0x00000400 */
+    PROT_CRYPTO_CRYPTO              =  11,      /* Address 0x40101000, size 0x00000800 */
+    PROT_CRYPTO_BOOT                =  12,      /* Address 0x40102000, size 0x00000100 */
+    PROT_CRYPTO_KEY0                =  13,      /* Address 0x40102100, size 0x00000004 */
+    PROT_CRYPTO_KEY1                =  14,      /* Address 0x40102120, size 0x00000004 */
+    PROT_CRYPTO_BUF                 =  15,      /* Address 0x40108000, size 0x00001000 */
+    PROT_CPUSS_CM4                  =  16,      /* Address 0x40200000, size 0x00000400 */
+    PROT_CPUSS_CM0                  =  17,      /* Address 0x40201000, size 0x00001000 */
+    PROT_CPUSS_BOOT                 =  18,      /* Address 0x40202000, size 0x00000200 */
+    PROT_CPUSS_CM0_INT              =  19,      /* Address 0x40208000, size 0x00000400 */
+    PROT_CPUSS_CM4_INT              =  20,      /* Address 0x4020a000, size 0x00000400 */
+    PROT_FAULT_STRUCT0_MAIN         =  21,      /* Address 0x40210000, size 0x00000100 */
+    PROT_FAULT_STRUCT1_MAIN         =  22,      /* Address 0x40210100, size 0x00000100 */
+    PROT_IPC_STRUCT0_IPC            =  23,      /* Address 0x40220000, size 0x00000020 */
+    PROT_IPC_STRUCT1_IPC            =  24,      /* Address 0x40220020, size 0x00000020 */
+    PROT_IPC_STRUCT2_IPC            =  25,      /* Address 0x40220040, size 0x00000020 */
+    PROT_IPC_STRUCT3_IPC            =  26,      /* Address 0x40220060, size 0x00000020 */
+    PROT_IPC_STRUCT4_IPC            =  27,      /* Address 0x40220080, size 0x00000020 */
+    PROT_IPC_STRUCT5_IPC            =  28,      /* Address 0x402200a0, size 0x00000020 */
+    PROT_IPC_STRUCT6_IPC            =  29,      /* Address 0x402200c0, size 0x00000020 */
+    PROT_IPC_STRUCT7_IPC            =  30,      /* Address 0x402200e0, size 0x00000020 */
+    PROT_IPC_STRUCT8_IPC            =  31,      /* Address 0x40220100, size 0x00000020 */
+    PROT_IPC_STRUCT9_IPC            =  32,      /* Address 0x40220120, size 0x00000020 */
+    PROT_IPC_STRUCT10_IPC           =  33,      /* Address 0x40220140, size 0x00000020 */
+    PROT_IPC_STRUCT11_IPC           =  34,      /* Address 0x40220160, size 0x00000020 */
+    PROT_IPC_STRUCT12_IPC           =  35,      /* Address 0x40220180, size 0x00000020 */
+    PROT_IPC_STRUCT13_IPC           =  36,      /* Address 0x402201a0, size 0x00000020 */
+    PROT_IPC_STRUCT14_IPC           =  37,      /* Address 0x402201c0, size 0x00000020 */
+    PROT_IPC_STRUCT15_IPC           =  38,      /* Address 0x402201e0, size 0x00000020 */
+    PROT_IPC_INTR_STRUCT0_INTR      =  39,      /* Address 0x40221000, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT1_INTR      =  40,      /* Address 0x40221020, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT2_INTR      =  41,      /* Address 0x40221040, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT3_INTR      =  42,      /* Address 0x40221060, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT4_INTR      =  43,      /* Address 0x40221080, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT5_INTR      =  44,      /* Address 0x402210a0, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT6_INTR      =  45,      /* Address 0x402210c0, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT7_INTR      =  46,      /* Address 0x402210e0, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT8_INTR      =  47,      /* Address 0x40221100, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT9_INTR      =  48,      /* Address 0x40221120, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT10_INTR     =  49,      /* Address 0x40221140, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT11_INTR     =  50,      /* Address 0x40221160, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT12_INTR     =  51,      /* Address 0x40221180, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT13_INTR     =  52,      /* Address 0x402211a0, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT14_INTR     =  53,      /* Address 0x402211c0, size 0x00000010 */
+    PROT_IPC_INTR_STRUCT15_INTR     =  54,      /* Address 0x402211e0, size 0x00000010 */
+    PROT_PROT_SMPU_MAIN             =  55,      /* Address 0x40230000, size 0x00000040 */
+    PROT_PROT_MPU0_MAIN             =  56,      /* Address 0x40234000, size 0x00000004 */
+    PROT_PROT_MPU5_MAIN             =  57,      /* Address 0x40235400, size 0x00000400 */
+    PROT_PROT_MPU14_MAIN            =  58,      /* Address 0x40237800, size 0x00000004 */
+    PROT_PROT_MPU15_MAIN            =  59,      /* Address 0x40237c00, size 0x00000400 */
+    PROT_FLASHC_MAIN                =  60,      /* Address 0x40240000, size 0x00000008 */
+    PROT_FLASHC_CMD                 =  61,      /* Address 0x40240008, size 0x00000004 */
+    PROT_FLASHC_DFT                 =  62,      /* Address 0x40240200, size 0x00000100 */
+    PROT_FLASHC_CM0                 =  63,      /* Address 0x40240400, size 0x00000080 */
+    PROT_FLASHC_CM4                 =  64,      /* Address 0x40240480, size 0x00000080 */
+    PROT_FLASHC_CRYPTO              =  65,      /* Address 0x40240500, size 0x00000004 */
+    PROT_FLASHC_DW0                 =  66,      /* Address 0x40240580, size 0x00000004 */
+    PROT_FLASHC_DW1                 =  67,      /* Address 0x40240600, size 0x00000004 */
+    PROT_FLASHC_DMAC                =  68,      /* Address 0x40240680, size 0x00000004 */
+    PROT_FLASHC_EXT_MS0             =  69,      /* Address 0x40240700, size 0x00000004 */
+    PROT_FLASHC_FM                  =  70,      /* Address 0x4024f000, size 0x00001000 */
+    PROT_SRSS_MAIN1                 =  71,      /* Address 0x40260000, size 0x00000100 */
+    PROT_SRSS_MAIN2                 =  72,      /* Address 0x40260100, size 0x00000010 */
+    PROT_WDT                        =  73,      /* Address 0x40260180, size 0x00000010 */
+    PROT_MAIN                       =  74,      /* Address 0x40260200, size 0x00000080 */
+    PROT_SRSS_MAIN3                 =  75,      /* Address 0x40260300, size 0x00000100 */
+    PROT_SRSS_MAIN4                 =  76,      /* Address 0x40260400, size 0x00000400 */
+    PROT_SRSS_MAIN5                 =  77,      /* Address 0x40260800, size 0x00000008 */
+    PROT_SRSS_MAIN6                 =  78,      /* Address 0x40267000, size 0x00001000 */
+    PROT_SRSS_MAIN7                 =  79,      /* Address 0x4026ff00, size 0x00000080 */
+    PROT_BACKUP_BACKUP              =  80,      /* Address 0x40270000, size 0x00010000 */
+    PROT_DW0_DW                     =  81,      /* Address 0x40280000, size 0x00000080 */
+    PROT_DW1_DW                     =  82,      /* Address 0x40290000, size 0x00000080 */
+    PROT_DW0_DW_CRC                 =  83,      /* Address 0x40280100, size 0x00000080 */
+    PROT_DW1_DW_CRC                 =  84,      /* Address 0x40290100, size 0x00000080 */
+    PROT_DW0_CH_STRUCT0_CH          =  85,      /* Address 0x40288000, size 0x00000040 */
+    PROT_DW0_CH_STRUCT1_CH          =  86,      /* Address 0x40288040, size 0x00000040 */
+    PROT_DW0_CH_STRUCT2_CH          =  87,      /* Address 0x40288080, size 0x00000040 */
+    PROT_DW0_CH_STRUCT3_CH          =  88,      /* Address 0x402880c0, size 0x00000040 */
+    PROT_DW0_CH_STRUCT4_CH          =  89,      /* Address 0x40288100, size 0x00000040 */
+    PROT_DW0_CH_STRUCT5_CH          =  90,      /* Address 0x40288140, size 0x00000040 */
+    PROT_DW0_CH_STRUCT6_CH          =  91,      /* Address 0x40288180, size 0x00000040 */
+    PROT_DW0_CH_STRUCT7_CH          =  92,      /* Address 0x402881c0, size 0x00000040 */
+    PROT_DW0_CH_STRUCT8_CH          =  93,      /* Address 0x40288200, size 0x00000040 */
+    PROT_DW0_CH_STRUCT9_CH          =  94,      /* Address 0x40288240, size 0x00000040 */
+    PROT_DW0_CH_STRUCT10_CH         =  95,      /* Address 0x40288280, size 0x00000040 */
+    PROT_DW0_CH_STRUCT11_CH         =  96,      /* Address 0x402882c0, size 0x00000040 */
+    PROT_DW0_CH_STRUCT12_CH         =  97,      /* Address 0x40288300, size 0x00000040 */
+    PROT_DW0_CH_STRUCT13_CH         =  98,      /* Address 0x40288340, size 0x00000040 */
+    PROT_DW0_CH_STRUCT14_CH         =  99,      /* Address 0x40288380, size 0x00000040 */
+    PROT_DW0_CH_STRUCT15_CH         = 100,      /* Address 0x402883c0, size 0x00000040 */
+    PROT_DW0_CH_STRUCT16_CH         = 101,      /* Address 0x40288400, size 0x00000040 */
+    PROT_DW0_CH_STRUCT17_CH         = 102,      /* Address 0x40288440, size 0x00000040 */
+    PROT_DW0_CH_STRUCT18_CH         = 103,      /* Address 0x40288480, size 0x00000040 */
+    PROT_DW0_CH_STRUCT19_CH         = 104,      /* Address 0x402884c0, size 0x00000040 */
+    PROT_DW0_CH_STRUCT20_CH         = 105,      /* Address 0x40288500, size 0x00000040 */
+    PROT_DW0_CH_STRUCT21_CH         = 106,      /* Address 0x40288540, size 0x00000040 */
+    PROT_DW0_CH_STRUCT22_CH         = 107,      /* Address 0x40288580, size 0x00000040 */
+    PROT_DW0_CH_STRUCT23_CH         = 108,      /* Address 0x402885c0, size 0x00000040 */
+    PROT_DW0_CH_STRUCT24_CH         = 109,      /* Address 0x40288600, size 0x00000040 */
+    PROT_DW0_CH_STRUCT25_CH         = 110,      /* Address 0x40288640, size 0x00000040 */
+    PROT_DW0_CH_STRUCT26_CH         = 111,      /* Address 0x40288680, size 0x00000040 */
+    PROT_DW0_CH_STRUCT27_CH         = 112,      /* Address 0x402886c0, size 0x00000040 */
+    PROT_DW0_CH_STRUCT28_CH         = 113,      /* Address 0x40288700, size 0x00000040 */
+    PROT_DW1_CH_STRUCT0_CH          = 114,      /* Address 0x40298000, size 0x00000040 */
+    PROT_DW1_CH_STRUCT1_CH          = 115,      /* Address 0x40298040, size 0x00000040 */
+    PROT_DW1_CH_STRUCT2_CH          = 116,      /* Address 0x40298080, size 0x00000040 */
+    PROT_DW1_CH_STRUCT3_CH          = 117,      /* Address 0x402980c0, size 0x00000040 */
+    PROT_DW1_CH_STRUCT4_CH          = 118,      /* Address 0x40298100, size 0x00000040 */
+    PROT_DW1_CH_STRUCT5_CH          = 119,      /* Address 0x40298140, size 0x00000040 */
+    PROT_DW1_CH_STRUCT6_CH          = 120,      /* Address 0x40298180, size 0x00000040 */
+    PROT_DW1_CH_STRUCT7_CH          = 121,      /* Address 0x402981c0, size 0x00000040 */
+    PROT_DW1_CH_STRUCT8_CH          = 122,      /* Address 0x40298200, size 0x00000040 */
+    PROT_DW1_CH_STRUCT9_CH          = 123,      /* Address 0x40298240, size 0x00000040 */
+    PROT_DW1_CH_STRUCT10_CH         = 124,      /* Address 0x40298280, size 0x00000040 */
+    PROT_DW1_CH_STRUCT11_CH         = 125,      /* Address 0x402982c0, size 0x00000040 */
+    PROT_DW1_CH_STRUCT12_CH         = 126,      /* Address 0x40298300, size 0x00000040 */
+    PROT_DW1_CH_STRUCT13_CH         = 127,      /* Address 0x40298340, size 0x00000040 */
+    PROT_DW1_CH_STRUCT14_CH         = 128,      /* Address 0x40298380, size 0x00000040 */
+    PROT_DW1_CH_STRUCT15_CH         = 129,      /* Address 0x402983c0, size 0x00000040 */
+    PROT_DW1_CH_STRUCT16_CH         = 130,      /* Address 0x40298400, size 0x00000040 */
+    PROT_DW1_CH_STRUCT17_CH         = 131,      /* Address 0x40298440, size 0x00000040 */
+    PROT_DW1_CH_STRUCT18_CH         = 132,      /* Address 0x40298480, size 0x00000040 */
+    PROT_DW1_CH_STRUCT19_CH         = 133,      /* Address 0x402984c0, size 0x00000040 */
+    PROT_DW1_CH_STRUCT20_CH         = 134,      /* Address 0x40298500, size 0x00000040 */
+    PROT_DW1_CH_STRUCT21_CH         = 135,      /* Address 0x40298540, size 0x00000040 */
+    PROT_DW1_CH_STRUCT22_CH         = 136,      /* Address 0x40298580, size 0x00000040 */
+    PROT_DW1_CH_STRUCT23_CH         = 137,      /* Address 0x402985c0, size 0x00000040 */
+    PROT_DW1_CH_STRUCT24_CH         = 138,      /* Address 0x40298600, size 0x00000040 */
+    PROT_DW1_CH_STRUCT25_CH         = 139,      /* Address 0x40298640, size 0x00000040 */
+    PROT_DW1_CH_STRUCT26_CH         = 140,      /* Address 0x40298680, size 0x00000040 */
+    PROT_DW1_CH_STRUCT27_CH         = 141,      /* Address 0x402986c0, size 0x00000040 */
+    PROT_DW1_CH_STRUCT28_CH         = 142,      /* Address 0x40298700, size 0x00000040 */
+    PROT_DW1_CH_STRUCT29_CH         = 143,      /* Address 0x40298740, size 0x00000040 */
+    PROT_DW1_CH_STRUCT30_CH         = 144,      /* Address 0x40298780, size 0x00000040 */
+    PROT_DW1_CH_STRUCT31_CH         = 145,      /* Address 0x402987c0, size 0x00000040 */
+    PROT_DMAC_TOP                   = 146,      /* Address 0x402a0000, size 0x00000010 */
+    PROT_DMAC_CH0_CH                = 147,      /* Address 0x402a1000, size 0x00000100 */
+    PROT_DMAC_CH1_CH                = 148,      /* Address 0x402a1100, size 0x00000100 */
+    PROT_EFUSE_CTL                  = 149,      /* Address 0x402c0000, size 0x00000080 */
+    PROT_EFUSE_DATA                 = 150,      /* Address 0x402c0800, size 0x00000200 */
+    PROT_HSIOM_PRT0_PRT             = 151,      /* Address 0x40300000, size 0x00000008 */
+    PROT_HSIOM_PRT1_PRT             = 152,      /* Address 0x40300010, size 0x00000008 */
+    PROT_HSIOM_PRT2_PRT             = 153,      /* Address 0x40300020, size 0x00000008 */
+    PROT_HSIOM_PRT3_PRT             = 154,      /* Address 0x40300030, size 0x00000008 */
+    PROT_HSIOM_PRT4_PRT             = 155,      /* Address 0x40300040, size 0x00000008 */
+    PROT_HSIOM_PRT5_PRT             = 156,      /* Address 0x40300050, size 0x00000008 */
+    PROT_HSIOM_PRT6_PRT             = 157,      /* Address 0x40300060, size 0x00000008 */
+    PROT_HSIOM_PRT7_PRT             = 158,      /* Address 0x40300070, size 0x00000008 */
+    PROT_HSIOM_PRT8_PRT             = 159,      /* Address 0x40300080, size 0x00000008 */
+    PROT_HSIOM_PRT9_PRT             = 160,      /* Address 0x40300090, size 0x00000008 */
+    PROT_HSIOM_PRT10_PRT            = 161,      /* Address 0x403000a0, size 0x00000008 */
+    PROT_HSIOM_PRT11_PRT            = 162,      /* Address 0x403000b0, size 0x00000008 */
+    PROT_HSIOM_PRT12_PRT            = 163,      /* Address 0x403000c0, size 0x00000008 */
+    PROT_HSIOM_PRT13_PRT            = 164,      /* Address 0x403000d0, size 0x00000008 */
+    PROT_HSIOM_PRT14_PRT            = 165,      /* Address 0x403000e0, size 0x00000008 */
+    PROT_HSIOM_AMUX                 = 166,      /* Address 0x40302000, size 0x00000020 */
+    PROT_HSIOM_MON                  = 167,      /* Address 0x40302200, size 0x00000010 */
+    PROT_GPIO_PRT0_PRT              = 168,      /* Address 0x40310000, size 0x00000040 */
+    PROT_GPIO_PRT1_PRT              = 169,      /* Address 0x40310080, size 0x00000040 */
+    PROT_GPIO_PRT2_PRT              = 170,      /* Address 0x40310100, size 0x00000040 */
+    PROT_GPIO_PRT3_PRT              = 171,      /* Address 0x40310180, size 0x00000040 */
+    PROT_GPIO_PRT4_PRT              = 172,      /* Address 0x40310200, size 0x00000040 */
+    PROT_GPIO_PRT5_PRT              = 173,      /* Address 0x40310280, size 0x00000040 */
+    PROT_GPIO_PRT6_PRT              = 174,      /* Address 0x40310300, size 0x00000040 */
+    PROT_GPIO_PRT7_PRT              = 175,      /* Address 0x40310380, size 0x00000040 */
+    PROT_GPIO_PRT8_PRT              = 176,      /* Address 0x40310400, size 0x00000040 */
+    PROT_GPIO_PRT9_PRT              = 177,      /* Address 0x40310480, size 0x00000040 */
+    PROT_GPIO_PRT10_PRT             = 178,      /* Address 0x40310500, size 0x00000040 */
+    PROT_GPIO_PRT11_PRT             = 179,      /* Address 0x40310580, size 0x00000040 */
+    PROT_GPIO_PRT12_PRT             = 180,      /* Address 0x40310600, size 0x00000040 */
+    PROT_GPIO_PRT13_PRT             = 181,      /* Address 0x40310680, size 0x00000040 */
+    PROT_GPIO_PRT14_PRT             = 182,      /* Address 0x40310700, size 0x00000040 */
+    PROT_GPIO_PRT0_CFG              = 183,      /* Address 0x40310040, size 0x00000020 */
+    PROT_GPIO_PRT1_CFG              = 184,      /* Address 0x403100c0, size 0x00000008 */
+    PROT_GPIO_PRT2_CFG              = 185,      /* Address 0x40310140, size 0x00000020 */
+    PROT_GPIO_PRT3_CFG              = 186,      /* Address 0x403101c0, size 0x00000020 */
+    PROT_GPIO_PRT4_CFG              = 187,      /* Address 0x40310240, size 0x00000008 */
+    PROT_GPIO_PRT5_CFG              = 188,      /* Address 0x403102c0, size 0x00000020 */
+    PROT_GPIO_PRT6_CFG              = 189,      /* Address 0x40310340, size 0x00000020 */
+    PROT_GPIO_PRT7_CFG              = 190,      /* Address 0x403103c0, size 0x00000020 */
+    PROT_GPIO_PRT8_CFG              = 191,      /* Address 0x40310440, size 0x00000020 */
+    PROT_GPIO_PRT9_CFG              = 192,      /* Address 0x403104c0, size 0x00000020 */
+    PROT_GPIO_PRT10_CFG             = 193,      /* Address 0x40310540, size 0x00000020 */
+    PROT_GPIO_PRT11_CFG             = 194,      /* Address 0x403105c0, size 0x00000020 */
+    PROT_GPIO_PRT12_CFG             = 195,      /* Address 0x40310640, size 0x00000020 */
+    PROT_GPIO_PRT13_CFG             = 196,      /* Address 0x403106c0, size 0x00000008 */
+    PROT_GPIO_PRT14_CFG             = 197,      /* Address 0x40310740, size 0x00000008 */
+    PROT_GPIO_GPIO                  = 198,      /* Address 0x40314000, size 0x00000040 */
+    PROT_GPIO_TEST                  = 199,      /* Address 0x40315000, size 0x00000008 */
+    PROT_SMARTIO_PRT8_PRT           = 200,      /* Address 0x40320800, size 0x00000100 */
+    PROT_SMARTIO_PRT9_PRT           = 201,      /* Address 0x40320900, size 0x00000100 */
+    PROT_LPCOMP                     = 202,      /* Address 0x40350000, size 0x00010000 */
+    PROT_CSD0                       = 203,      /* Address 0x40360000, size 0x00001000 */
+    PROT_TCPWM0                     = 204,      /* Address 0x40380000, size 0x00010000 */
+    PROT_TCPWM1                     = 205,      /* Address 0x40390000, size 0x00010000 */
+    PROT_LCD0                       = 206,      /* Address 0x403b0000, size 0x00010000 */
+    PROT_USBFS0                     = 207,      /* Address 0x403f0000, size 0x00010000 */
+    PROT_SMIF0                      = 208,      /* Address 0x40420000, size 0x00010000 */
+    PROT_SDHC0                      = 209,      /* Address 0x40460000, size 0x00010000 */
+    PROT_CANFD0_CH0_CH              = 210,      /* Address 0x40520000, size 0x00000200 */
+    PROT_CANFD0_MAIN                = 211,      /* Address 0x40521000, size 0x00000040 */
+    PROT_CANFD0_BUF                 = 212,      /* Address 0x40530000, size 0x00010000 */
+    PROT_SCB0                       = 213,      /* Address 0x40600000, size 0x00010000 */
+    PROT_SCB1                       = 214,      /* Address 0x40610000, size 0x00010000 */
+    PROT_SCB2                       = 215,      /* Address 0x40620000, size 0x00010000 */
+    PROT_SCB3                       = 216,      /* Address 0x40630000, size 0x00010000 */
+    PROT_SCB4                       = 217,      /* Address 0x40640000, size 0x00010000 */
+    PROT_SCB5                       = 218,      /* Address 0x40650000, size 0x00010000 */
+    PROT_SCB6                       = 219       /* Address 0x40660000, size 0x00010000 */
+} cy_en_prot_region_t;
 
 #endif /* _PSOC6_03_CONFIG_H_ */
 

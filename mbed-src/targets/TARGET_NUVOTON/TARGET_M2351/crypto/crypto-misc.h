@@ -1,5 +1,7 @@
-/* mbed Microcontroller Library
- * Copyright (c) 2017-2018 Nuvoton
+/*
+ * Copyright (c) 2017-2018, Nuvoton Technology Corporation
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +54,7 @@ __STATIC_INLINE CRPT_T *CRYPTO_MODBASE(void)
 #if defined(SCU_INIT_PNSSET1_VAL) && (SCU_INIT_PNSSET1_VAL & (1<<18))
     return CRPT_NS;
 #else
-    return CRPT;
+    return CRPT_S;
 #endif
 }
 

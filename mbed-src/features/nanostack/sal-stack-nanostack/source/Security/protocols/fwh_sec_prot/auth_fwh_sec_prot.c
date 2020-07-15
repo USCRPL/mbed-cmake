@@ -24,6 +24,8 @@
 #include "fhss_config.h"
 #include "NWK_INTERFACE/Include/protocol.h"
 #include "6LoWPAN/ws/ws_config.h"
+#include "6LoWPAN/ws/ws_cfg_settings.h"
+#include "Security/protocols/sec_prot_cfg.h"
 #include "Security/kmp/kmp_addr.h"
 #include "Security/kmp/kmp_api.h"
 #include "Security/PANA/pana_eap_header.h"
@@ -64,24 +66,10 @@ typedef struct {
     fwh_sec_prot_msg_e            recv_msg;                    /**< Received message */
     uint8_t                       nonce[EAPOL_KEY_NONCE_LEN];  /**< Authenticator nonce */
     uint8_t                       new_ptk[PTK_LEN];            /**< PTK (384 bits) */
+    uint8_t                       remote_eui64[8];             /**< Remote EUI-64 used to calculate PTK */
     void                          *recv_pdu;                   /**< received pdu */
     uint16_t                      recv_size;                   /**< received pdu size */
 } fwh_sec_prot_int_t;
-
-/*Small network setup*/
-#define FWH_SMALL_IMIN 300 // retries done in 30 seconds
-#define FWH_SMALL_IMAX 900 // Largest value 90 seconds
-
-/* Large network setup*/
-#define FWH_LARGE_IMIN 600 // retries done in 60 seconds
-#define FWH_LARGE_IMAX 2400 // Largest value 240 seconds
-
-static trickle_params_t fwh_trickle_params = {
-    .Imin = FWH_SMALL_IMIN,            /* ticks are 100ms */
-    .Imax = FWH_SMALL_IMAX,            /* ticks are 100ms */
-    .k = 0,                /* infinity - no consistency checking */
-    .TimerExpirations = 2
-};
 
 static uint16_t auth_fwh_sec_prot_size(void);
 static int8_t auth_fwh_sec_prot_init(sec_prot_t *prot);
@@ -110,18 +98,6 @@ int8_t auth_fwh_sec_prot_register(kmp_service_t *service)
         return -1;
     }
 
-    return 0;
-}
-
-int8_t auth_fwh_sec_prot_timing_adjust(uint8_t timing)
-{
-    if (timing < 16) {
-        fwh_trickle_params.Imin = FWH_SMALL_IMIN;
-        fwh_trickle_params.Imax = FWH_SMALL_IMAX;
-    } else {
-        fwh_trickle_params.Imin = FWH_LARGE_IMIN;
-        fwh_trickle_params.Imax = FWH_LARGE_IMAX;
-    }
     return 0;
 }
 
@@ -290,14 +266,20 @@ static int8_t auth_fwh_sec_prot_message_send(sec_prot_t *prot, fwh_sec_prot_msg_
 
     switch (msg) {
         case FWH_MESSAGE_1:
-            sec_prot_keys_pmk_replay_cnt_increment(prot->sec_keys);
+            if (!sec_prot_keys_pmk_replay_cnt_increment(prot->sec_keys)) {
+                ns_dyn_mem_free(kde_start);
+                return 1;
+            }
             eapol_pdu.msg.key.replay_counter = sec_prot_keys_pmk_replay_cnt_get(prot->sec_keys);
             eapol_pdu.msg.key.key_information.key_ack = true;
             eapol_pdu.msg.key.key_length = EAPOL_KEY_LEN;
             eapol_pdu.msg.key.key_nonce = data->nonce;
             break;
         case FWH_MESSAGE_3:
-            sec_prot_keys_pmk_replay_cnt_increment(prot->sec_keys);
+            if (!sec_prot_keys_pmk_replay_cnt_increment(prot->sec_keys)) {
+                ns_dyn_mem_free(kde_start);
+                return -1;
+            }
             eapol_pdu.msg.key.replay_counter = sec_prot_keys_pmk_replay_cnt_get(prot->sec_keys);
             eapol_pdu.msg.key.key_information.install = true;
             eapol_pdu.msg.key.key_information.key_ack = true;
@@ -331,7 +313,7 @@ static int8_t auth_fwh_sec_prot_message_send(sec_prot_t *prot, fwh_sec_prot_msg_
 static void auth_fwh_sec_prot_timer_timeout(sec_prot_t *prot, uint16_t ticks)
 {
     fwh_sec_prot_int_t *data = fwh_sec_prot_get(prot);
-    sec_prot_timer_timeout_handle(prot, &data->common, &fwh_trickle_params, ticks);
+    sec_prot_timer_timeout_handle(prot, &data->common, &prot->prot_cfg->sec_prot_trickle_params, ticks);
 }
 
 static void auth_fwh_sec_prot_state_machine(sec_prot_t *prot)
@@ -368,7 +350,7 @@ static void auth_fwh_sec_prot_state_machine(sec_prot_t *prot)
             auth_fwh_sec_prot_message_send(prot, FWH_MESSAGE_1);
 
             // Start trickle timer to re-send if no response
-            sec_prot_timer_trickle_start(&data->common, &fwh_trickle_params);
+            sec_prot_timer_trickle_start(&data->common, &prot->prot_cfg->sec_prot_trickle_params);
 
             sec_prot_state_set(prot, &data->common, FWH_STATE_MESSAGE_2);
             break;
@@ -396,7 +378,7 @@ static void auth_fwh_sec_prot_state_machine(sec_prot_t *prot)
                 auth_fwh_sec_prot_message_send(prot, FWH_MESSAGE_3);
 
                 // Start trickle timer to re-send if no response
-                sec_prot_timer_trickle_start(&data->common, &fwh_trickle_params);
+                sec_prot_timer_trickle_start(&data->common, &prot->prot_cfg->sec_prot_trickle_params);
 
                 sec_prot_state_set(prot, &data->common, FWH_STATE_MESSAGE_4);
             }
@@ -414,13 +396,18 @@ static void auth_fwh_sec_prot_state_machine(sec_prot_t *prot)
                 if (auth_fwh_sec_prot_mic_validate(prot) < 0) {
                     return;
                 }
-
+                // PTK is fresh for installing any GTKs
+                sec_prot_keys_ptk_installed_gtk_hash_clear_all(prot->sec_keys);
+                /* Store the hash for to-be installed GTK as used for the PTK, on 4WH
+                   this stores only the hash in NVM and does not affect otherwise */
+                sec_prot_keys_ptk_installed_gtk_hash_set(prot->sec_keys, true);
                 // If GTK was inserted set it valid
                 sec_prot_keys_gtkl_from_gtk_insert_index_set(prot->sec_keys);
                 // Reset PTK mismatch
                 sec_prot_keys_ptk_mismatch_reset(prot->sec_keys);
                 // Update PTK
-                sec_prot_keys_ptk_write(prot->sec_keys, data->new_ptk);
+                sec_prot_keys_ptk_write(prot->sec_keys, data->new_ptk, prot->timer_cfg->ptk_lifetime);
+                sec_prot_keys_ptk_eui_64_write(prot->sec_keys, data->remote_eui64);
                 sec_prot_state_set(prot, &data->common, FWH_STATE_FINISH);
             }
             break;
@@ -451,9 +438,7 @@ static int8_t auth_fwh_sec_prot_ptk_generate(sec_prot_t *prot, sec_prot_keys_t *
     fwh_sec_prot_int_t *data = fwh_sec_prot_get(prot);
 
     uint8_t local_eui64[8];
-    uint8_t remote_eui64[8];
-
-    prot->addr_get(prot, local_eui64, remote_eui64);
+    prot->addr_get(prot, local_eui64, data->remote_eui64);
 
     uint8_t *remote_nonce = data->recv_eapol_pdu.msg.key.key_nonce;
     if (!remote_nonce) {
@@ -462,7 +447,7 @@ static int8_t auth_fwh_sec_prot_ptk_generate(sec_prot_t *prot, sec_prot_keys_t *
     }
 
     uint8_t *pmk = sec_prot_keys_pmk_get(sec_keys);
-    sec_prot_lib_ptk_calc(pmk, local_eui64, remote_eui64, data->nonce, remote_nonce, data->new_ptk);
+    sec_prot_lib_ptk_calc(pmk, local_eui64, data->remote_eui64, data->nonce, remote_nonce, data->new_ptk);
 
     return 0;
 }

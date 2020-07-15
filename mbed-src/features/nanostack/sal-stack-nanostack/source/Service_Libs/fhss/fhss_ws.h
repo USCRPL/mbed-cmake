@@ -17,12 +17,10 @@
 #ifndef FHSS_WS_H_
 #define FHSS_WS_H_
 
-/* WS requires at least 19 MAC retransmissions (total 1+19=20 attempts). 802.15.4 macMaxFrameRetries is 3 (total 1+3=4 attempts).
- * At least 4 channel retries must be used: (Initial channel + WS_NUMBER_OF_CHANNEL_RETRIES) * MAC attempts = (1+4)*4=20 attempts
- */
-#define WS_NUMBER_OF_CHANNEL_RETRIES    4
-//TX/RX slot length in milliseconds
-#define WS_MAX_TXRX_SLOT_LEN_MS         100
+// TX slot length is optimised to this packet length
+#define OPTIMAL_PACKET_LENGTH   500
+// Default TX/RX slot length in milliseconds. Is used when datarate is not given by PHY.
+#define WS_TXRX_SLOT_LEN_MS             100
 // Default minimum broadcast synchronization interval in seconds
 #define DEFAULT_MIN_SYNCH_INTERVAL      60
 // Drift compensation allowed if at least SYNCH_COMPENSATION_MIN_INTERVAL (seconds) since last synchronization
@@ -55,5 +53,6 @@ int fhss_ws_set_parent(fhss_structure_t *fhss_structure, const uint8_t eui64[8],
 int fhss_ws_remove_parent(fhss_structure_t *fhss_structure, const uint8_t eui64[8]);
 int fhss_ws_configuration_set(fhss_structure_t *fhss_structure, const fhss_ws_configuration_t *fhss_configuration);
 int fhss_ws_set_hop_count(fhss_structure_t *fhss_structure, const uint8_t hop_count);
+void fhss_set_txrx_slot_length(fhss_structure_t *fhss_structure);
 
 #endif /*FHSS_WS_H_*/

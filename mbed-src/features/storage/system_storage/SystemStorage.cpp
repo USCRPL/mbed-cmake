@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "SystemStorage.h"
 #include "features/storage/blockdevice/BlockDevice.h"
 #include "features/storage/filesystem/FileSystem.h"
 #include "features/storage/filesystem/fat/FATFileSystem.h"
@@ -23,10 +22,6 @@
 
 #if COMPONENT_SPIF
 #include "components/storage/blockdevice/COMPONENT_SPIF/SPIFBlockDevice.h"
-#endif
-
-#if COMPONENT_RSPIF
-#include "components/storage/blockdevice/COMPONENT_RSPIF/SPIFReducedBlockDevice.h"
 #endif
 
 #if COMPONENT_QSPIF
@@ -51,31 +46,6 @@ const spi_pinmap_t static_spi_pinmap = get_spi_pinmap(MBED_CONF_SD_SPI_MOSI, MBE
 
 using namespace mbed;
 
-
-
-MBED_WEAK int avoid_conflict_nvstore_tdbstore(owner_type_e in_mem_owner)
-{
-    int status = MBED_SUCCESS;
-    static PlatformMutex _mutex;
-    static owner_type_e internal_memory_owner = NONE;
-
-    _mutex.lock();
-
-    if (internal_memory_owner != NONE &&
-            internal_memory_owner != in_mem_owner) {
-
-        status = MBED_ERROR_ALREADY_INITIALIZED;
-
-    } else {
-
-        internal_memory_owner = in_mem_owner;
-    }
-
-    _mutex.unlock();
-
-    return status;
-}
-
 // Align a value to a specified size.
 // Parameters :
 // val           - [IN]   Value.
@@ -86,55 +56,28 @@ static inline uint32_t align_up(uint32_t val, uint32_t size)
     return (((val - 1) / size) + 1) * size;
 }
 
+static inline uint32_t align_down(uint64_t val, uint64_t size)
+{
+    return (((val) / size)) * size;
+}
+
 MBED_WEAK BlockDevice *BlockDevice::get_default_instance()
 {
 #if COMPONENT_SPIF
 
-    static SPIFBlockDevice default_bd(
-        MBED_CONF_SPIF_DRIVER_SPI_MOSI,
-        MBED_CONF_SPIF_DRIVER_SPI_MISO,
-        MBED_CONF_SPIF_DRIVER_SPI_CLK,
-        MBED_CONF_SPIF_DRIVER_SPI_CS,
-        MBED_CONF_SPIF_DRIVER_SPI_FREQ
-    );
-
-    return &default_bd;
-
-#elif COMPONENT_RSPIF
-
-    static SPIFReducedBlockDevice default_bd(
-        MBED_CONF_RSPIF_DRIVER_SPI_MOSI,
-        MBED_CONF_RSPIF_DRIVER_SPI_MISO,
-        MBED_CONF_RSPIF_DRIVER_SPI_CLK,
-        MBED_CONF_RSPIF_DRIVER_SPI_CS,
-        MBED_CONF_RSPIF_DRIVER_SPI_FREQ
-    );
+    static SPIFBlockDevice default_bd;
 
     return &default_bd;
 
 #elif COMPONENT_QSPIF
 
-    static QSPIFBlockDevice default_bd(
-        MBED_CONF_QSPIF_QSPI_IO0,
-        MBED_CONF_QSPIF_QSPI_IO1,
-        MBED_CONF_QSPIF_QSPI_IO2,
-        MBED_CONF_QSPIF_QSPI_IO3,
-        MBED_CONF_QSPIF_QSPI_SCK,
-        MBED_CONF_QSPIF_QSPI_CSN,
-        MBED_CONF_QSPIF_QSPI_POLARITY_MODE,
-        MBED_CONF_QSPIF_QSPI_FREQ
-    );
+    static QSPIFBlockDevice default_bd;
 
     return &default_bd;
 
 #elif COMPONENT_DATAFLASH
 
-    static DataFlashBlockDevice default_bd(
-        MBED_CONF_DATAFLASH_SPI_MOSI,
-        MBED_CONF_DATAFLASH_SPI_MISO,
-        MBED_CONF_DATAFLASH_SPI_CLK,
-        MBED_CONF_DATAFLASH_SPI_CS
-    );
+    static DataFlashBlockDevice default_bd;
 
     return &default_bd;
 
@@ -146,12 +89,7 @@ MBED_WEAK BlockDevice *BlockDevice::get_default_instance()
         MBED_CONF_SD_SPI_CS
     );
 #else
-    static SDBlockDevice default_bd(
-        MBED_CONF_SD_SPI_MOSI,
-        MBED_CONF_SD_SPI_MISO,
-        MBED_CONF_SD_SPI_CLK,
-        MBED_CONF_SD_SPI_CS
-    );
+    static SDBlockDevice default_bd;
 #endif
 
     return &default_bd;
@@ -171,13 +109,18 @@ MBED_WEAK BlockDevice *BlockDevice::get_default_instance()
     }
 
     //Find the start of first sector after text area
-    bottom_address = align_up(FLASHIAP_APP_ROM_END_ADDR, flash.get_sector_size(FLASHIAP_APP_ROM_END_ADDR));
+    int sector_size = flash.get_sector_size(FLASHIAP_APP_ROM_END_ADDR);
+    bottom_address = align_up(FLASHIAP_APP_ROM_END_ADDR, sector_size);
     start_address = flash.get_flash_start();
     flash_size = flash.get_flash_size();
 
     ret = flash.deinit();
 
-    static FlashIAPBlockDevice default_bd(bottom_address, start_address + flash_size - bottom_address);
+    int  total_size = start_address + flash_size - bottom_address;
+    if (total_size % (sector_size * 2)) {
+        total_size =  align_down(total_size, sector_size * 2);
+    }
+    static FlashIAPBlockDevice default_bd(bottom_address, total_size);
 
 #else
 

@@ -240,6 +240,8 @@ int8_t thread_bootstrap_down(protocol_interface_info_entry_t *cur)
     tr_debug("SET thread Idle");
     //stop polling
     mac_data_poll_disable(cur);
+    // Reset MAC for safe upper layer memory free
+    protocol_mac_reset(cur);
     //Clean mle table
     thread_neighbor_list_clean(cur);
     // store frame counters
@@ -379,7 +381,7 @@ void thread_key_guard_timer_calculate(protocol_interface_info_entry_t *cur, link
     }
 
     cur->thread_info->masterSecretMaterial.keyRotation = key_rotation * 3600; // setting value is hours converting to seconds
-    cur->thread_info->masterSecretMaterial.keySwitchGuardTimer = is_init ? 0 : (key_rotation * 3600 * 0.93);
+    cur->thread_info->masterSecretMaterial.keySwitchGuardTimer = is_init ? 0 : (key_rotation * 3600 * 93 / 100);
 }
 
 void thread_key_guard_timer_reset(protocol_interface_info_entry_t *cur)

@@ -39,7 +39,7 @@ namespace mbed {
  */
 
 /** A base class for serial port implementations
- * Can't be instantiated directly (use Serial or RawSerial)
+ * Can't be instantiated directly (use UnbufferedSerial or BufferedSerial)
  *
  * @note Synchronization level: Set by subclass
  */
@@ -104,42 +104,6 @@ public:
      *  @param type Which serial interrupt to attach the member function to (Serial::RxIrq for receive, TxIrq for transmit buffer empty)
      */
     void attach(Callback<void()> func, IrqType type = RxIrq);
-
-    /** Attach a member function to call whenever a serial interrupt is generated
-     *
-     *  @param obj pointer to the object to call the member function on
-     *  @param method pointer to the member function to be called
-     *  @param type Which serial interrupt to attach the member function to (Serial::RxIrq for receive, TxIrq for transmit buffer empty)
-     *  @deprecated
-     *      The attach function does not support cv-qualifiers. Replaced by
-     *      attach(callback(obj, method), type).
-     */
-    template<typename T>
-    MBED_DEPRECATED_SINCE("mbed-os-5.1",
-                          "The attach function does not support cv-qualifiers. Replaced by "
-                          "attach(callback(obj, method), type).")
-    void attach(T *obj, void (T::*method)(), IrqType type = RxIrq)
-    {
-        attach(callback(obj, method), type);
-    }
-
-    /** Attach a member function to call whenever a serial interrupt is generated
-     *
-     *  @param obj pointer to the object to call the member function on
-     *  @param method pointer to the member function to be called
-     *  @param type Which serial interrupt to attach the member function to (Serial::RxIrq for receive, TxIrq for transmit buffer empty)
-     *  @deprecated
-     *      The attach function does not support cv-qualifiers. Replaced by
-     *      attach(callback(obj, method), type).
-     */
-    template<typename T>
-    MBED_DEPRECATED_SINCE("mbed-os-5.1",
-                          "The attach function does not support cv-qualifiers. Replaced by "
-                          "attach(callback(obj, method), type).")
-    void attach(T *obj, void (*method)(T *), IrqType type = RxIrq)
-    {
-        attach(callback(obj, method), type);
-    }
 
     /** Generate a break condition on the serial line
      *  NOTE: Clear break needs to run at least one frame after set_break is called
@@ -216,7 +180,7 @@ public:
     /** Begin asynchronous write using 8bit buffer.
      *
      *  The write operation ends with any of the enabled events and invokes
-     *  registered callback function (which can be NULL to not receive callback at all).
+     *  registered callback function (which can be empty to not receive callback at all).
      *  Events that are not enabled by event argument are simply ignored.
      *  Operation has to be ended explicitly by calling abort_write() when
      *  no events are enabled.
@@ -233,7 +197,7 @@ public:
     /** Begin asynchronous write using 16bit buffer.
      *
      *  The write operation ends with any of the enabled events and invokes
-     *  registered callback function (which can be NULL to not receive callback at all).
+     *  registered callback function (which can be empty to not receive callback at all).
      *  Events that are not enabled by event argument are simply ignored.
      *  Operation has to be ended explicitly by calling abort_write() when
      *  no events are enabled.
@@ -256,7 +220,7 @@ public:
     /** Begin asynchronous reading using 8bit buffer.
      *
      *  The read operation ends with any of the enabled events and invokes registered
-     *  callback function (which can be NULL to not receive callback at all).
+     *  callback function (which can be empty to not receive callback at all).
      *  Events that are not enabled by event argument are simply ignored.
      *  Operation has to be ended explicitly by calling abort_read() when
      *  no events are enabled.
@@ -274,7 +238,7 @@ public:
     /** Begin asynchronous reading using 16bit buffer.
      *
      *  The read operation ends with any of the enabled events and invokes registered
-     *  callback function (which can be NULL to not receive callback at all).
+     *  callback function (which can be empty to not receive callback at all).
      *  Events that are not enabled by event argument are simply ignored.
      *  Operation has to be ended explicitly by calling abort_read() when
      *  no events are enabled.

@@ -1,5 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
+ * Copyright (c) 2006-2020 ARM Limited
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@
 #include "platform/mbed_atomic.h"
 #include "platform/mbed_critical.h"
 #include "platform/mbed_poll.h"
-#include "drivers/UARTSerial.h"
+#include "drivers/BufferedSerial.h"
 #include "hal/us_ticker_api.h"
 #include "hal/lp_ticker_api.h"
 #include "hal/static_pinmap.h"
@@ -47,20 +47,14 @@
 static SingletonPtr<PlatformMutex> _mutex;
 
 #if defined(__ARMCC_VERSION)
-#   if __ARMCC_VERSION >= 6010050
-#      include <arm_compat.h>
-#   endif
+#   include <arm_compat.h>
 #   include <rt_sys.h>
 #   include <rt_misc.h>
 #   include <stdint.h>
 #   define PREFIX(x)    _sys##x
 #   define OPEN_MAX     _SYS_OPEN
 #   ifdef __MICROLIB
-#       if __ARMCC_VERSION >= 6010050
 asm(" .global __use_full_stdio\n");
-#       else
-#           pragma import(__use_full_stdio)
-#       endif
 #   endif
 
 #elif defined(__ICCARM__)
@@ -97,13 +91,11 @@ asm(" .global __use_full_stdio\n");
 
 using namespace mbed;
 
-#if defined(__MICROLIB) && (__ARMCC_VERSION>5030000)
-// Before version 5.03, we were using a patched version of microlib with proper names
-extern const char __stdin_name[]  = ":tt";
-extern const char __stdout_name[] = ":tt";
-extern const char __stderr_name[] = ":tt";
-
-#else
+// Microlib currently does not allow re-defining the pathnames for the
+// standard I/O device handles (STDIN, STDOUT, and STDERR).
+// It uses the default pathname ":tt" at library initialization to identify
+// them all.
+#if !defined(__MICROLIB)
 extern const char __stdin_name[]  = "/stdin";
 extern const char __stdout_name[] = "/stdout";
 extern const char __stderr_name[] = "/stderr";
@@ -150,7 +142,7 @@ extern serial_t stdio_uart;
 /* Private FileHandle to implement backwards-compatible functionality of
  * direct HAL serial access for default stdin/stdout/stderr.
  * This is not a particularly well-behaved FileHandle for a stream, which
- * is why it's not public. People should be using UARTSerial.
+ * is why it's not public. People should be using BufferedSerial.
  */
 class DirectSerial : public FileHandle {
 public:
@@ -257,14 +249,18 @@ static void do_serial_init()
         return;
     }
 
-    serial_init(&stdio_uart, STDIO_UART_TX, STDIO_UART_RX);
+    static const serial_pinmap_t console_pinmap = get_uart_pinmap(STDIO_UART_TX, STDIO_UART_RX);
+    serial_init_direct(&stdio_uart, &console_pinmap);
     serial_baud(&stdio_uart, MBED_CONF_PLATFORM_STDIO_BAUD_RATE);
 #if   CONSOLE_FLOWCONTROL == CONSOLE_FLOWCONTROL_RTS
-    serial_set_flow_control(&stdio_uart, FlowControlRTS, STDIO_UART_RTS, NC);
+    static const serial_fc_pinmap_t fc_pinmap = get_uart_fc_pinmap(STDIO_UART_RTS, NC);
+    serial_set_flow_control_direct(&stdio_uart, FlowControlRTS, &fc_pinmap);
 #elif CONSOLE_FLOWCONTROL == CONSOLE_FLOWCONTROL_CTS
-    serial_set_flow_control(&stdio_uart, FlowControlCTS, NC, STDIO_UART_CTS);
+    static const serial_fc_pinmap_t fc_pinmap = get_uart_fc_pinmap(NC, STDIO_UART_CTS);
+    serial_set_flow_control_direct(&stdio_uart, FlowControlCTS, &fc_pinmap);
 #elif CONSOLE_FLOWCONTROL == CONSOLE_FLOWCONTROL_RTSCTS
-    serial_set_flow_control(&stdio_uart, FlowControlRTSCTS, STDIO_UART_RTS, STDIO_UART_CTS);
+    static const serial_fc_pinmap_t fc_pinmap = get_uart_fc_pinmap(STDIO_UART_RTS, STDIO_UART_CTS);
+    serial_set_flow_control_direct(&stdio_uart, FlowControlRTSCTS, &fc_pinmap);
 #endif
 }
 
@@ -333,7 +329,7 @@ static FileHandle *default_console()
 
 #  if MBED_CONF_PLATFORM_STDIO_BUFFERED_SERIAL
     static const serial_pinmap_t console_pinmap = get_uart_pinmap(STDIO_UART_TX, STDIO_UART_RX);
-    static UARTSerial console(console_pinmap, MBED_CONF_PLATFORM_STDIO_BAUD_RATE);
+    static BufferedSerial console(console_pinmap, MBED_CONF_PLATFORM_STDIO_BAUD_RATE);
 #   if   CONSOLE_FLOWCONTROL == CONSOLE_FLOWCONTROL_RTS
     static const serial_fc_pinmap_t fc_pinmap = get_uart_fc_pinmap(STDIO_UART_RTS, NC);
     console.serial_set_flow_control(SerialBase::RTS, fc_pinmap);
@@ -556,29 +552,16 @@ std::FILE *fdopen(FileHandle *fh, const char *mode)
  * */
 extern "C" FILEHANDLE PREFIX(_open)(const char *name, int openflags)
 {
-#if defined(__MICROLIB) && (__ARMCC_VERSION>5030000)
-#if !defined(MBED_CONF_RTOS_PRESENT)
-    // valid only for mbed 2
-    // for ulib, this is invoked after RAM init, prior c++
-    // used as hook, as post stack/heap is not active there
-    extern void mbed_copy_nvic(void);
-    extern void mbed_sdk_init(void);
-
-    static int mbed_sdk_inited = 0;
-    if (!mbed_sdk_inited) {
-        mbed_copy_nvic();
-        mbed_sdk_init();
-#if DEVICE_USTICKER && MBED_CONF_TARGET_INIT_US_TICKER_AT_BOOT
-        us_ticker_init();
-#endif
-        mbed_sdk_inited = 1;
-    }
-#endif
-    // Before version 5.03, we were using a patched version of microlib with proper names
-    // This is the workaround that the microlib author suggested us
-    static int n = 0;
-    if (std::strcmp(name, ":tt") == 0 && n < 3) {
-        return n++;
+#if defined(__MICROLIB)
+    // Use the mode requested to select the standard I/O device handle to return.
+    if (std::strcmp(name, ":tt") == 0) {
+        if (openflags & OPEN_W) {
+            return STDOUT_FILENO;
+        } else if (openflags & OPEN_A) {
+            return STDERR_FILENO;
+        } else {
+            return STDIN_FILENO;
+        }
     }
 #else
     /* Use the posix convention that stdin,out,err are filehandles 0,1,2.
@@ -816,7 +799,7 @@ MBED_WEAK int mbed::minimal_console_putc(int c)
 }
 #endif // MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
 
-#if defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
+#if defined (__ARMCC_VERSION)
 extern "C" void PREFIX(_exit)(int return_code)
 {
     while (1) {}
@@ -1094,15 +1077,11 @@ extern "C" long PREFIX(_flen)(FILEHANDLE fh)
 }
 
 // Do not compile this code for TFM secure target
-#if !defined(COMPONENT_SPE) || !defined(TARGET_TFM)
+#if !defined(TARGET_TFM)
 
 #if !defined(__MICROLIB)
-#if defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
 __asm(".global __use_two_region_memory\n\t");
 __asm(".global __use_no_semihosting\n\t");
-#else
-#pragma import(__use_two_region_memory)
-#endif
 #endif
 
 // Through weak-reference, we can check if ARM_LIB_HEAP is defined at run-time.
@@ -1154,12 +1133,12 @@ extern "C" __value_in_regs struct __argc_argv $Sub$$__rt_lib_init(unsigned heapb
 }
 #endif
 
-extern "C" __value_in_regs struct __initial_stackheap __user_setup_stackheap(uint32_t R0, uint32_t R1, uint32_t R2, uint32_t R3)
+MBED_USED extern "C" __value_in_regs struct __initial_stackheap __user_setup_stackheap(uint32_t R0, uint32_t R1, uint32_t R2, uint32_t R3)
 {
     return _mbed_user_setup_stackheap(R0, R1, R2, R3);
 }
 
-#endif // !defined(COMPONENT_SPE) || !defined(TARGET_TFM)
+#endif // !defined(FEATURE_PSA)
 
 #endif
 
@@ -1568,6 +1547,14 @@ extern "C" {
 
 } // end of extern "C"
 
+#if defined(__MICROLIB)
+extern "C" {
+    MBED_WEAK void __aeabi_assert(const char *expr, const char *file, int line)
+    {
+        mbed_assert_internal(expr, file, line);
+    }
+} // end of extern "C"
+#endif
 #endif
 
 
@@ -1640,8 +1627,6 @@ extern "C" WEAK void *__aeabi_read_tp(void)
     return __section_begin("__iar_tls$$DATA");
 }
 #endif
-#elif defined(__CC_ARM)
-// Do nothing
 #elif defined (__GNUC__)
 struct _reent;
 // Stub out locks when an rtos is not present

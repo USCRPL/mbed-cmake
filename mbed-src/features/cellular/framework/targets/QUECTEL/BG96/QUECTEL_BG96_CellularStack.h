@@ -22,9 +22,8 @@
 
 namespace mbed {
 
-#define BG96_SOCKET_MAX 12
-#define BG96_CREATE_SOCKET_TIMEOUT 150000 //150 seconds
-#define BG96_CLOSE_SOCKET_TIMEOUT 20000 // TCP socket max timeout is >10sec
+#define BG96_CREATE_SOCKET_TIMEOUT 150s
+#define BG96_CLOSE_SOCKET_TIMEOUT 20s // TCP socket max timeout is >10sec
 #define BG96_MAX_RECV_SIZE 1500
 #define BG96_MAX_SEND_SIZE 1460
 #define BG96_SOCKET_BIND_FAIL 556
@@ -36,7 +35,7 @@ typedef enum {
 
 class QUECTEL_BG96_CellularStack : public AT_CellularStack {
 public:
-    QUECTEL_BG96_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type);
+    QUECTEL_BG96_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type, AT_CellularDevice &device);
     virtual ~QUECTEL_BG96_CellularStack();
 
 protected: // NetworkStack
@@ -55,14 +54,12 @@ protected: // NetworkStack
     virtual nsapi_error_t gethostbyname_async_cancel(int id);
 #endif
 
+#if defined(MBED_CONF_NSAPI_OFFLOAD_TLSSOCKET) && (MBED_CONF_NSAPI_OFFLOAD_TLSSOCKET)
     virtual nsapi_error_t setsockopt(nsapi_socket_t handle, int level,
                                      int optname, const void *optval, unsigned optlen);
+#endif
 
 protected: // AT_CellularStack
-
-    virtual int get_max_socket_count();
-
-    virtual bool is_protocol_supported(nsapi_protocol_t protocol);
 
     virtual nsapi_error_t socket_close_impl(int sock_id);
 
@@ -84,7 +81,9 @@ private:
 
     void handle_open_socket_response(int &modem_connect_id, int &err, bool tlssocket);
 
+#if defined(MBED_CONF_NSAPI_OFFLOAD_TLSSOCKET) && (MBED_CONF_NSAPI_OFFLOAD_TLSSOCKET)
     nsapi_error_t set_to_modem_impl(const char *filename, const char *config, const char *data, size_t size);
+#endif
 
 #ifdef MBED_CONF_CELLULAR_OFFLOAD_DNS_QUERIES
     // URC handler for DNS query

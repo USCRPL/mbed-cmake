@@ -26,13 +26,14 @@
 #include "AT_CellularStack.h"
 #include "Semaphore_stub.h"
 #include "CellularDevice_stub.h"
+#include "AT_CellularDevice_stub.h"
 #include "equeue_stub.h"
-#include "AT_CellularBase_stub.h"
 #include "CellularUtil_stub.h"
 #include "PinNames.h"
 
 using namespace mbed;
 using namespace events;
+using namespace std::chrono_literals;
 
 // AStyle ignored as the definition is not clear due to preprocessor usage
 // *INDENT-OFF*
@@ -44,8 +45,7 @@ protected:
         ATHandler_stub::nsapi_error_value = 0;
         ATHandler_stub::nsapi_error_ok_counter = 0;
         ATHandler_stub::int_value = -1;
-        ATHandler_stub::ref_count = 0;
-        ATHandler_stub::timeout = 0;
+        ATHandler_stub::timeout = 0s;
         ATHandler_stub::default_timeout = 0;
         ATHandler_stub::debug_on = 0;
         ATHandler_stub::ssize_value = 0;
@@ -76,18 +76,10 @@ protected:
 // *INDENT-ON*
 class my_stack : public AT_CellularStack {
 public:
-    my_stack(ATHandler &atHandler) : AT_CellularStack(atHandler, 1, IPV4_STACK) {}
-    virtual int get_max_socket_count()
-    {
-        return 1;
-    }
+    my_stack(ATHandler &atHandler, AT_CellularDevice &device) : AT_CellularStack(atHandler, 1, IPV4_STACK, device) {}
     virtual int get_max_packet_size()
     {
         return 200;
-    }
-    virtual bool is_protocol_supported(nsapi_protocol_t protocol)
-    {
-        return true;
     }
     virtual nsapi_error_t socket_close_impl(int sock_id)
     {
@@ -117,16 +109,20 @@ public:
 class my_AT_CTX : public AT_CellularContext {
 public:
     my_AT_CTX(ATHandler &at, CellularDevice *device, const char *apn = MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN) :
-        AT_CellularContext(at, device, apn), _st(at)
+        AT_CellularContext(at, device, apn)
     {
-        AT_CellularBase_stub::supported_bool = false;
+        AT_CellularDevice_stub::supported_bool = false;
     }
     virtual ~my_AT_CTX() {}
 
     virtual NetworkStack *get_stack()
     {
-        return &_st;
+        if (!_stack) {
+            _stack = new my_stack(_at, *get_device());
+        }
+        return _stack;
     }
+
     virtual uint32_t get_timeout_for_operation(ContextOperation op) const
     {
         return 10;
@@ -145,24 +141,23 @@ public:
     {
         deactivate_non_ip_context();
     }
-
-    my_stack _st;
 };
 
 class my_AT_CTXIPV6 : public AT_CellularContext {
 public:
     my_AT_CTXIPV6(ATHandler &at, CellularDevice *device, const char *apn = MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN) :
-        AT_CellularContext(at, device, apn), _st(at) {}
+        AT_CellularContext(at, device, apn) {}
     virtual ~my_AT_CTXIPV6() {}
     virtual NetworkStack *get_stack()
     {
-        return &_st;
+        if (!_stack) {
+            _stack = new my_stack(_at, *get_device());
+        }
     }
     virtual uint32_t get_timeout_for_operation(ContextOperation op) const
     {
         return 10;
     }
-    my_stack _st;
 };
 
 class def_AT_CTX : public AT_CellularContext {
@@ -522,21 +517,6 @@ TEST_F(TestAT_CellularContext, get_apn_backoff_timer)
     ASSERT_EQ(time, 55);
 }
 
-TEST_F(TestAT_CellularContext, set_file_handle)
-{
-    EventQueue que;
-    FileHandle_stub fh1;
-    ATHandler at(&fh1, que, 0, ",");
-    AT_CellularDevice dev(&fh1);
-    AT_CellularContext ctx(at, &dev);
-    ctx.set_file_handle(&fh1);
-
-    UARTSerial ss(NC, NC);
-
-    ctx.set_file_handle(&ss, PTC0, true);
-    ctx.enable_hup(true);
-}
-
 TEST_F(TestAT_CellularContext, connect_disconnect_sync)
 {
     EventQueue que;
@@ -579,13 +559,13 @@ TEST_F(TestAT_CellularContext, connect_disconnect_sync)
     ATHandler_stub::read_string_index = 2;
     ASSERT_EQ(ctx1.connect(),  NSAPI_ERROR_OK);
 
-    AT_CellularBase_stub::supported_bool = true;
+    AT_CellularDevice_stub::supported_bool = true;
     ASSERT_EQ(ctx1.disconnect(), NSAPI_ERROR_OK);
     ATHandler_stub::resp_info_true_counter = 1;
     ATHandler_stub::read_string_table[1] = (char *)"IPV4V6";
     ATHandler_stub::read_string_index = 2;
     ASSERT_EQ(ctx1.connect(),  NSAPI_ERROR_OK);
-    AT_CellularBase_stub::supported_bool = false;
+    AT_CellularDevice_stub::supported_bool = false;
 
     ASSERT_EQ(ctx1.disconnect(), NSAPI_ERROR_OK);
     ATHandler_stub::resp_info_true_counter = 1;

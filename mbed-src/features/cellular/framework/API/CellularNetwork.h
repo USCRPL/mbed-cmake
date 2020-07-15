@@ -161,6 +161,13 @@ public:
         NWModeManualAutomatic   // if manual fails, fallback to automatic
     };
 
+    /// Operator name format
+    enum OperatorNameFormat {
+        OperatorNameAlphaLong = 0,    // alphanumeric long form
+        OperatorNameAlphaShort,       // alphanumeric short form
+        OperatorNameNumeric           // numeric digits
+    };
+
     /// Network registration information
     struct registration_params_t {
         RegistrationType _type;
@@ -193,7 +200,7 @@ public:
 
     /** Get the current network registering mode
      *
-     *  @param mode     on successful return contains the current network registering mode
+     *  @param mode     on success the current network registering mode, otherwise unchanged
      *  @return         NSAPI_ERROR_OK on success
      *                  NSAPI_ERROR_DEVICE_ERROR on failure
      */

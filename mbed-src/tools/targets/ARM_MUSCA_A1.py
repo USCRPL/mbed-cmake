@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (c) 2017-2018 ARM Limited
+# Copyright (c) 2017-2020 ARM Limited
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -39,26 +39,30 @@ def musca_tfm_bin(t_self, non_secure_bin, secure_bin):
     if not isdir(tempdir):
         os.makedirs(tempdir)
     flash_layout = path_join(MUSCA_A1_BASE, 'partition', 'flash_layout.h')
-    mcuboot_bin = path_join(MUSCA_A1_BASE, 'TARGET_MUSCA_A1_NS', 'prebuilt', 'mcuboot.bin')
+    mcuboot_bin = path_join(MUSCA_A1_BASE, 'mcuboot.bin')
+    image_macros = path_join(MUSCA_A1_BASE, 'partition', 'image_macros_preprocessed.c')
     ns_bin_name, ns_bin_ext = splitext(basename(non_secure_bin))
     concatenated_bin = path_join(tempdir, 'tfm_' + ns_bin_name + ns_bin_ext)
     signed_bin = path_join(tempdir, 'tfm_' + ns_bin_name + '_signed' + ns_bin_ext)
 
-    assert os.path.isfile(flash_layout)
+    assert os.path.isfile(image_macros)
 
     #1. Concatenate secure TFM and non-secure mbed binaries
-    output = Assembly(flash_layout, concatenated_bin)
+    output = Assembly(image_macros, concatenated_bin)
     output.add_image(secure_bin, "SECURE")
     output.add_image(non_secure_bin, "NON_SECURE")
 
     #2. Run imgtool to sign the concatenated binary
     sign_args = Namespace(
-        layout=flash_layout,
-        key=path_join(SCRIPT_DIR, 'musca_a1-root-rsa-2048.pem'),
+        layout=image_macros,
+        key=path_join(SCRIPT_DIR, 'musca_a1-root-rsa-3072.pem'),
+        public_key_format=None,
         align=1,
+        dependencies=None,
         version=version.decode_version('1.0'),
         header_size=0x400,
         pad=0x100000,
+        security_counter=None,
         rsa_pkcs1_15=False,
         included_header=False,
         infile=concatenated_bin,

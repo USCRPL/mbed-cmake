@@ -74,7 +74,7 @@ GPIO_TypeDef *Set_GPIO_Clock(uint32_t port_idx)
 #endif
 #if defined GPIOG_BASE
         case PortG:
-#if defined TARGET_STM32L4
+#if defined PWR_CR2_IOSV /* TARGET_STM32L4 / TARGET_STM32L5 */
             __HAL_RCC_PWR_CLK_ENABLE();
             HAL_PWREx_EnableVddIO2();
 #endif
@@ -135,9 +135,24 @@ void gpio_init(gpio_t *obj, PinName pin)
     // Enable GPIO clock
     GPIO_TypeDef *gpio = Set_GPIO_Clock(port_index);
 
+#if defined(ALTC)
+    if (pin == PA_0C) {
+        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA0, SYSCFG_SWITCH_PA0_CLOSE);
+    }
+    if (pin == PA_1C) {
+        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA1, SYSCFG_SWITCH_PA1_CLOSE);
+    }
+    if (pin == PC_2C) {
+        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC2, SYSCFG_SWITCH_PC2_CLOSE);
+    }
+    if (pin == PC_3C) {
+        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC3, SYSCFG_SWITCH_PC3_CLOSE);
+    }
+#endif /* ALTC */
+
     // Fill GPIO object structure for future use
     obj->mask    = gpio_set(pin);
-    obj->gpio  = gpio;
+    obj->gpio    = gpio;
     obj->ll_pin  = ll_pin_defines[STM_PIN(obj->pin)];
     obj->reg_in  = &gpio->IDR;
     obj->reg_set = &gpio->BSRR;

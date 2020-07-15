@@ -48,109 +48,59 @@ public:
      */
     PPPInterface(PPP &ppp = PPP::get_default_instance(),
                  OnboardNetworkStack &stack = OnboardNetworkStack::get_default_instance());
-    virtual ~PPPInterface();
+    ~PPPInterface() override;
 
-    /** Set a static IP address
-     *
-     *  Configures this network interface to use a static IP address.
-     *  Implicitly disables DHCP, which can be enabled in set_dhcp.
-     *  Requires that the network is disconnected.
-     *
-     *  @param ip_address  Null-terminated representation of the local IP address
-     *  @param netmask     Null-terminated representation of the local network mask
-     *  @param gateway     Null-terminated representation of the local gateway
-     *  @return            0 on success, negative error code on failure
-     */
-    virtual nsapi_error_t set_network(const char *ip_address, const char *netmask, const char *gateway);
+    /** @copydoc NetworkInterface::set_network */
+    nsapi_error_t set_network(const SocketAddress &ip_address, const SocketAddress &netmask, const SocketAddress &gateway) override;
 
-    /** Start the interface
-     *  @return             0 on success, negative on failure
-     */
-    virtual nsapi_error_t connect();
+    /** @copydoc NetworkInterface::connect */
+    nsapi_error_t connect() override;
 
-    /** Stop the interface
-     *  @return             0 on success, negative on failure
-     */
-    virtual nsapi_error_t disconnect();
-
-    /** Get the local IP address
-     *
-     *  @return         Null-terminated representation of the local IP address
-     *                  or null if no IP address has been received
-     */
-    virtual const char *get_ip_address();
+    /** @copydoc NetworkInterface::disconnect */
+    nsapi_error_t disconnect() override;
 
     /** @copydoc NetworkInterface::get_ip_address */
-    virtual nsapi_error_t get_ip_address(SocketAddress *address);
+    nsapi_error_t get_ip_address(SocketAddress *address) override;
 
     /** @copydoc NetworkInterface::get_netmask */
-    virtual nsapi_error_t get_netmask(SocketAddress *address);
+    nsapi_error_t get_netmask(SocketAddress *address) override;
 
     /** @copydoc NetworkInterface::get_gateway */
-    virtual nsapi_error_t get_gateway(SocketAddress *address);
+    nsapi_error_t get_gateway(SocketAddress *address) override;
 
-    /** Get the local network mask
-     *
-     *  @return         Null-terminated representation of the local network mask
-     *                  or null if no network mask has been received
-     */
-    virtual const char *get_netmask();
+    /** @copydoc NetworkInterface::get_interface_name */
+    char *get_interface_name(char *interface_name) override;
 
-    /** Get the local gateways
-     *
-     *  @return         Null-terminated representation of the local gateway
-     *                  or null if no network mask has been received
-     */
-    virtual const char *get_gateway();
+    /** @copydoc NetworkInterface::set_as_default */
+    void set_as_default() override;
 
-    /** Get the network interface name
-     *
-     *  @return         Null-terminated representation of the network interface name
-     *                  or null if  interface not exists
-     */
-    virtual char *get_interface_name(char *interface_name);
+    /** @copydoc NetworkInterface::attach */
+    void attach(mbed::Callback<void(nsapi_event_t, intptr_t)> status_cb) override;
 
-    /** Set the network interface as default one
-      */
-    virtual void set_as_default();
+    /** @copydoc NetworkInterface::get_connection_status */
+    nsapi_connection_status_t get_connection_status() const override;
 
-    /** Register callback for status reporting
-     *
-     *  @param status_cb The callback for status changes
-     */
-    virtual void attach(mbed::Callback<void(nsapi_event_t, intptr_t)> status_cb);
-
-    /** Get the connection status
-     *
-     *  @return         The connection status according to nsapi_connection_status_t
-     */
-    virtual nsapi_connection_status_t get_connection_status() const;
-
-    /** Set blocking status of connect() which by default should be blocking
-     *
-     *  @param blocking true if connect is blocking
-     *  @return         0 on success, negative error code on failure
-     */
-    virtual nsapi_error_t set_blocking(bool blocking);
+    /** @copydoc NetworkInterface::set_blocking */
+    nsapi_error_t set_blocking(bool blocking) override;
 
     /** Sets file stream used to communicate with modem
      *
      * @param stream Pointer to file handle
      */
-    virtual void set_stream(mbed::FileHandle *stream);
+    void set_stream(mbed::FileHandle *stream);
 
     /** Sets IP protocol versions of IP stack
      *
      * @param ip_stack IP protocol version
      */
-    virtual void set_ip_stack(nsapi_ip_stack_t ip_stack);
+    void set_ip_stack(nsapi_ip_stack_t ip_stack);
 
     /** Sets user name and password for PPP protocol
      *
      * @param uname    User name
      * @param password Password
      */
-    virtual void set_credentials(const char *uname, const char *password);
+    void set_credentials(const char *uname, const char *password);
 
     /** Provide access to the PPP
      *
@@ -165,31 +115,36 @@ public:
         return _ppp;
     }
 
-    virtual PPPInterface *pppInterface()
+#if 0
+    /* NetworkInterface does not currently have pppInterface, so this
+     * "dynamic cast" is non-functional.
+     */
+    PPPInterface *pppInterface() final
     {
         return this;
     }
+#endif
 
 protected:
     /** Provide access to the underlying stack
      *
      *  @return The underlying network stack
      */
-    virtual NetworkStack *get_stack();
+    NetworkStack *get_stack() final;
 
     PPP &_ppp;
     OnboardNetworkStack &_stack;
-    OnboardNetworkStack::Interface *_interface;
-    bool _blocking;
-    char _ip_address[NSAPI_IPv6_SIZE];
-    char _netmask[NSAPI_IPv4_SIZE];
-    char _gateway[NSAPI_IPv4_SIZE];
+    OnboardNetworkStack::Interface *_interface = nullptr;
+    bool _blocking = true;
+    char _ip_address[NSAPI_IPv6_SIZE] {};
+    char _netmask[NSAPI_IPv4_SIZE] {};
+    char _gateway[NSAPI_IPv4_SIZE] {};
     mbed::Callback<void(nsapi_event_t, intptr_t)> _connection_status_cb;
 
-    mbed::FileHandle *_stream;
-    nsapi_ip_stack_t _ip_stack;
-    const char *_uname;
-    const char *_password;
+    mbed::FileHandle *_stream = nullptr;
+    nsapi_ip_stack_t _ip_stack = DEFAULT_STACK;
+    const char *_uname = nullptr;
+    const char *_password = nullptr;
 
 };
 

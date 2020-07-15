@@ -1,12 +1,11 @@
 {
     "target_overrides": {
         "NUCLEO_F412ZG": {
-            "target.components_add"                     : ["SD"],
+            "target.components_add"                     : ["SD", "WIFI_WIZFI310"],
             "sd.SPI_MOSI"                               : "D11",
             "sd.SPI_MISO"                               : "D12",
             "sd.SPI_CLK"                                : "D13",
             "sd.SPI_CS"                                 : "D10",
-            "target.components_add"                     : ["WIFI_WIZFI310"],
             "target.network-default-interface-type"     : "WIFI",
             "wizfi310.tx"                               : "PD_5",
             "wizfi310.rx"                               : "PD_6",
@@ -47,12 +46,11 @@
         },
         "NUCLEO_L476RG": {
             "target.macros_remove"                      : ["MBED_TICKLESS"],
-            "target.components_add"                     : ["SD"],
+            "target.components_add"                     : ["SD", "WIFI_WIZFI310"],
             "sd.SPI_MOSI"                               : "D11",
             "sd.SPI_MISO"                               : "D12",
             "sd.SPI_CLK"                                : "D13",
             "sd.SPI_CS"                                 : "D10",
-            "target.components_add"                     : ["WIFI_WIZFI310"],
             "target.network-default-interface-type"     : "WIFI",
             "wizfi310.tx"                               : "D8",
             "wizfi310.rx"                               : "D2",
@@ -66,13 +64,12 @@
         },
         "NUCLEO_L4R5ZI": {
             "target.macros_remove"                      : ["MBED_TICKLESS"],
-            "target.components_add"                     : ["SD"],
+            "target.components_add"                     : ["SD", "WIFI_WIZFI310"],
             "sd.SPI_MOSI"                               : "D11",
             "sd.SPI_MISO"                               : "D12",
             "sd.SPI_CLK"                                : "D13",
             "sd.SPI_CS"                                 : "D10",
             "target.network-default-interface-type"     : "WIFI",
-            "target.components_add"                     : ["WIFI_WIZFI310"],
             "wizfi310.tx"                               : "D1",
             "wizfi310.rx"                               : "D0",
             "wizfi310.rts"                              : "PB_1",
@@ -84,12 +81,11 @@
         },
         "NUCLEO_L496ZG": {
             "target.macros_remove"                      : ["MBED_TICKLESS"],
-            "target.components_add"                     : ["SD"],
+            "target.components_add"                     : ["SD", "WIFI_WIZFI310"],
             "sd.SPI_MOSI"                               : "D11",
             "sd.SPI_MISO"                               : "D12",
             "sd.SPI_CLK"                                : "D13",
             "sd.SPI_CS"                                 : "D10",
-            "target.components_add"                     : ["WIFI_WIZFI310"],
             "target.network-default-interface-type"     : "WIFI",
             "wizfi310.tx"                               : "D1",
             "wizfi310.rx"                               : "D0",
@@ -167,16 +163,7 @@
         "RZ_A1H": {
             "target.macros_add"                         : ["MBEDTLS_TEST_NULL_ENTROPY", "MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES"]
         },
-        "UBLOX_C030_U201": {
-            "target.features_add"                       : ["STORAGE", "LWIP"],
-            "target.network-default-interface-type"     : "CELLULAR",
-            "lwip.ipv4-enabled"                         : true,
-            "lwip.ethernet-enabled"                     : false,
-            "lwip.ppp-enabled"                          : true,
-            "lwip.tcp-enabled"                          : true,
-            "mbed-trace.enable"                         : false
-        },
-        "MTB_MXCHIP_EMW3166": {
+        "WIO_EMW3166": {
             "target.components_add"                     : ["SPIF"],
             "spif-driver.SPI_MOSI"                      : "PB_15",
             "spif-driver.SPI_MISO"                      : "PB_14",
@@ -201,14 +188,7 @@
             "nanostack.configuration"                   : "thread_router",
             "nanostack-hal.event_loop_thread_stack_size": 8192
         },
-        "MTB_USI_WM_BN_BM_22": {
-            "target.components_add"                     : ["SPIF"],
-            "spif-driver.SPI_MOSI"                      : "PC_3",
-            "spif-driver.SPI_MISO"                      : "PC_2",
-            "spif-driver.SPI_CLK"                       : "PB_13",
-            "spif-driver.SPI_CS"                        : "PA_6"
-        },
-        "MTB_ADV_WISE_1570": {
+        "ADV_WISE_1570": {
             "target.components_add"                     : ["SPIF"],
             "spif-driver.SPI_FREQ"                      : 20000000,
             "target.network-default-interface-type"     : "CELLULAR",
@@ -218,14 +198,14 @@
             "platform.default-serial-baud-rate"         : 115200,
             "nsapi.dns-response-wait-time"              : 30000
         },
-        "MTB_ADV_WISE_1530": {
-            "target.components_add"                     : ["SPIF"],
-            "spif-driver.SPI_MOSI"                      : "PC_3",
-            "spif-driver.SPI_MISO"                      : "PC_2",
-            "spif-driver.SPI_CLK"                       : "PB_13",
-            "spif-driver.SPI_CS"                        : "PC_12",
-            "no_led"                                    : "1",
-            "tests-fs-size"                             : "2*1024*1024"
+        "MCU_PSOC6": {
+            "tests-fs-size"                             : "8*1024*1024"
+        },
+        "CY8PROTO_062_4343W": {
+            "no_led"                                    : "1"
+        },
+        "_CY8CPROTO_062S3_4343W": {
+            "no_led"                                    : "1"
         }
     },
     "config": {

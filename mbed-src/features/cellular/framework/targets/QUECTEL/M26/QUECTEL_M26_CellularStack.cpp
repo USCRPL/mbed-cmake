@@ -19,12 +19,15 @@
 #include "QUECTEL/M26/QUECTEL_M26_CellularStack.h"
 #include "CellularLog.h"
 
-#define SOCKET_SEND_READY_TIMEOUT (30*1000)
-#define SOCKET_READ_TIMEOUT 1000
+using namespace std::chrono;
+
+#define SOCKET_SEND_READY_TIMEOUT 30s
+#define SOCKET_READ_TIMEOUT 1s
 
 using namespace mbed;
 
-QUECTEL_M26_CellularStack::QUECTEL_M26_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type) : AT_CellularStack(atHandler, cid, stack_type)
+QUECTEL_M26_CellularStack::QUECTEL_M26_CellularStack(ATHandler &atHandler, int cid, nsapi_ip_stack_t stack_type, AT_CellularDevice &device) :
+    AT_CellularStack(atHandler, cid, stack_type, device)
 {
     _at.set_urc_handler("+QIRDI:", Callback<void()>(this, &QUECTEL_M26_CellularStack::urc_qiurc));
 
@@ -38,14 +41,14 @@ QUECTEL_M26_CellularStack::QUECTEL_M26_CellularStack(ATHandler &atHandler, int c
 
 QUECTEL_M26_CellularStack::~QUECTEL_M26_CellularStack()
 {
-    _at.set_urc_handler("5, CLOSED", NULL);
-    _at.set_urc_handler("4, CLOSED", NULL);
-    _at.set_urc_handler("3, CLOSED", NULL);
-    _at.set_urc_handler("2, CLOSED", NULL);
-    _at.set_urc_handler("1, CLOSED", NULL);
-    _at.set_urc_handler("0, CLOSED", NULL);
+    _at.set_urc_handler("5, CLOSED", nullptr);
+    _at.set_urc_handler("4, CLOSED", nullptr);
+    _at.set_urc_handler("3, CLOSED", nullptr);
+    _at.set_urc_handler("2, CLOSED", nullptr);
+    _at.set_urc_handler("1, CLOSED", nullptr);
+    _at.set_urc_handler("0, CLOSED", nullptr);
 
-    _at.set_urc_handler("+QIRDI:", NULL);
+    _at.set_urc_handler("+QIRDI:", nullptr);
 }
 
 nsapi_error_t QUECTEL_M26_CellularStack::socket_listen(nsapi_socket_t handle, int backlog)
@@ -115,7 +118,7 @@ void QUECTEL_M26_CellularStack::urc_qiurc()
     (void) _at.skip_param(); /*<tlen>*/
     _at.unlock();
 
-    for (int i = 0; i < get_max_socket_count(); i++) {
+    for (int i = 0; i < _device.get_property(AT_CellularDevice::PROPERTY_SOCKET_COUNT); i++) {
         CellularSocket *sock = _socket[i];
         if (sock && sock->id == sock_id) {
             if (sock->_cb) {
@@ -214,16 +217,6 @@ nsapi_error_t QUECTEL_M26_CellularStack::socket_stack_init()
 
     tr_debug("QUECTEL_M26_CellularStack:%s:%u: SUCCESS ", __FUNCTION__, __LINE__);
     return NSAPI_ERROR_OK;
-}
-
-int QUECTEL_M26_CellularStack::get_max_socket_count()
-{
-    return M26_SOCKET_MAX;
-}
-
-bool QUECTEL_M26_CellularStack::is_protocol_supported(nsapi_protocol_t protocol)
-{
-    return (protocol == NSAPI_UDP || protocol == NSAPI_TCP);
 }
 
 nsapi_error_t QUECTEL_M26_CellularStack::socket_close_impl(int sock_id)
@@ -327,7 +320,7 @@ nsapi_error_t QUECTEL_M26_CellularStack::create_socket_impl(CellularSocket *sock
     int potential_sid = -1;
     int index = find_socket_index(socket);
 
-    for (int i = 0; i < get_max_socket_count(); i++) {
+    for (int i = 0; i < _device.get_property(AT_CellularDevice::PROPERTY_SOCKET_COUNT); i++) {
         CellularSocket *sock = _socket[i];
         if (sock && sock != socket && sock->id == index) {
             duplicate = true;
@@ -411,8 +404,8 @@ nsapi_size_or_error_t QUECTEL_M26_CellularStack::socket_sendto_impl(CellularSock
 
     if (socket->proto == NSAPI_TCP) {
         bool ready_to_send = false;
-        uint64_t start_time = rtos::Kernel::get_ms_count();
-        while (!ready_to_send && start_time < rtos::Kernel::get_ms_count() + SOCKET_SEND_READY_TIMEOUT) {
+        auto start_time = rtos::Kernel::Clock::now() ;
+        while (!ready_to_send && rtos::Kernel::Clock::now() < start_time + SOCKET_SEND_READY_TIMEOUT) {
             _at.cmd_start_stop("+QISACK", "=", "%d", socket->id);
             _at.resp_start("+QISACK:");
             sent_len_before = _at.read_int();
@@ -494,7 +487,7 @@ nsapi_size_or_error_t QUECTEL_M26_CellularStack::socket_recvfrom_impl(CellularSo
 
     tr_debug("QUECTEL_M26_CellularStack:%s:%u:[%d]", __FUNCTION__, __LINE__, size);
 
-    uint64_t start_time = rtos::Kernel::get_ms_count();
+    auto start_time = rtos::Kernel::Clock::now();
     nsapi_size_t len = 0;
     for (; len < size;) {
         unsigned int read_len = (size - len > M26_RECV_BYTE_MAX) ? M26_RECV_BYTE_MAX : size - len;
@@ -520,7 +513,7 @@ nsapi_size_or_error_t QUECTEL_M26_CellularStack::socket_recvfrom_impl(CellularSo
             return NSAPI_ERROR_DEVICE_ERROR;
         }
 
-        if (rtos::Kernel::get_ms_count() > start_time + SOCKET_READ_TIMEOUT) {
+        if (rtos::Kernel::Clock::now() > start_time + SOCKET_READ_TIMEOUT) {
             tr_warn("QUECTEL_M26_CellularStack:%s:%u:[ERROR NSAPI_ERROR_TIMEOUT]", __FUNCTION__, __LINE__);
             return NSAPI_ERROR_TIMEOUT;
         }

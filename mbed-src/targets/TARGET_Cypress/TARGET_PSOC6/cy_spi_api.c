@@ -45,7 +45,6 @@ SPIName spi_get_peripheral_name(PinName mosi, PinName miso, PinName mclk)
         return (SPIName)CYHAL_SCB_BASE_ADDRESSES[map->inst->block_num];
     }
     MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER_SPI, MBED_ERROR_CODE_FAILED_OPERATION), "SPI not found");
-    return (SPIName)0;
 }
 
 static void cy_spi_irq_handler_internal(void *handler_arg, cyhal_spi_event_t event)
@@ -141,9 +140,9 @@ void spi_frequency(spi_t *obj, int hz)
 int spi_master_write(spi_t *obj, int value)
 {
     struct spi_s *spi = cy_get_spi(obj);
-    int received;
+    uint8_t received;
 
-    if (CY_RSLT_SUCCESS != cyhal_spi_transfer(&(spi->hal_spi), (const uint8_t *)&value, 1, (uint8_t *)&received, 1, 0xff)) {
+    if (CY_RSLT_SUCCESS != cyhal_spi_transfer(&(spi->hal_spi), (const uint8_t *)&value, 1, &received, 1, 0xff)) {
         MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER_SPI, MBED_ERROR_CODE_FAILED_OPERATION), "cyhal_spi_transfer");
     }
     return received;

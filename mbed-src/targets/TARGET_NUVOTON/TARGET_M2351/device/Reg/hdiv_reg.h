@@ -3,11 +3,18 @@
  * @version  V1.00
  * @brief    HDIV register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __HDIV_REG_H__
 #define __HDIV_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Hardware Divider --------------------------------*/
 /**
@@ -100,6 +107,7 @@ typedef struct
 
 /**@}*/ /* HDIV_CONST */
 /**@}*/ /* end of HDIV register group */
+/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __HDIV_REG_H__ */

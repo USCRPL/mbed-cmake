@@ -1,6 +1,6 @@
 """
 mbed SDK
-Copyright (c) 2011-2016 ARM Limited
+Copyright (c) 2011-2020 ARM Limited
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,14 +22,20 @@ import struct
 import shutil
 import inspect
 import sys
+
 from collections import namedtuple
 from copy import copy
 from future.utils import raise_from
 from tools.resources import FileType
+from tools.settings import ROOT
 from tools.targets.LPC import patch
 from tools.paths import TOOLS_BOOTLOADERS
 from tools.utils import json_file_to_dict, NotSupportedException
-from tools.psa import find_secure_image
+
+# Add PSA TF-M binary utility scripts in system path
+from os.path import dirname, abspath, join
+TFM_SCRIPTS = abspath(join(dirname(__file__), '..', 'psa', 'tfm', 'bin_utils'))
+sys.path.insert(0, TFM_SCRIPTS)
 
 
 __all__ = ["target", "TARGETS", "TARGET_MAP", "TARGET_NAMES", "CORE_LABELS",
@@ -387,36 +393,21 @@ class Target(namedtuple(
         else:
             return self.core
 
-    # Mechanism for specifying TrustZone is subject to change - see
-    # discussion on https://github.com/ARMmbed/mbed-os/issues/9460
-    # In the interim, we follow heuristics that support existing
-    # documentation for ARMv8-M TF-M integration (check the "TFM" label),
-    # plus an extra "trustzone" flag set by M2351, and looking at the "-NS"
-    # suffix. This now permits non-TrustZone ARMv8 builds if
-    # having trustzone = false (default), no TFM flag, and no -NS suffix.
-    @property
-    def is_TrustZone_secure_target(self):
-        return (getattr(self, 'trustzone', False) or 'TFM' in self.labels) and not self.core.endswith('-NS')
-
     @property
     def is_TrustZone_non_secure_target(self):
         return self.core.endswith('-NS')
 
     @property
     def is_TrustZone_target(self):
-        return self.is_TrustZone_secure_target or self.is_TrustZone_non_secure_target
-
-    @property
-    def is_PSA_secure_target(self):
-        return 'SPE_Target' in self.labels
-
-    @property
-    def is_PSA_non_secure_target(self):
-        return 'NSPE_Target' in self.labels
+        return self.is_TrustZone_non_secure_target
 
     @property
     def is_PSA_target(self):
-        return self.is_PSA_secure_target or self.is_PSA_non_secure_target
+        return 'PSA' in self.features
+
+    @property
+    def is_TFM_target(self):
+        return 'TFM' in self.labels
 
     def get_post_build_hook(self, toolchain_labels):
         """Initialize the post-build hooks for a toolchain. For now, this
@@ -486,6 +477,51 @@ class LPCTargetCode(object):
         patch(binf)
 
 
+class MTSCode(object):
+    """Generic MTS code"""
+    @staticmethod
+    def _combine_bins_helper(target_name, binf):
+        """combine bins with the bootloader for a particular target"""
+        loader = os.path.join(TOOLS_BOOTLOADERS, target_name, "bootloader.bin")
+        target = binf + ".tmp"
+        if not os.path.exists(loader):
+            print("Can't find bootloader binary: " + loader)
+            return
+        outbin = open(target, 'w+b')
+        part = open(loader, 'rb')
+        data = part.read()
+        outbin.write(data)
+        outbin.write(b'\xFF' * (64*1024 - len(data)))
+        part.close()
+        part = open(binf, 'rb')
+        data = part.read()
+        outbin.write(data)
+        part.close()
+        outbin.seek(0, 0)
+        data = outbin.read()
+        outbin.seek(0, 1)
+        crc = struct.pack('<I', binascii.crc32(data) & 0xFFFFFFFF)
+        outbin.write(crc)
+        outbin.close()
+        os.remove(binf)
+        os.rename(target, binf)
+
+    @staticmethod
+    def combine_bins_mts_dot(t_self, resources, elf, binf):
+        """A hook for the MTS MDOT"""
+        MTSCode._combine_bins_helper("MTS_MDOT_F411RE", binf)
+
+    @staticmethod
+    def combine_bins_mts_dragonfly(t_self, resources, elf, binf):
+        """A hoof for the MTS Dragonfly"""
+        MTSCode._combine_bins_helper("MTS_DRAGONFLY_F411RE", binf)
+
+    @staticmethod
+    def combine_bins_mtb_mts_dragonfly(t_self, resources, elf, binf):
+        """A hook for the MTB MTS Dragonfly"""
+        MTSCode._combine_bins_helper("MTB_MTS_DRAGONFLY", binf)
+
+
 class LPC4088Code(object):
     """Code specific to the LPC4088"""
     @staticmethod
@@ -531,51 +567,6 @@ class TEENSY3_1Code(object):
         # This function is referenced by old versions of targets.json and
         # should be kept for backwards compatibility.
         pass
-
-
-class MTSCode(object):
-    """Generic MTS code"""
-    @staticmethod
-    def _combine_bins_helper(target_name, binf):
-        """combine bins with the bootloader for a particular target"""
-        loader = os.path.join(TOOLS_BOOTLOADERS, target_name, "bootloader.bin")
-        target = binf + ".tmp"
-        if not os.path.exists(loader):
-            print("Can't find bootloader binary: " + loader)
-            return
-        outbin = open(target, 'w+b')
-        part = open(loader, 'rb')
-        data = part.read()
-        outbin.write(data)
-        outbin.write(b'\xFF' * (64*1024 - len(data)))
-        part.close()
-        part = open(binf, 'rb')
-        data = part.read()
-        outbin.write(data)
-        part.close()
-        outbin.seek(0, 0)
-        data = outbin.read()
-        outbin.seek(0, 1)
-        crc = struct.pack('<I', binascii.crc32(data) & 0xFFFFFFFF)
-        outbin.write(crc)
-        outbin.close()
-        os.remove(binf)
-        os.rename(target, binf)
-
-    @staticmethod
-    def combine_bins_mts_dot(t_self, resources, elf, binf):
-        """A hook for the MTS MDOT"""
-        MTSCode._combine_bins_helper("MTS_MDOT_F411RE", binf)
-
-    @staticmethod
-    def combine_bins_mts_dragonfly(t_self, resources, elf, binf):
-        """A hoof for the MTS Dragonfly"""
-        MTSCode._combine_bins_helper("MTS_DRAGONFLY_F411RE", binf)
-
-    @staticmethod
-    def combine_bins_mtb_mts_dragonfly(t_self, resources, elf, binf):
-        """A hook for the MTB MTS Dragonfly"""
-        MTSCode._combine_bins_helper("MTB_MTS_DRAGONFLY", binf)
 
 
 class MCU_NRF51Code(object):
@@ -661,7 +652,6 @@ class RTL8195ACode(object):
         from tools.targets.REALTEK_RTL8195AM import rtl8195a_elf2bin
         rtl8195a_elf2bin(t_self, elf, binf)
 
-
 class PSOC6Code(object):
     @staticmethod
     def complete(t_self, resources, elf, binf):
@@ -679,20 +669,17 @@ class PSOC6Code(object):
     def sign_image(t_self, resources, elf, binf):
         """
         Calls sign_image function to add signature to Secure Boot binary file.
+        This function is used with Cypress kits, that support cysecuretools signing.
         """
-        version = sys.version_info
+        from tools.targets.PSOC6 import sign_image as psoc6_sign_image
+        if hasattr(t_self.target, "hex_filename"):
+            hex_filename = t_self.target.hex_filename
+            # Completing main image involves merging M0 image.
+            from tools.targets.PSOC6 import find_cm0_image
+            m0hexf = find_cm0_image(t_self, resources, elf, binf, hex_filename)
 
-        # check python version before calling post build as is supports only python3+
-        if((version[0] < 3) is True):
-            t_self.notify.info("[PSOC6.sing_image] Be careful - produced HEX file was not signed and thus "
-                               "is not compatible with Cypress Secure Boot target. "
-                               "You are using Python " + str(sys.version[:5]) + 
-                               " which is not supported by CySecureTools. "
-                               "Consider installing Python 3.4+ and rebuild target. "
-                               "For more information refver to User Guide https://www.cypress.com/secureboot-sdk-user-guide")
-        else:
-            from tools.targets.PSOC6 import sign_image as psoc6_sign_image
-            psoc6_sign_image(t_self, binf)
+            psoc6_sign_image(t_self, resources, elf, binf, m0hexf)
+
 
 class ArmMuscaA1Code(object):
     """Musca-A1 Hooks"""
@@ -709,12 +696,11 @@ class ArmMuscaA1Code(object):
         )
         musca_tfm_bin(t_self, binf, secure_bin)
 
-
-class LPC55S69Code(object):
-    """LPC55S69 Hooks"""
+class ArmMuscaB1Code(object):
+    """Musca-B1 Hooks"""
     @staticmethod
     def binary_hook(t_self, resources, elf, binf):
-        from tools.targets.LPC55S69 import lpc55s69_complete
+        from tools.targets.ARM_MUSCA_B1 import musca_tfm_bin
         configured_secure_image_filename = t_self.target.secure_image_filename
         secure_bin = find_secure_image(
             t_self.notify,
@@ -723,7 +709,40 @@ class LPC55S69Code(object):
             configured_secure_image_filename,
             FileType.BIN
         )
-        lpc55s69_complete(t_self, binf, secure_bin)
+        musca_tfm_bin(t_self, binf, secure_bin)
+
+def find_secure_image(notify, resources, ns_image_path,
+                      configured_s_image_filename, image_type):
+    """ Find secure image. """
+    if configured_s_image_filename is None:
+        return None
+
+    assert ns_image_path and configured_s_image_filename, \
+        'ns_image_path and configured_s_image_path are mandatory'
+    assert image_type in [FileType.BIN, FileType.HEX], \
+        'image_type must be of type BIN or HEX'
+
+    image_files = resources.get_file_paths(image_type)
+    assert image_files, 'No image files found for this target'
+
+    secure_image = next(
+        (f for f in image_files if
+         os.path.basename(f) == configured_s_image_filename), None)
+    secure_image = next(
+        (f for f in image_files if
+         os.path.splitext(os.path.basename(f))[0] ==
+         os.path.splitext(os.path.basename(ns_image_path))[0]),
+        secure_image
+    )
+
+    if secure_image:
+        notify.debug("Secure image file found: %s." % secure_image)
+    else:
+        notify.debug("Secure image file %s not found. Aborting."
+                     % configured_s_image_filename)
+        raise Exception("Required secure image not found.")
+
+    return secure_image
 
 class M2351Code(object):
     """M2351 Hooks"""

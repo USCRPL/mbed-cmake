@@ -1,6 +1,7 @@
 
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,7 @@
 #else
 
 #include "utest/utest.h"
-#include "utest/utest_serial.h"
+#include "utest/utest_print.h"
 #include "unity/unity.h"
 #include "greentea-client/test_env.h"
 #include "FlashIAP.h"

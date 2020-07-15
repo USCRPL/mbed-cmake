@@ -72,10 +72,12 @@ void generate_derived_key_long_consistency_test()
     generate_derived_key_consistency_16_byte_key_long_consistency_test(key);
     strcpy(key, MSG_KEY_DEVICE_TEST_STEP2);
     generate_derived_key_consistency_16_byte_key_long_consistency_test(key);
+#ifndef MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH
     strcpy(key, MSG_KEY_DEVICE_TEST_STEP3);
     generate_derived_key_consistency_32_byte_key_long_consistency_test(key);
     strcpy(key, MSG_KEY_DEVICE_TEST_STEP4);
     generate_derived_key_consistency_32_byte_key_long_consistency_test(key);
+#endif
 
 }
 
@@ -104,7 +106,10 @@ void generate_derived_key_consistency_16_byte_key_long_consistency_test(char *ke
         int ret = inner_store->reset();
         TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
-        ret = inject_dummy_rot_key();
+        ret = DeviceKey::get_instance().generate_root_of_trust(DEVICE_KEY_16BYTE);
+        if (ret != DEVICEKEY_SUCCESS) {
+            ret = inject_dummy_rot_key();
+        }
         TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
         memset(output1, 0, sizeof(output1));
@@ -165,7 +170,10 @@ void generate_derived_key_consistency_32_byte_key_long_consistency_test(char *ke
         int ret = inner_store->reset();
         TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
-        ret = inject_dummy_rot_key();
+        ret = DeviceKey::get_instance().generate_root_of_trust(DEVICE_KEY_32BYTE);
+        if (ret != DEVICEKEY_SUCCESS) {
+            ret = inject_dummy_rot_key();
+        }
         TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
         memset(output1, 0, sizeof(output1));
@@ -318,7 +326,10 @@ void generate_derived_key_consistency_16_byte_key_test()
     int ret = inner_store->reset();
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
-    ret = inject_dummy_rot_key();
+    ret = DeviceKey::get_instance().generate_root_of_trust(DEVICE_KEY_16BYTE);
+    if (ret != DEVICEKEY_SUCCESS) {
+        ret = inject_dummy_rot_key();
+    }
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
     size_t salt_size = sizeof(salt);
@@ -355,7 +366,10 @@ void generate_derived_key_consistency_32_byte_key_test()
     int ret = inner_store->reset();
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
-    ret = inject_dummy_rot_key();
+    ret = DeviceKey::get_instance().generate_root_of_trust(DEVICE_KEY_32BYTE);
+    if (ret != DEVICEKEY_SUCCESS) {
+        ret = inject_dummy_rot_key();
+    }
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
     size_t salt_size = sizeof(salt);
@@ -392,7 +406,10 @@ void generate_derived_key_key_type_16_test()
     int ret = inner_store->reset();
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
-    ret = inject_dummy_rot_key();
+    ret = DeviceKey::get_instance().generate_root_of_trust(DEVICE_KEY_16BYTE);
+    if (ret != DEVICEKEY_SUCCESS) {
+        ret = inject_dummy_rot_key();
+    }
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
     memset(output, 0, DEVICE_KEY_16BYTE * 2);
@@ -425,7 +442,10 @@ void generate_derived_key_key_type_32_test()
     int ret = inner_store->reset();
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
-    ret = inject_dummy_rot_key();
+    ret = DeviceKey::get_instance().generate_root_of_trust(DEVICE_KEY_32BYTE);
+    if (ret != DEVICEKEY_SUCCESS) {
+        ret = inject_dummy_rot_key();
+    }
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
     memset(output, 0, DEVICE_KEY_32BYTE * 2);
@@ -456,7 +476,10 @@ void generate_derived_key_wrong_key_type_test()
     int ret = inner_store->reset();
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
-    ret = inject_dummy_rot_key();
+    ret = DeviceKey::get_instance().generate_root_of_trust();
+    if (ret != DEVICEKEY_SUCCESS) {
+        ret = inject_dummy_rot_key();
+    }
     TEST_ASSERT_EQUAL_INT(DEVICEKEY_SUCCESS, ret);
 
     memset(output, 0, DEVICE_KEY_16BYTE);
@@ -476,12 +499,16 @@ Case cases[] = {
     Case("Device Key - long consistency test",               generate_derived_key_long_consistency_test,        greentea_failure_handler),
     Case("Device Key - inject value wrong size",             device_inject_root_of_trust_wrong_size_test,       greentea_failure_handler),
     Case("Device Key - inject value 16 byte size",           device_inject_root_of_trust_16_byte_size_test,     greentea_failure_handler),
+#ifndef MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH
     Case("Device Key - inject value 32 byte size",           device_inject_root_of_trust_32_byte_size_test,     greentea_failure_handler),
+#endif
     Case("Device Key - inject value several times",          device_inject_root_of_trust_several_times_test,    greentea_failure_handler),
     Case("Device Key - derived key consistency 16 byte key", generate_derived_key_consistency_16_byte_key_test, greentea_failure_handler),
     Case("Device Key - derived key consistency 32 byte key", generate_derived_key_consistency_32_byte_key_test, greentea_failure_handler),
     Case("Device Key - derived key key type 16",             generate_derived_key_key_type_16_test,             greentea_failure_handler),
+#ifndef MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH
     Case("Device Key - derived key key type 32",             generate_derived_key_key_type_32_test,             greentea_failure_handler),
+#endif
     Case("Device Key - derived key wrong key type",          generate_derived_key_wrong_key_type_test,          greentea_failure_handler)
 };
 

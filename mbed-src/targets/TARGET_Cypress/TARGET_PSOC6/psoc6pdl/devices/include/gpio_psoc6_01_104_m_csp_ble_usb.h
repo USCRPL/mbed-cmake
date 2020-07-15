@@ -5,11 +5,11 @@
 * PSoC6_01 device GPIO header for 104-M-CSP-BLE-USB package
 *
 * \note
-* Generator version: 1.5.0.1286
+* Generator version: 1.6.0.225
 *
 ********************************************************************************
 * \copyright
-* Copyright 2016-2019 Cypress Semiconductor Corporation
+* Copyright 2016-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,16 +46,16 @@ enum
 /* AMUXBUS Segments */
 enum
 {
-    AMUXBUS_MAIN,
     AMUXBUS_ADFT0_VDDD,
-    AMUXBUS_NOISY,
     AMUXBUS_ADFT1_VDDD,
-    AMUXBUS_CSD0,
-    AMUXBUS_VDDIO_1,
-    AMUXBUS_CSD1,
-    AMUXBUS_SAR,
-    AMUXBUS_ANALOG_VDDD,
     AMUXBUS_ANALOG_VDDA,
+    AMUXBUS_ANALOG_VDDD,
+    AMUXBUS_CSD0,
+    AMUXBUS_CSD1,
+    AMUXBUS_MAIN,
+    AMUXBUS_NOISY,
+    AMUXBUS_SAR,
+    AMUXBUS_VDDIO_1,
 };
 
 /* AMUX Splitter Controls */
@@ -63,12 +63,12 @@ typedef enum
 {
     AMUX_SPLIT_CTL_0                = 0x0000u,  /* Left = AMUXBUS_ADFT0_VDDD; Right = AMUXBUS_MAIN */
     AMUX_SPLIT_CTL_1                = 0x0001u,  /* Left = AMUXBUS_MAIN; Right = AMUXBUS_NOISY */
-    AMUX_SPLIT_CTL_7                = 0x0007u,  /* Left = AMUXBUS_ADFT1_VDDD; Right = AMUXBUS_NOISY */
     AMUX_SPLIT_CTL_2                = 0x0002u,  /* Left = AMUXBUS_CSD0; Right = AMUXBUS_NOISY */
     AMUX_SPLIT_CTL_3                = 0x0003u,  /* Left = AMUXBUS_VDDIO_1; Right = AMUXBUS_CSD0 */
     AMUX_SPLIT_CTL_4                = 0x0004u,  /* Left = AMUXBUS_CSD1; Right = AMUXBUS_CSD0 */
     AMUX_SPLIT_CTL_5                = 0x0005u,  /* Left = AMUXBUS_SAR; Right = AMUXBUS_CSD1 */
     AMUX_SPLIT_CTL_6                = 0x0006u,  /* Left = AMUXBUS_SAR; Right = AMUXBUS_MAIN */
+    AMUX_SPLIT_CTL_7                = 0x0007u,  /* Left = AMUXBUS_ADFT1_VDDD; Right = AMUXBUS_NOISY */
     AMUX_SPLIT_CTL_8                = 0x0008u   /* Left = AMUXBUS_ANALOG_VDDD; Right = AMUXBUS_ANALOG_VDDA */
 } cy_en_amux_split_t;
 
@@ -668,12 +668,6 @@ typedef enum
     P1_5_LCD_COM11                  = 12,       /* Digital Deep Sleep - lcd.com[11]:0 */
     P1_5_LCD_SEG11                  = 13,       /* Digital Deep Sleep - lcd.seg[11]:0 */
     P1_5_SCB7_SPI_SELECT2           = 20,       /* Digital Active - scb[7].spi_select2:0 */
-
-    /* USBDM */
-    USBDM_GPIO                      =  0,       /* GPIO controls 'out' */
-
-    /* USBDP */
-    USBDP_GPIO                      =  0,       /* GPIO controls 'out' */
 
     /* P5.0 */
     P5_0_GPIO                       =  0,       /* GPIO controls 'out' */
@@ -1822,7 +1816,13 @@ typedef enum
     P13_1_SCB6_UART_TX              = 18,       /* Digital Active - scb[6].uart_tx:1 */
     P13_1_SCB6_I2C_SDA              = 19,       /* Digital Active - scb[6].i2c_sda:1 */
     P13_1_SCB6_SPI_MISO             = 20,       /* Digital Active - scb[6].spi_miso:1 */
-    P13_1_PERI_TR_IO_INPUT27        = 24        /* Digital Active - peri.tr_io_input[27]:0 */
+    P13_1_PERI_TR_IO_INPUT27        = 24,       /* Digital Active - peri.tr_io_input[27]:0 */
+
+    /* USBDP */
+    USBDP_GPIO                      =  0,       /* GPIO controls 'out' */
+
+    /* USBDM */
+    USBDM_GPIO                      =  0        /* GPIO controls 'out' */
 } en_hsiom_sel_t;
 
 #endif /* _GPIO_PSOC6_01_104_M_CSP_BLE_USB_H_ */

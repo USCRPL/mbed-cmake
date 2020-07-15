@@ -51,6 +51,12 @@
 #define WS_FT_ACK               5          /**< Enhanced ACK */
 #define WS_FT_EAPOL             6          /**< EAPOL message inside MPX */
 
+/* WS exluded channel Control */
+#define WS_EXC_CHAN_CTRL_NONE 0             /**< No excluded channels */
+#define WS_EXC_CHAN_CTRL_RANGE 1            /**< Excluded channels are in 1 or multiple channel range */
+#define WS_EXC_CHAN_CTRL_BITMASK 2         /**< Excluded channels are marked to bitmask which length based on configured channels */
+
+#define WS_EXCLUDED_MAX_RANGE_TO_SEND 3
 
 /**
  * @brief ws_pan_information_t PAN information
@@ -63,6 +69,26 @@ typedef struct ws_pan_information_s {
     bool rpl_routing_method: 1; /**< 1 when RPL routing is selected and 0 when L2 routing. */
     unsigned version: 3;        /**< Pan version support. */
 } ws_pan_information_t;
+
+/**
+ * @brief ws_excluded_channel_range_data_t Excludd Chanel range information
+ */
+typedef struct ws_excluded_channel_range_data_s {
+    uint16_t range_start;
+    uint16_t range_end;
+} ws_excluded_channel_range_data_t;
+
+/**
+ * @brief ws_excluded_channel_data_t Excludd Chanel information
+ */
+typedef struct ws_excluded_channel_data_s {
+    unsigned excuded_channel_ctrl: 2;
+    unsigned excluded_range_length: 3;
+    ws_excluded_channel_range_data_t exluded_range[WS_EXCLUDED_MAX_RANGE_TO_SEND];
+    uint16_t excluded_channel_count;
+    uint8_t channel_mask_bytes_inline;
+    uint32_t channel_mask[8];
+} ws_excluded_channel_data_t;
 
 /**
  * @brief ws_hopping_schedule_t Chanel hopping schedule information
@@ -84,8 +110,8 @@ typedef struct ws_hopping_schedule_s {
     uint16_t bc_fixed_channel;
     uint16_t fhss_bsi;
     uint32_t fhss_broadcast_interval;
-    uint32_t channel_mask[8];
     uint_fast24_t ch0_freq; // Default should be derived from regulatory domain
+    ws_excluded_channel_data_t excluded_channels;
 } ws_hopping_schedule_t;
 
 /**
@@ -138,6 +164,22 @@ typedef struct ws_channel_function_three {
 } ws_channel_function_three_t;
 
 /**
+ * @brief ws_excluded_channel_range_t WS excluded channel range
+ */
+typedef struct ws_excluded_channel_range {
+    uint8_t number_of_range;
+    uint8_t *range_start;
+} ws_excluded_channel_range_t;
+
+/**
+ * @brief ws_excluded_channel_mask_t WS excluded channel mask
+ */
+typedef struct ws_excluded_channel_mask {
+    uint8_t *channel_mask;
+    uint8_t mask_len_inline;
+} ws_excluded_channel_mask_t;
+
+/**
  * @brief ws_us_ie_t WS US-IE read
  */
 typedef struct ws_us_ie {
@@ -155,6 +197,10 @@ typedef struct ws_us_ie {
         ws_channel_function_zero_t zero;
         ws_channel_function_three_t three;
     } function;
+    union {
+        ws_excluded_channel_range_t range;
+        ws_excluded_channel_mask_t mask;
+    } excluded_channels;
 } ws_us_ie_t;
 
 /**
@@ -190,8 +236,12 @@ typedef struct ws_bs_ie {
 #define WS_NEIGHBOR_TEMPORARY_LINK_MIN_TIMEOUT_SMALL 260
 #define WS_NEIGHBOR_NUD_TIMEOUT WS_NEIGHBOR_LINK_TIMEOUT / 2
 
-#define WS_NEIGBOR_ETX_SAMPLE_MAX 3
-#define WS_NEIGHBOUR_MAX_CANDIDATE_PROBE 5
+#define WS_EAPOL_TEMPORARY_ENTRY_SMALL_TIMEOUT 330
+#define WS_EAPOL_TEMPORARY_ENTRY_MEDIUM_TIMEOUT WS_EAPOL_TEMPORARY_ENTRY_SMALL_TIMEOUT
+#define WS_EAPOL_TEMPORARY_ENTRY_LARGE_TIMEOUT 750
+
+#define WS_NEIGHBOR_ETX_SAMPLE_MAX 3
+#define WS_NEIGHBOR_FIRST_ETX_SAMPLE_MIN_COUNT 3 //This can't be bigger than WS_NEIGHBOR_ETX_SAMPLE_MAX
 
 #define WS_PROBE_INIT_BASE_SECONDS 8
 
@@ -204,6 +254,7 @@ typedef struct ws_bs_ie {
 #define WS_ETX_MIN_SAMPLE_COUNT 4
 
 #define WS_ETX_MAX_UPDATE 1024
+#define WS_ETX_MAX 1024
 
 #define WS_ETX_MIN_WAIT_TIME 60
 
@@ -211,7 +262,7 @@ typedef struct ws_bs_ie {
 #define WS_RPL_SELECTED_PARENT_MAX 2
 
 #define WS_CERTIFICATE_RPL_PARENT_CANDIDATE_MAX 8
-#define WS_CERTIFICATE_RPL_SELECTED_PARENT_MAX 3
+#define WS_CERTIFICATE_RPL_SELECTED_PARENT_MAX 4
 
 /**
  * Wi-sun spesific non-preferred prefix policy label
@@ -246,6 +297,39 @@ typedef struct ws_bs_ie {
  * Tack max time in milliseconds.
  */
 #define WS_TACK_MAX_MS 5
+
+
+/* WS requires at least 19 MAC retransmissions (total 1+19=20 attempts). Default 802.15.4 macMaxFrameRetries is 3 (total 1+3=4 attempts).
+ * At least 4 channel retries must be used: (Initial channel + WS_NUMBER_OF_CHANNEL_RETRIES) * MAC attempts = (1+4)*4=20 attempts
+ *
+ * Valid settings could be for example:
+ * WS_MAX_FRAME_RETRIES     WS_NUMBER_OF_CHANNEL_RETRIES    Total attempts
+ * 0                        19                              1+0*1+19=20
+ * 1                        9                               1+1*1+9=20
+ * 2                        6                               1+2*1+6=21
+ * 3                        4                               1+3*1+4=20
+ *
+ */
+#define WS_MAX_FRAME_RETRIES            3
+#define WS_NUMBER_OF_CHANNEL_RETRIES    4
+
+
+#if (1 + WS_MAX_FRAME_RETRIES) * (1 + WS_NUMBER_OF_CHANNEL_RETRIES) < 20
+#warning "MAX frame retries set too low"
+#endif
+
+/*
+ * Automatic CCA threshold: default threshold and range in dBm.
+ */
+#define CCA_DEFAULT_DBM -60
+#define CCA_HIGH_LIMIT  -60
+#define CCA_LOW_LIMIT   -100
+
+
+/*
+ * Config new version consistent filter period in 100ms periods
+ */
+#define WS_CONFIG_CONSISTENT_FILTER_PERIOD 100
 
 // With FHSS we need to check CCA twice on TX channel
 #define WS_NUMBER_OF_CSMA_PERIODS  2

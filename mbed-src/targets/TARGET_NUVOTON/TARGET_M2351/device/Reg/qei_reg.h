@@ -3,11 +3,18 @@
  * @version  V1.00
  * @brief    QEI register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __QEI_REG_H__
 #define __QEI_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 /*---------------------- Quadrature Encoder Interface -------------------------*/
 /**
@@ -294,7 +301,7 @@ typedef struct
 
 /**@}*/ /* QEI_CONST */
 /**@}*/ /* end of QEI register group */
-
+/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __QEI_REG_H__ */

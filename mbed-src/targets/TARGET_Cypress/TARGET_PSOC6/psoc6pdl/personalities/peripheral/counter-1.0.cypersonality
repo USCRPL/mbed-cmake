@@ -60,7 +60,7 @@
     <ParamChoice id="CountDirection" name="Count Direction" group="General" default="CY_TCPWM_COUNTER_COUNT_UP" visible="true" editable="true" desc="Selects the direction the counter counts." >
       <Entry name="Up" value="CY_TCPWM_COUNTER_COUNT_UP" visible="true" />
       <Entry name="Down" value="CY_TCPWM_COUNTER_COUNT_DOWN" visible="true" />
-      <Entry name="UP/Down1" value="CY_TCPWM_COUNTER_COUNT_UP_DOWN_1" visible="true" />
+      <Entry name="Up/Down1" value="CY_TCPWM_COUNTER_COUNT_UP_DOWN_1" visible="true" />
       <Entry name="Up/Down2" value="CY_TCPWM_COUNTER_COUNT_UP_DOWN_2" visible="true" />
     </ParamChoice>
     <ParamRange id="Period" name="Period" group="General" default="32768" min="0" max="`${pCntWidthMax}`" resolution="1" visible="true" editable="true" desc="Sets the period of the Timer/Counter. Range: 0-65535 (for 16 bit resolution) or 0–4294967295 (for 32 bit resolution)." />

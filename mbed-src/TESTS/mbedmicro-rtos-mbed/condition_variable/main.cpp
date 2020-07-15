@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +29,10 @@
 #include "rtos.h"
 
 using namespace utest::v1;
+using namespace std::chrono_literals;
 
 #define TEST_STACK_SIZE 512
-#define TEST_DELAY 10
+#define TEST_DELAY 10ms
 
 static int change_counter = 0;
 static Mutex mutex;
@@ -55,14 +57,14 @@ void test_notify_one()
     t1.start(increment_on_signal);
     t2.start(increment_on_signal);
 
-    wait_ms(TEST_DELAY);
+    ThisThread::sleep_for(TEST_DELAY);
     TEST_ASSERT_EQUAL(0, change_counter);
 
     mutex.lock();
     cond.notify_one();
     mutex.unlock();
 
-    wait_ms(TEST_DELAY);
+    ThisThread::sleep_for(TEST_DELAY);
     TEST_ASSERT_EQUAL(1, change_counter);
 
     mutex.lock();
@@ -82,14 +84,14 @@ void test_notify_all()
     t1.start(increment_on_signal);
     t2.start(increment_on_signal);
 
-    wait_ms(TEST_DELAY);
+    ThisThread::sleep_for(TEST_DELAY);
     TEST_ASSERT_EQUAL(0, change_counter);
 
     mutex.lock();
     cond.notify_all();
     mutex.unlock();
 
-    wait_ms(TEST_DELAY);
+    ThisThread::sleep_for(TEST_DELAY);
     TEST_ASSERT_EQUAL(2, change_counter);
 
     t1.join();

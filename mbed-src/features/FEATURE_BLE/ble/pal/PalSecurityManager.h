@@ -21,7 +21,6 @@
 #include "platform/Callback.h"
 #include "platform/NonCopyable.h"
 #include "ble/BLETypes.h"
-#include "ble/BLEProtocol.h"
 #include "ble/SecurityManager.h"
 #include "ble/pal/GapTypes.h"
 
@@ -30,7 +29,6 @@ namespace pal {
 
 typedef ::SecurityManager::SecurityCompletionStatus_t SecurityCompletionStatus_t;
 typedef ::SecurityManager::SecurityMode_t SecurityMode_t;
-typedef ::SecurityManager::LinkSecurityStatus_t LinkSecurityStatus_t;
 typedef ::SecurityManager::Keypress_t Keypress_t;
 
 /**
@@ -966,7 +964,23 @@ public:
     ble_error_t set_private_address_timeout(
         uint16_t timeout_in_seconds
     ) {
-        return impl()->set_private_address_timeout(timeout_in_seconds);
+        return impl()->set_private_address_timeout_(timeout_in_seconds);
+    }
+
+    /**
+     * Retrieve the identity address used by the controller
+     *
+     * @param address Will contain the address retrieved.
+     * @param public_address will be true if the address is public and false
+     * otherwise.
+     * @return BLE_ERROR_NONE On success, else an error code indicating the reason
+     * of the failure
+     */
+    ble_error_t get_identity_address(
+        address_t& address,
+        bool& public_address
+    ) {
+        return impl()->get_identity_address_(address, public_address);
     }
 
     ////////////////////////////////////////////////////////////////////////////

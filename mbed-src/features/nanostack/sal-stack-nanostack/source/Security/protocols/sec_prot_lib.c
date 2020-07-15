@@ -26,6 +26,7 @@
 #include "NWK_INTERFACE/Include/protocol.h"
 #include "6LoWPAN/ws/ws_config.h"
 #include "Service_Libs/Trickle/trickle.h"
+#include "Security/protocols/sec_prot_cfg.h"
 #include "Security/kmp/kmp_addr.h"
 #include "Security/kmp/kmp_api.h"
 #include "Security/PANA/pana_eap_header.h"
@@ -273,6 +274,12 @@ int8_t sec_prot_lib_ptk_calc(const uint8_t *pmk, const uint8_t *eui64_1, const u
 
     memcpy(ptk, result, PTK_LEN);
 
+#ifdef EXTRA_DEBUG_INFO
+    tr_debug("PTK EUI: %s %s", trace_array(eui64_1, 8), trace_array(eui64_2, 8));
+    tr_debug("PTK NONCE: %s %s", trace_array(nonce1, 32), trace_array(nonce2, 32));
+    tr_debug("PTK: %s:%s", trace_array(ptk, PTK_LEN / 2), trace_array(ptk + PTK_LEN / 2, PTK_LEN / 2));
+#endif
+
     return 0;
 }
 
@@ -468,7 +475,7 @@ int8_t sec_prot_lib_ptkid_generate(sec_prot_t *prot, uint8_t *ptkid, bool is_aut
 {
     uint8_t local_eui64[8];
     prot->addr_get(prot, local_eui64, NULL);
-    uint8_t *ptk = sec_prot_keys_pmk_get(prot->sec_keys);
+    uint8_t *ptk = sec_prot_keys_ptk_get(prot->sec_keys);
     if (!ptk) {
         return -1;
     }
@@ -523,7 +530,10 @@ uint8_t *sec_prot_remote_eui_64_addr_get(sec_prot_t *prot)
     if (prot->sec_keys && prot->sec_keys->ptk_eui_64_set) {
         return prot->sec_keys->ptk_eui_64;
     } else {
-        return NULL;
+        static uint8_t remote_eui64[8];
+        memset(remote_eui64, 0, 8);
+        prot->addr_get(prot, NULL, (uint8_t *) &remote_eui64);
+        return remote_eui64;
     }
 }
 

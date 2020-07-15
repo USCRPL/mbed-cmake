@@ -18,6 +18,7 @@
 #ifndef NETWORK_STACK_H
 #define NETWORK_STACK_H
 
+#include <type_traits>
 #include "nsapi_types.h"
 #include "netsocket/SocketAddress.h"
 #include "netsocket/NetworkInterface.h"
@@ -37,9 +38,9 @@ class OnboardNetworkStack;
  *  NetworkStack, a network stack can be used as a target
  *  for instantiating network sockets.
  */
-class NetworkStack: public DNS {
+class NetworkStack : public DNS {
 public:
-    virtual ~NetworkStack() {};
+    virtual ~NetworkStack() = default;
 
     /** Get the local IP address
      *
@@ -50,9 +51,6 @@ public:
      *  @retval         NSAPI_ERROR_NO_ADDRESS if the address cannot be obtained from stack
      */
     virtual nsapi_error_t get_ip_address(SocketAddress *address);
-
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    virtual const char *get_ip_address();
 
     /** Get the IPv6 link local address
      *
@@ -74,9 +72,6 @@ public:
      */
     virtual nsapi_error_t get_ip_address_if(SocketAddress *address, const char *interface_name);
 
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    virtual const char *get_ip_address_if(const char *interface_name);
-
     /** Translates a hostname to an IP address with specific version
      *
      *  The hostname may be either a domain name or an IP address. If the
@@ -90,10 +85,29 @@ public:
      *  @param version  IP version of address to resolve, NSAPI_UNSPEC indicates
      *                  version is chosen by the stack (defaults to NSAPI_UNSPEC)
      *  @param interface_name  Network interface_name
-     *  @return         NSAPI_ERROR_OK on success, negative error code on failure
+     *  @retval         NSAPI_ERROR_OK on success
+     *  @retval         NSAPI_ERROR_PARAMETER if invalid (null) name is provided
+     *  @retval         NSAPI_ERROR_DNS_FAILURE if DNS resolution fails
+     *  @retval         int other negative errors, see @ref nsapi_dns_query
      */
     virtual nsapi_error_t gethostbyname(const char *host,
                                         SocketAddress *address, nsapi_version_t version = NSAPI_UNSPEC, const char *interface_name = NULL);
+
+    /** Translate a hostname to the multiple IP addresses with specific version using network interface name.
+     *
+     *  The hostname may be either a domain name or an IP address. If the
+     *  hostname is an IP address, no network transactions will be performed.
+     *
+     *  If no stack-specific DNS resolution is provided, the hostname
+     *  will be resolve using a UDP socket on the stack.
+     *
+     *  @param hostname     Hostname to resolve.
+     *  @param hints  Pointer to a SocketAddress with  query parameters.
+     *  @param res    Pointer to a SocketAddress array  to store the result..
+     *  @param interface_name  Network interface name
+     *  @return         number of results on success, negative error code on failure.
+     */
+    virtual nsapi_value_or_error_t getaddrinfo(const char *hostname, SocketAddress *hints, SocketAddress **res, const char *interface_name = NULL);
 
     /** Hostname translation callback (asynchronous)
      *
@@ -105,12 +119,13 @@ public:
      *  The callback should not perform expensive operations such as socket recv/send
      *  calls or blocking operations.
      *
-     *  @param status  NSAPI_ERROR_OK on success, negative error code on failure
+     *  @param result  Negative error code on failure or
+     *                 value that represents the number of DNS records
      *  @param address On success, destination for the host SocketAddress
      */
-    typedef mbed::Callback<void (nsapi_error_t result, SocketAddress *address)> hostbyname_cb_t;
+    typedef mbed::Callback<void (nsapi_value_or_error_t result, SocketAddress *address)> hostbyname_cb_t;
 
-    /** Translates a hostname to an IP address (asynchronous)
+    /** Translates a hostname to multiple IP addresses (asynchronous)
      *
      *  The hostname may be either a domain name or an IP address. If the
      *  hostname is an IP address, no network transactions will be performed.
@@ -135,6 +150,29 @@ public:
      */
     virtual nsapi_value_or_error_t gethostbyname_async(const char *host, hostbyname_cb_t callback, nsapi_version_t version = NSAPI_UNSPEC,
                                                        const char *interface_name = NULL);
+
+    /** Translates a hostname to the multiple IP addresses (asynchronous)
+     *
+     *  The hostname may be either a domain name or an IP address. If the
+     *  hostname is an IP address, no network transactions will be performed.
+     *
+     *  If no stack-specific DNS resolution is provided, the hostname
+     *  will be resolve using a UDP socket on the stack.
+     *
+     *  The call is non-blocking. Result of the DNS operation is returned by the callback.
+     *  If this function returns failure, callback will not be called. In case that
+     *  IP addresses are found from DNS cache, callback will be called before function returns.
+     *
+     *  @param hostname     Hostname to resolve
+     *  @param hints  Pointer to a SocketAddress with  query parameters.
+     *  @param callback Callback that is called for result
+     *  @param interface_name  Network interface_name
+     *  @return         0 on immediate success,
+     *                  negative error code on immediate failure or
+     *                  a positive unique id that represents the hostname translation operation
+     *                  and can be passed to cancel
+     */
+    virtual nsapi_value_or_error_t getaddrinfo_async(const char *hostname, SocketAddress *hints, hostbyname_cb_t callback, const char *interface_name = NULL);
 
     /** Cancels asynchronous hostname translation
      *
@@ -206,7 +244,6 @@ protected:
     friend class InternetSocket;
     friend class InternetDatagramSocket;
     friend class TCPSocket;
-    friend class TCPServer;
 
     /** Opens a socket
      *
@@ -438,21 +475,30 @@ private:
     virtual nsapi_error_t call_in(int delay, mbed::Callback<void()> func);
 };
 
+inline NetworkStack *_nsapi_create_stack(NetworkStack *stack, std::true_type /* convertible to NetworkStack */)
+{
+    return stack;
+}
+
+inline NetworkStack *_nsapi_create_stack(NetworkInterface *iface, std::false_type /* not convertible to NetworkStack */)
+{
+    return iface->get_stack();
+}
+
 /** Convert a raw nsapi_stack_t object into a C++ NetworkStack object
  *
- *  @param stack    Reference to an object that can be converted to a stack
+ *  @param stack    Pointer to an object that can be converted to a stack
  *                  - A raw nsapi_stack_t object
- *                  - A reference to a network stack
- *                  - A reference to a network interface
- *  @return         Reference to the underlying network stack
+ *                  - A pointer to a network stack
+ *                  - A pointer to a network interface
+ *  @return         Pointer to the underlying network stack
  */
 NetworkStack *nsapi_create_stack(nsapi_stack_t *stack);
-NetworkStack *nsapi_create_stack(NetworkStack *stack);
 
 template <typename IF>
 NetworkStack *nsapi_create_stack(IF *iface)
 {
-    return nsapi_create_stack(static_cast<NetworkInterface *>(iface)->get_stack());
+    return _nsapi_create_stack(iface, std::is_convertible<IF *, NetworkStack *>());
 }
 
 

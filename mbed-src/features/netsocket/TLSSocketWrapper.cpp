@@ -32,12 +32,6 @@
 
 TLSSocketWrapper::TLSSocketWrapper(Socket *transport, const char *hostname, control_transport control) :
     _transport(transport),
-    _timeout(-1),
-#ifdef MBEDTLS_X509_CRT_PARSE_C
-    _cacert(NULL),
-    _clicert(NULL),
-#endif
-    _ssl_conf(NULL),
     _connect_transport(control == TRANSPORT_CONNECT || control == TRANSPORT_CONNECT_AND_CLOSE),
     _close_transport(control == TRANSPORT_CLOSE || control == TRANSPORT_CONNECT_AND_CLOSE),
     _tls_initialized(false),
@@ -47,13 +41,14 @@ TLSSocketWrapper::TLSSocketWrapper(Socket *transport, const char *hostname, cont
     _ssl_conf_allocated(false)
 {
 #if defined(MBEDTLS_PLATFORM_C)
-    int ret = mbedtls_platform_setup(NULL);
+    int ret = mbedtls_platform_setup(nullptr);
     if (ret != 0) {
         print_mbedtls_error("mbedtls_platform_setup()", ret);
     }
 #endif /* MBEDTLS_PLATFORM_C */
     mbedtls_entropy_init(&_entropy);
-    mbedtls_ctr_drbg_init(&_ctr_drbg);
+    DRBG_INIT(&_drbg);
+
     mbedtls_ssl_init(&_ssl);
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
     mbedtls_pk_init(&_pkctx);
@@ -70,22 +65,24 @@ TLSSocketWrapper::~TLSSocketWrapper()
         close();
     }
     mbedtls_entropy_free(&_entropy);
-    mbedtls_ctr_drbg_free(&_ctr_drbg);
+
+    DRBG_FREE(&_drbg);
+
     mbedtls_ssl_free(&_ssl);
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
     mbedtls_pk_free(&_pkctx);
-    set_own_cert(NULL);
-    set_ca_chain(NULL);
+    set_own_cert(nullptr);
+    set_ca_chain(nullptr);
 #endif
-    set_ssl_config(NULL);
+    set_ssl_config(nullptr);
 #if defined(MBEDTLS_PLATFORM_C)
-    mbedtls_platform_teardown(NULL);
+    mbedtls_platform_teardown(nullptr);
 #endif /* MBEDTLS_PLATFORM_C */
 }
 
 void TLSSocketWrapper::set_hostname(const char *hostname)
 {
-#ifdef MBEDTLS_X509_CRT_PARSE_C
+#if defined(MBEDTLS_X509_CRT_PARSE_C) && !defined(MBEDTLS_X509_REMOVE_HOSTNAME_VERIFICATION)
     mbedtls_ssl_set_hostname(&_ssl, hostname);
 #endif
 }
@@ -148,7 +145,7 @@ nsapi_error_t TLSSocketWrapper::set_client_cert_key(const void *client_cert, siz
     }
     mbedtls_pk_init(&_pkctx);
     if ((ret = mbedtls_pk_parse_key(&_pkctx, static_cast<const unsigned char *>(client_private_key_pem),
-                                    client_private_key_len, NULL, 0)) != 0) {
+                                    client_private_key_len, nullptr, 0)) != 0) {
         print_mbedtls_error("mbedtls_pk_parse_key", ret);
         mbedtls_x509_crt_free(crt);
         delete crt;
@@ -175,7 +172,7 @@ nsapi_error_t TLSSocketWrapper::start_handshake(bool first_call)
         return continue_handshake();
     }
 
-#ifdef MBEDTLS_X509_CRT_PARSE_C
+#if defined(MBEDTLS_X509_CRT_PARSE_C) && !defined(MBEDTLS_X509_REMOVE_HOSTNAME_VERIFICATION)
     tr_info("Starting TLS handshake with %s", _ssl.hostname);
 #else
     tr_info("Starting TLS handshake");
@@ -183,19 +180,33 @@ nsapi_error_t TLSSocketWrapper::start_handshake(bool first_call)
     /*
      * Initialize TLS-related stuf.
      */
-    if ((ret = mbedtls_ctr_drbg_seed(&_ctr_drbg, mbedtls_entropy_func, &_entropy,
+#if defined(MBEDTLS_CTR_DRBG_C)
+    if ((ret = mbedtls_ctr_drbg_seed(&_drbg, mbedtls_entropy_func, &_entropy,
                                      (const unsigned char *) DRBG_PERS,
                                      sizeof(DRBG_PERS))) != 0) {
         print_mbedtls_error("mbedtls_crt_drbg_init", ret);
         return NSAPI_ERROR_AUTH_FAILURE;
     }
+#elif defined(MBEDTLS_HMAC_DRBG_C)
+    if ((ret = mbedtls_hmac_drbg_seed(&_drbg, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
+                                      mbedtls_entropy_func, &_entropy,
+                                      (const unsigned char *) DRBG_PERS,
+                                      sizeof(DRBG_PERS))) != 0) {
+        print_mbedtls_error("mbedtls_hmac_drbg_seed", ret);
+        return NSAPI_ERROR_AUTH_FAILURE;
+    }
+#else
+#error "CTR or HMAC must be defined for TLSSocketWrapper!"
+#endif
 
-    mbedtls_ssl_conf_rng(get_ssl_config(), mbedtls_ctr_drbg_random, &_ctr_drbg);
+#if !defined(MBEDTLS_SSL_CONF_RNG)
+    mbedtls_ssl_conf_rng(get_ssl_config(), DRBG_RANDOM, &_drbg);
+#endif
 
 
 #if MBED_CONF_TLS_SOCKET_DEBUG_LEVEL > 0
-    mbedtls_ssl_conf_verify(get_ssl_config(), my_verify, NULL);
-    mbedtls_ssl_conf_dbg(get_ssl_config(), my_debug, NULL);
+    mbedtls_ssl_conf_verify(get_ssl_config(), my_verify, nullptr);
+    mbedtls_ssl_conf_dbg(get_ssl_config(), my_debug, nullptr);
     mbedtls_debug_set_threshold(MBED_CONF_TLS_SOCKET_DEBUG_LEVEL);
 #endif
 
@@ -207,7 +218,15 @@ nsapi_error_t TLSSocketWrapper::start_handshake(bool first_call)
 
     _transport->set_blocking(false);
     _transport->sigio(mbed::callback(this, &TLSSocketWrapper::event));
-    mbedtls_ssl_set_bio(&_ssl, this, ssl_send, ssl_recv, NULL);
+
+    // Defines MBEDTLS_SSL_CONF_RECV/SEND/RECV_TIMEOUT define global functions which should be the same for all
+    // callers of mbedtls_ssl_set_bio_ctx and there should be only one ssl context. If these rules don't apply,
+    // these defines can't be used.
+#if !defined(MBEDTLS_SSL_CONF_RECV) && !defined(MBEDTLS_SSL_CONF_SEND) && !defined(MBEDTLS_SSL_CONF_RECV_TIMEOUT)
+    mbedtls_ssl_set_bio(&_ssl, this, ssl_send, ssl_recv, nullptr);
+#else
+    mbedtls_ssl_set_bio_ctx(&_ssl, this);
+#endif /* !defined(MBEDTLS_SSL_CONF_RECV) && !defined(MBEDTLS_SSL_CONF_SEND) && !defined(MBEDTLS_SSL_CONF_RECV_TIMEOUT) */
 
     _tls_initialized = true;
 
@@ -257,14 +276,14 @@ nsapi_error_t TLSSocketWrapper::continue_handshake()
         }
     }
 
-#ifdef MBEDTLS_X509_CRT_PARSE_C
+#if defined(MBEDTLS_X509_CRT_PARSE_C) && !defined(MBEDTLS_X509_REMOVE_HOSTNAME_VERIFICATION)
     /* It also means the handshake is done, time to print info */
     tr_info("TLS connection to %s established", _ssl.hostname);
 #else
     tr_info("TLS connection established");
 #endif
 
-#if defined(MBEDTLS_X509_CRT_PARSE_C) && defined(FEA_TRACE_SUPPORT)
+#if defined(MBEDTLS_X509_CRT_PARSE_C) && defined(FEA_TRACE_SUPPORT) && !defined(MBEDTLS_X509_REMOVE_INFO)
     /* Prints the server certificate and verify it. */
     const size_t buf_size = 1024;
     char *buf = new char[buf_size];
@@ -541,7 +560,7 @@ void TLSSocketWrapper::set_ca_chain(mbedtls_x509_crt *crt)
     }
     _cacert = crt;
     tr_debug("mbedtls_ssl_conf_ca_chain()");
-    mbedtls_ssl_conf_ca_chain(get_ssl_config(), _cacert, NULL);
+    mbedtls_ssl_conf_ca_chain(get_ssl_config(), _cacert, nullptr);
 }
 
 #endif /* MBEDTLS_X509_CRT_PARSE_C */
@@ -559,9 +578,9 @@ mbedtls_ssl_config *TLSSocketWrapper::get_ssl_config()
                                                MBEDTLS_SSL_TRANSPORT_STREAM,
                                                MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
             print_mbedtls_error("mbedtls_ssl_config_defaults", ret);
-            set_ssl_config(NULL);
+            set_ssl_config(nullptr);
             MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_NETWORK_STACK, MBED_ERROR_CODE_OUT_OF_MEMORY), "mbedtls_ssl_config_defaults() failed");
-            return NULL;
+            return nullptr;
         }
         /* It is possible to disable authentication by passing
          * MBEDTLS_SSL_VERIFY_NONE in the call to mbedtls_ssl_conf_authmode()
@@ -611,7 +630,7 @@ nsapi_error_t TLSSocketWrapper::close()
         }
     }
 
-    _transport = NULL;
+    _transport = nullptr;
 
     return ret;
 }
@@ -685,7 +704,7 @@ Socket *TLSSocketWrapper::accept(nsapi_error_t *err)
     if (err) {
         *err = NSAPI_ERROR_UNSUPPORTED;
     }
-    return NULL;
+    return nullptr;
 }
 
 nsapi_error_t TLSSocketWrapper::listen(int)

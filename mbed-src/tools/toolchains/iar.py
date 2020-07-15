@@ -1,6 +1,7 @@
 """
 mbed SDK
 Copyright (c) 2011-2013 ARM Limited
+SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,9 +20,10 @@ from os import remove
 from os.path import join, splitext, exists
 from distutils.version import LooseVersion
 
-from tools.toolchains.mbed_toolchain import mbedToolchain, TOOLCHAIN_PATHS
+from tools.toolchains.mbed_toolchain import (
+    mbedToolchain, TOOLCHAIN_PATHS, should_replace_small_c_lib
+)
 from tools.utils import run_cmd
-
 
 class IAR(mbedToolchain):
     OFFICIALLY_SUPPORTED = True
@@ -44,7 +46,7 @@ class IAR(mbedToolchain):
         )
 
     def __init__(self, target, notify=None, macros=None, build_profile=None,
-                 build_dir=None):
+                 build_dir=None, coverage_patterns=None):
         mbedToolchain.__init__(
             self,
             target,
@@ -54,13 +56,12 @@ class IAR(mbedToolchain):
             build_profile=build_profile
         )
 
-        if target.is_TrustZone_secure_target:
-            # Enable compiler security extensions
-            self.flags["asm"] += ["--cmse"]
-            self.flags["common"] += ["--cmse"]
-            # Output secure import library
-            secure_file = join(build_dir, "cmse_lib.o")
-            self.flags["ld"] += ["--import_cmse_lib_out=%s" % secure_file]
+        toolchain = "iar"
+
+        if should_replace_small_c_lib(target, toolchain):
+            target.c_lib = "std"
+
+        self.check_c_lib_supported(target, "iar")
 
         if target.is_TrustZone_non_secure_target:
             # Add linking time preprocessor macro DOMAIN_NS
@@ -68,6 +69,8 @@ class IAR(mbedToolchain):
             # in mbedToolchain.get_symbols)
             define_string = self.make_ld_define("DOMAIN_NS", "0x1")
             self.flags["ld"].append(define_string)
+
+        self.check_and_add_minimal_printf(target)
 
         core = target.core_without_NS
         cpu = {

@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +15,6 @@
  * limitations under the License.
  */
 
-#if !defined(MBED_RTOS_CONF_PRESENT)
-#error [NOT_SUPPORTED] usticker test cases require a RTOS to run
-#else
-
 #include "mbed.h"
 #include "greentea-client/test_env.h"
 #include "unity.h"
@@ -27,6 +24,7 @@
 #include "hal/lp_ticker_api.h"
 #include "hal/mbed_lp_ticker_wrapper.h"
 
+#ifdef MBED_CONF_RTOS_PRESENT
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,6 +32,7 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+#endif
 
 #if !DEVICE_USTICKER
 #error [NOT_SUPPORTED] test not supported
@@ -53,7 +52,7 @@ extern "C" {
 #define TICKER_100_TICKS 100
 #define TICKER_500_TICKS 500
 
-#define MAX_FUNC_EXEC_TIME_US 30
+#define MAX_FUNC_EXEC_TIME_US 20
 #define DELTA_FUNC_EXEC_TIME_US 5
 #define NUM_OF_CALLS 100
 
@@ -61,6 +60,8 @@ extern "C" {
 
 #define US_TICKER_OV_LIMIT 35000
 #define LP_TICKER_OV_LIMIT 4000
+
+#define TICKS_TO_US(ticks, freq) ((uint32_t) ((uint64_t)ticks * US_PER_S /freq))
 
 using namespace utest::v1;
 
@@ -216,11 +217,20 @@ void ticker_info_test(void)
 /* Test that ticker interrupt fires only when the ticker counter increments to the value set by ticker_set_interrupt. */
 void ticker_interrupt_test(void)
 {
-    uint32_t ticker_timeout[] = { 100, 200, 300, 500 };
+    uint32_t ticker_timeout[] = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200 };
+    uint8_t run_count = 0;
+    const ticker_info_t *p_ticker_info = intf->get_info();
 
     overflow_protect();
 
     for (uint32_t i = 0; i < (sizeof(ticker_timeout) / sizeof(uint32_t)); i++) {
+
+        /* Skip timeout if less than max allowed execution time of set_interrupt() - 20 us */
+        if (TICKS_TO_US(ticker_timeout[i], p_ticker_info->frequency) < (MAX_FUNC_EXEC_TIME_US + DELTA_FUNC_EXEC_TIME_US)) {
+            continue;
+        }
+
+        run_count++;
         intFlag = 0;
         const uint32_t tick_count = intf->read();
 
@@ -251,6 +261,9 @@ void ticker_interrupt_test(void)
 
         TEST_ASSERT_EQUAL(1, intFlag);
     }
+
+    /* At least 3 sub test cases must be executed. */
+    TEST_ASSERT_MESSAGE(run_count >= 3, "At least 3 sub test cases must be executed");
 }
 
 /* Test that ticker interrupt is not triggered when ticker_set_interrupt */
@@ -505,9 +518,11 @@ utest::v1::status_t us_ticker_setup(const Case *const source, const size_t index
 {
     intf = get_us_ticker_data()->interface;
 
+#ifdef MBED_CONF_RTOS_PRESENT
     /* OS, common ticker and low power ticker wrapper
      * may make use of us ticker so suspend them for this test */
     osKernelSuspend();
+#endif
 #if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
     /* Suspend the lp ticker wrapper since it makes use of the us ticker */
     ticker_suspend(get_lp_ticker_data());
@@ -537,7 +552,9 @@ utest::v1::status_t us_ticker_teardown(const Case *const source, const size_t pa
     lp_ticker_wrapper_resume();
     ticker_resume(get_lp_ticker_data());
 #endif
+#ifdef MBED_CONF_RTOS_PRESENT
     osKernelResume(0);
+#endif
 
     return greentea_case_teardown_handler(source, passed, failed, reason);
 }
@@ -547,8 +564,10 @@ utest::v1::status_t lp_ticker_setup(const Case *const source, const size_t index
 {
     intf = get_lp_ticker_data()->interface;
 
+#ifdef MBED_CONF_RTOS_PRESENT
     /* OS and common ticker may make use of lp ticker so suspend them for this test */
     osKernelSuspend();
+#endif
     ticker_suspend(get_lp_ticker_data());
 
     intf->init();
@@ -569,7 +588,9 @@ utest::v1::status_t lp_ticker_teardown(const Case *const source, const size_t pa
     prev_irq_handler = NULL;
 
     ticker_resume(get_lp_ticker_data());
+#ifdef MBED_CONF_RTOS_PRESENT
     osKernelResume(0);
+#endif
 
     return greentea_case_teardown_handler(source, passed, failed, reason);
 }
@@ -611,4 +632,3 @@ int main()
     return !Harness::run(specification);
 }
 #endif // !DEVICE_USTICKER
-#endif // !defined(MBED_RTOS_CONF_PRESENT)

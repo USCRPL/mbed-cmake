@@ -30,14 +30,47 @@
 #include "netsocket/OnboardNetworkStack.h"
 #include "LWIPMemoryManager.h"
 
+#if LWIP_IPV6
+#include "lwip/ip6_addr.h"
+#define IP_ADDR_VALID IP6_ADDR_VALID
+#else
+#define IP_ADDR_VALID 0
+#endif
 
 class LWIP : public OnboardNetworkStack, private mbed::NonCopyable<LWIP> {
 public:
     using NetworkStack::get_ip_address;
     static LWIP &get_instance();
 
-    class Interface : public OnboardNetworkStack::Interface {
+    class Interface final : public OnboardNetworkStack::Interface {
     public:
+        /** Set IP address to LWIP stack
+         *
+         * This function can set both IPv4 or IPv6 address to LWIP stack.
+         *
+         * bringup() can only take one IP address and in dual stack case
+         * another IP address can be set using this function.
+         *
+         * IPv4 or IPv6 address should be in format of https://tools.ietf.org/html/draft-main-ipaddr-text-rep-00.
+         *
+         * @param    ip         IP address to be used for the interface as IPv4 or IPv6 address string.
+         *                      This parameter should not be NULL.
+         * @param    netmask    Net mask to be used for the interface as IPv4 address string or NULL.
+         *                      NULL value will set this value to 255.255.255.255.
+         *                      This parameter will be ignored for IPv6 ip argument.
+         * @param    gw         Gateway address to be used for the interface as IPv4 address string or NULL
+         *                      NULL value will set this value to 0.0.0.0
+         *                      This parameter will be ignored for IPv6 ip argument.
+         * @param    ipv6_flag  Provide this flag for IPv6 state flag override. For example, you can set IP6_ADDR_PREFERRED.
+         *                      Default value is IP6_ADDR_VALID. For IPv4, this value will be ignored.
+         * @return              NSAPI_ERROR_OK on success, or error code
+         */
+        nsapi_error_t set_ip_address(const char *ip,
+                                     const char *netmask,
+                                     const char *gw,
+                                     uint8_t ipv6_flag = IP_ADDR_VALID
+                                    ) override;
+
         /** Connect the interface to the network
          *
          * Sets up a connection on specified network interface, using DHCP or provided network details. If the @a dhcp is set to
@@ -51,11 +84,11 @@ public:
          * @param    blocking   Specify whether bringup blocks for connection completion.
          * @return              NSAPI_ERROR_OK on success, or error code
          */
-        virtual nsapi_error_t bringup(bool dhcp, const char *ip,
-                                      const char *netmask, const char *gw,
-                                      nsapi_ip_stack_t stack = DEFAULT_STACK,
-                                      bool blocking = true
-                                     );
+        nsapi_error_t bringup(bool dhcp, const char *ip,
+                              const char *netmask, const char *gw,
+                              nsapi_ip_stack_t stack = DEFAULT_STACK,
+                              bool blocking = true
+                             ) override;
 
         /** Disconnect interface from the network
          *
@@ -63,7 +96,7 @@ public:
          *
          * @return    NSAPI_ERROR_OK on success, or error code
          */
-        virtual nsapi_error_t bringdown();
+        nsapi_error_t bringdown() override;
 
         /** Register callback for status reporting
          *
@@ -73,50 +106,35 @@ public:
          *
          *  @param status_cb The callback for status changes
          */
-        virtual void attach(mbed::Callback<void(nsapi_event_t, intptr_t)> status_cb);
+        void attach(mbed::Callback<void(nsapi_event_t, intptr_t)> status_cb) override;
 
         /** Get the connection status
          *
          *  @return         The connection status according to ConnectionStatusType
          */
-        virtual nsapi_connection_status_t get_connection_status() const;
+        nsapi_connection_status_t get_connection_status() const override;
 
         /** Return netif interface name
          *
          * @return       netif name  eg "en0"
         */
-        virtual char *get_interface_name(char *buf);
+        char *get_interface_name(char *buf) override;
 
         /** Return MAC address of the network interface
          *
          * @return              MAC address as "V:W:X:Y:Z"
          */
-        virtual char *get_mac_address(char *buf, nsapi_size_t buflen);
+        char *get_mac_address(char *buf, nsapi_size_t buflen) override;
 
-        /** @copydoc NetworkStack::get_ip_address */
-        virtual nsapi_error_t get_ip_address(SocketAddress *address);
-
-        MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-        virtual char *get_ip_address(char *buf, nsapi_size_t buflen);
+        /** @copydoc OnboardNetworkStack::Interface::get_ip_address */
+        nsapi_error_t get_ip_address(SocketAddress *address) override;
 
         /** Get the IPv6 link local address in SocketAddress representation
          *
          *  @address        SocketAddress representation of the link local IPv6 address
          *  @return         NSAPI_ERROR_OK on success, or error code
          */
-        virtual nsapi_error_t get_ipv6_link_local_address(SocketAddress *address);
-
-        /** Copies IP address of the name based network interface to user supplied buffer
-         *
-         * @param    buf        buffer to which IP address will be copied as "W:X:Y:Z"
-         * @param    buflen     size of supplied buffer
-         * @param    interface_name     naame of the interface
-         * @return              Pointer to a buffer, or NULL if the buffer is too small
-         */
-        virtual nsapi_error_t get_ip_address_if(const char *interface_name, SocketAddress *address);
-
-        MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-        virtual char *get_ip_address_if(char *buf, nsapi_size_t buflen, const char *interface_name);
+        nsapi_error_t get_ipv6_link_local_address(SocketAddress *address) override;
 
         /** Copies netmask of the network interface to user supplied buffer
          *
@@ -124,10 +142,7 @@ public:
          * @param    buflen     size of supplied buffer
          * @return              Pointer to a buffer, or NULL if the buffer is too small
          */
-        virtual nsapi_error_t get_netmask(SocketAddress *address);
-
-        MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-        virtual char *get_netmask(char *buf, nsapi_size_t buflen);
+        nsapi_error_t get_netmask(SocketAddress *address) override;
 
         /** Copies gateway address of the network interface to user supplied buffer
          *
@@ -135,10 +150,7 @@ public:
          * @param    buflen     size of supplied buffer
          * @return              Pointer to a buffer, or NULL if the buffer is too small
          */
-        virtual nsapi_error_t get_gateway(SocketAddress *address);
-
-        MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-        virtual char *get_gateway(char *buf, nsapi_size_t buflen);
+        nsapi_error_t get_gateway(SocketAddress *address) override;
 
     private:
         friend class LWIP;
@@ -149,6 +161,7 @@ public:
         static void netif_link_irq(struct netif *netif);
         static void netif_status_irq(struct netif *netif);
         static Interface *our_if_from_netif(struct netif *netif);
+        static void delete_interface(OnboardNetworkStack::Interface **interface_out);
 
 #if LWIP_ETHERNET
         static err_t emac_low_level_output(struct netif *netif, struct pbuf *p);
@@ -208,6 +221,8 @@ public:
             void *hw; /**< alternative implementation pointer - used for PPP */
         };
 
+        mbed_rtos_storage_semaphore_t remove_interface_sem;
+        osSemaphoreId_t remove_interface;
         mbed_rtos_storage_semaphore_t linked_sem;
         osSemaphoreId_t linked;
         mbed_rtos_storage_semaphore_t unlinked_sem;
@@ -249,7 +264,7 @@ public:
      * @param[out] interface_out    pointer to stack interface object controlling the EMAC
      * @return                      NSAPI_ERROR_OK on success, or error code
      */
-    virtual nsapi_error_t add_ethernet_interface(EMAC &emac, bool default_if, OnboardNetworkStack::Interface **interface_out);
+    nsapi_error_t add_ethernet_interface(EMAC &emac, bool default_if, OnboardNetworkStack::Interface **interface_out) override;
 
     /** Register a network interface with the IP stack
      *
@@ -261,7 +276,7 @@ public:
      * @param[out] interface_out    pointer to stack interface object controlling the L3IP
      * @return                      NSAPI_ERROR_OK on success, or error code
      */
-    virtual nsapi_error_t add_l3ip_interface(L3IP &l3ip, bool default_if, OnboardNetworkStack::Interface **interface_out);
+    nsapi_error_t add_l3ip_interface(L3IP &l3ip, bool default_if, OnboardNetworkStack::Interface **interface_out) override;
 
     /** Register a PPP interface with the IP stack
      *
@@ -280,15 +295,15 @@ public:
      * @param[out] interface_out    set to interface handle that must be passed to subsequent mbed_stack calls
      * @return                      NSAPI_ERROR_OK on success, or error code
      */
-    virtual nsapi_error_t add_ppp_interface(PPP &ppp, bool default_if, OnboardNetworkStack::Interface **interface_out);
+    nsapi_error_t add_ppp_interface(PPP &ppp, bool default_if, OnboardNetworkStack::Interface **interface_out) override;
 
     /** Remove a network interface from IP stack
      *
-     * Removes layer 3 IP objects,network interface from stack list, and shutdown device driver .
-     * @param[out] interface_out    pointer to stack interface object controlling the L3IP
+     * Removes layer 3 IP objects,network interface from stack list .
+     * @param[out] interface_out    pointer to stack interface object controlling the EMAC
      * @return                      NSAPI_ERROR_OK on success, or error code
      */
-    virtual nsapi_error_t remove_l3ip_interface(OnboardNetworkStack::Interface **interface_out);
+    nsapi_error_t remove_ethernet_interface(OnboardNetworkStack::Interface **interface_out) override;
 
     /** Remove a network interface from IP stack
      *
@@ -296,7 +311,15 @@ public:
      * @param[out] interface_out    pointer to stack interface object controlling the PPP
      * @return                      NSAPI_ERROR_OK on success, or error code
      */
-    virtual nsapi_error_t remove_ppp_interface(OnboardNetworkStack::Interface **interface_out);
+    nsapi_error_t remove_l3ip_interface(OnboardNetworkStack::Interface **interface_out) override;
+
+    /** Remove a network interface from IP stack
+     *
+     * Removes PPP objects,network interface from stack list, and shutdown device driver.
+     * @param[out] interface_out    pointer to stack interface object controlling the PPP
+     * @return                      NSAPI_ERROR_OK on success, or error code
+     */
+    nsapi_error_t remove_ppp_interface(OnboardNetworkStack::Interface **interface_out) override;
 
     /** Get a domain name server from a list of servers to query
      *
@@ -307,7 +330,7 @@ public:
      *  @param address  Destination for the host address
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t get_dns_server(int index, SocketAddress *address, const char *interface_name);
+    nsapi_error_t get_dns_server(int index, SocketAddress *address, const char *interface_name) override;
 
     /** Add a domain name server to list of servers to query
      *
@@ -315,21 +338,20 @@ public:
      *  @param interface_name  Network interface name
      *  @return         NSAPI_ERROR_OK on success, negative error code on failure
      */
-    virtual nsapi_error_t add_dns_server(const SocketAddress &address, const char *interface_name);
+    nsapi_error_t add_dns_server(const SocketAddress &address, const char *interface_name) override;
 
-    /** Get the local IP address
-     *
-     *  @return         Null-terminated representation of the local IP address
-     *                  or null if not yet connected
-     */
-    virtual const char *get_ip_address();
+    /** @copydoc NetworkStack::get_ip_address */
+    nsapi_error_t get_ip_address(SocketAddress *address) override;
+
+    /** @copydoc NetworkStack::get_ip_address_if */
+    nsapi_error_t get_ip_address_if(SocketAddress *address, const char *interface_name) override;
+
     /** Set the network interface as default one
       */
-    virtual void set_default_interface(OnboardNetworkStack::Interface *interface);
+    void set_default_interface(OnboardNetworkStack::Interface *interface) override;
 
 protected:
     LWIP();
-    virtual ~LWIP() {}
 
     /** Opens a socket
      *
@@ -343,7 +365,7 @@ protected:
      *  @param proto    Protocol of socket to open, NSAPI_TCP or NSAPI_UDP
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t socket_open(nsapi_socket_t *handle, nsapi_protocol_t proto);
+    nsapi_error_t socket_open(nsapi_socket_t *handle, nsapi_protocol_t proto) override;
 
     /** Close the socket
      *
@@ -353,7 +375,7 @@ protected:
      *  @param handle   Socket handle
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t socket_close(nsapi_socket_t handle);
+    nsapi_error_t socket_close(nsapi_socket_t handle) override;
 
     /** Bind a specific address to a socket
      *
@@ -364,7 +386,7 @@ protected:
      *  @param address  Local address to bind
      *  @return         0 on success, negative error code on failure.
      */
-    virtual nsapi_error_t socket_bind(nsapi_socket_t handle, const SocketAddress &address);
+    nsapi_error_t socket_bind(nsapi_socket_t handle, const SocketAddress &address) override;
 
     /** Listen for connections on a TCP socket
      *
@@ -376,7 +398,7 @@ protected:
      *                  simultaneously
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t socket_listen(nsapi_socket_t handle, int backlog);
+    nsapi_error_t socket_listen(nsapi_socket_t handle, int backlog) override;
 
     /** Connects TCP socket to a remote host
      *
@@ -387,7 +409,7 @@ protected:
      *  @param address  The SocketAddress of the remote host
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t socket_connect(nsapi_socket_t handle, const SocketAddress &address);
+    nsapi_error_t socket_connect(nsapi_socket_t handle, const SocketAddress &address) override;
 
     /** Accepts a connection on a TCP socket
      *
@@ -407,8 +429,8 @@ protected:
      *  @param address  Destination for the remote address or NULL
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t socket_accept(nsapi_socket_t server,
-                                        nsapi_socket_t *handle, SocketAddress *address = 0);
+    nsapi_error_t socket_accept(nsapi_socket_t server,
+                                nsapi_socket_t *handle, SocketAddress *address = 0) override;
 
     /** Send data over a TCP socket
      *
@@ -424,8 +446,8 @@ protected:
      *  @return         Number of sent bytes on success, negative error
      *                  code on failure
      */
-    virtual nsapi_size_or_error_t socket_send(nsapi_socket_t handle,
-                                              const void *data, nsapi_size_t size);
+    nsapi_size_or_error_t socket_send(nsapi_socket_t handle,
+                                      const void *data, nsapi_size_t size) override;
 
     /** Receive data over a TCP socket
      *
@@ -441,8 +463,8 @@ protected:
      *  @return         Number of received bytes on success, negative error
      *                  code on failure
      */
-    virtual nsapi_size_or_error_t socket_recv(nsapi_socket_t handle,
-                                              void *data, nsapi_size_t size);
+    nsapi_size_or_error_t socket_recv(nsapi_socket_t handle,
+                                      void *data, nsapi_size_t size) override;
 
     /** Send a packet over a UDP socket
      *
@@ -459,8 +481,8 @@ protected:
      *  @return         Number of sent bytes on success, negative error
      *                  code on failure
      */
-    virtual nsapi_size_or_error_t socket_sendto(nsapi_socket_t handle, const SocketAddress &address,
-                                                const void *data, nsapi_size_t size);
+    nsapi_size_or_error_t socket_sendto(nsapi_socket_t handle, const SocketAddress &address,
+                                        const void *data, nsapi_size_t size) override;
 
     /** Receive a packet over a UDP socket
      *
@@ -477,8 +499,8 @@ protected:
      *  @return         Number of received bytes on success, negative error
      *                  code on failure
      */
-    virtual nsapi_size_or_error_t socket_recvfrom(nsapi_socket_t handle, SocketAddress *address,
-                                                  void *buffer, nsapi_size_t size);
+    nsapi_size_or_error_t socket_recvfrom(nsapi_socket_t handle, SocketAddress *address,
+                                          void *buffer, nsapi_size_t size) override;
 
     /** Register a callback on state change of the socket
      *
@@ -493,7 +515,7 @@ protected:
      *  @param callback Function to call on state change
      *  @param data     Argument to pass to callback
      */
-    virtual void socket_attach(nsapi_socket_t handle, void (*callback)(void *), void *data);
+    void socket_attach(nsapi_socket_t handle, void (*callback)(void *), void *data) override;
 
     /*  Set stack-specific socket options
      *
@@ -508,8 +530,8 @@ protected:
      *  @param optlen   Length of the option value
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t setsockopt(nsapi_socket_t handle, int level,
-                                     int optname, const void *optval, unsigned optlen);
+    nsapi_error_t setsockopt(nsapi_socket_t handle, int level,
+                             int optname, const void *optval, unsigned optlen) override;
 
     /*  Get stack-specific socket options
      *
@@ -524,8 +546,8 @@ protected:
      *  @param optlen   Length of the option value
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t getsockopt(nsapi_socket_t handle, int level,
-                                     int optname, void *optval, unsigned *optlen);
+    nsapi_error_t getsockopt(nsapi_socket_t handle, int level,
+                             int optname, void *optval, unsigned *optlen) override;
 private:
 
     /** Call in callback
@@ -546,7 +568,7 @@ private:
      *
      *  @return         Call in callback
      */
-    virtual call_in_callback_cb_t get_call_in_callback();
+    call_in_callback_cb_t get_call_in_callback() override;
 
     /** Call a callback after a delay
      *
@@ -557,7 +579,7 @@ private:
      *  @param func     Callback to be called
      *  @return         0 on success, negative error code on failure
      */
-    virtual nsapi_error_t call_in(int delay, mbed::Callback<void()> func);
+    nsapi_error_t call_in(int delay, mbed::Callback<void()> func) override;
 
     struct mbed_lwip_socket {
         bool in_use;

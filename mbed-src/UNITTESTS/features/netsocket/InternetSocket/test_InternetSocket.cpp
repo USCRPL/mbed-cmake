@@ -125,26 +125,26 @@ TEST_F(TestInternetSocket, open_null_stack)
 TEST_F(TestInternetSocket, open_error)
 {
     stack.return_value = NSAPI_ERROR_PARAMETER;
-    EXPECT_EQ(socket->open((NetworkStack *)&stack), NSAPI_ERROR_PARAMETER);
+    EXPECT_EQ(socket->open(&stack), NSAPI_ERROR_PARAMETER);
 }
 
 TEST_F(TestInternetSocket, open)
 {
     stack.return_value = NSAPI_ERROR_OK;
-    EXPECT_EQ(socket->open((NetworkStack *)&stack), NSAPI_ERROR_OK);
+    EXPECT_EQ(socket->open(&stack), NSAPI_ERROR_OK);
 }
 
 TEST_F(TestInternetSocket, open_twice)
 {
     stack.return_value = NSAPI_ERROR_OK;
-    EXPECT_EQ(socket->open((NetworkStack *)&stack), NSAPI_ERROR_OK);
-    EXPECT_EQ(socket->open((NetworkStack *)&stack), NSAPI_ERROR_PARAMETER);
+    EXPECT_EQ(socket->open(&stack), NSAPI_ERROR_OK);
+    EXPECT_EQ(socket->open(&stack), NSAPI_ERROR_PARAMETER);
 }
 
 TEST_F(TestInternetSocket, close)
 {
     stack.return_value = NSAPI_ERROR_OK;
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     EXPECT_EQ(socket->close(), NSAPI_ERROR_OK);
 }
 
@@ -157,7 +157,7 @@ TEST_F(TestInternetSocket, close_no_open)
 TEST_F(TestInternetSocket, close_during_read)
 {
     stack.return_value = NSAPI_ERROR_OK;
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     // Simulate the blocking behavior by adding a reader.
     socket->add_reader();
     // The reader will be removed after we attempt to close the socket.
@@ -180,9 +180,21 @@ TEST_F(TestInternetSocket, modify_multicast_group)
 {
     SocketAddress a("127.0.0.1", 1024);
     stack.return_value = NSAPI_ERROR_OK;
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     EXPECT_EQ(socket->join_multicast_group(a), NSAPI_ERROR_UNSUPPORTED);
     EXPECT_EQ(socket->leave_multicast_group(a), NSAPI_ERROR_UNSUPPORTED);
+}
+
+TEST_F(TestInternetSocket, network_property)
+{
+    SocketAddress a("fd00:db8::ff", 1024);
+    uint32_t rtt_estimate;
+    uint16_t stagger_min, stagger_max, stagger_rand;
+    stack.return_value = NSAPI_ERROR_OK;
+    socket->open(&stack);
+    EXPECT_EQ(socket->get_rtt_estimate_to_address(a, &rtt_estimate), NSAPI_ERROR_UNSUPPORTED);
+    EXPECT_EQ(socket->get_rtt_estimate_to_address(a, NULL), NSAPI_ERROR_PARAMETER);
+    EXPECT_EQ(socket->get_stagger_estimate_to_address(a, 1, &stagger_min, &stagger_max, &stagger_rand), NSAPI_ERROR_UNSUPPORTED);
 }
 
 // set_blocking and set_timeout are tested within TCPSocket.
@@ -194,7 +206,7 @@ TEST_F(TestInternetSocket, bind_no_socket)
 
 TEST_F(TestInternetSocket, bind)
 {
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     SocketAddress a("127.0.0.1", 80);
     EXPECT_EQ(socket->bind(a), NSAPI_ERROR_OK);
 }
@@ -208,7 +220,7 @@ TEST_F(TestInternetSocket, setsockopt_no_stack)
 
 TEST_F(TestInternetSocket, setsockopt)
 {
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     EXPECT_EQ(socket->setsockopt(0, 0, 0, 0), NSAPI_ERROR_UNSUPPORTED);
 }
 
@@ -219,14 +231,14 @@ TEST_F(TestInternetSocket, getsockopt_no_stack)
 
 TEST_F(TestInternetSocket, getsockopt)
 {
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     EXPECT_EQ(socket->getsockopt(0, 0, 0, 0), NSAPI_ERROR_UNSUPPORTED);
 }
 
 TEST_F(TestInternetSocket, sigio)
 {
     callback_is_called = false;
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     socket->sigio(mbed::callback(my_callback));
     socket->close(); // Trigger event;
     EXPECT_EQ(callback_is_called, true);
@@ -241,7 +253,7 @@ TEST_F(TestInternetSocket, getpeername)
 
     EXPECT_EQ(socket->getpeername(&peer), NSAPI_ERROR_NO_SOCKET);
 
-    socket->open((NetworkStack *)&stack);
+    socket->open(&stack);
     socket->connect(zero);
 
     EXPECT_EQ(socket->getpeername(&peer), NSAPI_ERROR_NO_CONNECTION);

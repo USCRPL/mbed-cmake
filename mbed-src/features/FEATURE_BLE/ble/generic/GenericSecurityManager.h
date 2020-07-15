@@ -101,7 +101,7 @@ public:
     ble_error_t purgeAllBondingState_();
 
     ble_error_t generateWhitelistFromBondTable_(
-        ::Gap::Whitelist_t *whitelist
+        ::ble::whitelist_t *whitelist
     ) const;
 
     ////////////////////////////////////////////////////////////////////////////
@@ -122,6 +122,10 @@ public:
 
     ble_error_t setPairingRequestAuthorisation_(
         bool required = true
+    );
+
+    ble_error_t getPeerIdentity_(
+        connection_handle_t connection
     );
 
     ////////////////////////////////////////////////////////////////////////////
@@ -322,6 +326,13 @@ private:
     ble_error_t init_signing();
 
     /**
+     * Generate the IRK if needed.
+     *
+     * @return BLE_ERROR_NONE or appropriate error code indicating the failure reason.
+     */
+    ble_error_t init_identity();
+
+    /**
      * Fills the buffer with the specified number of bytes of random data
      * produced by the link controller
      *
@@ -431,12 +442,11 @@ private:
      */
     void on_connected_(
         connection_handle_t connection,
-        ::Gap::Role_t role,
+        connection_role_t role,
         peer_address_type_t peer_address_type,
-        const BLEProtocol::AddressBytes_t peer_address,
-        BLEProtocol::AddressType_t local_address_type,
-        const BLEProtocol::AddressBytes_t local_address,
-        const ::Gap::ConnectionParams_t *connection_params
+        address_t peer_address,
+        own_address_type_t local_address_type,
+        address_t local_address
     );
 
     /**
@@ -448,7 +458,7 @@ private:
      */
     void on_disconnected_(
         connection_handle_t connection,
-        ::Gap::DisconnectionReason_t reason
+        disconnection_reason_t reason
     );
 
     /**

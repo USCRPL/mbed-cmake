@@ -19,6 +19,13 @@ endmacro()
 
 use_cxx14()
 
+
+if (MINGW)
+  # enable PRIx formatting globally
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__STDC_FORMAT_MACROS")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STDC_FORMAT_MACROS")
+endif (MINGW)
+
 ####################
 # GTEST
 ####################
@@ -82,6 +89,10 @@ if (COVERAGE)
 
 endif(COVERAGE)
 
+if (VALGRIND)
+  find_program(MEMORYCHECK_COMMAND valgrind)
+endif(VALGRIND)
+
 ####################
 # UNIT TESTS
 ####################
@@ -133,7 +144,7 @@ set(unittest-includes-base
   "${PROJECT_SOURCE_DIR}/../features/lorawan/system"
   "${PROJECT_SOURCE_DIR}/../features/mbedtls"
   "${PROJECT_SOURCE_DIR}/../features/mbedtls/inc"
-  "${PROJECT_SOURCE_DIR}/../features/mbedtls/mbed-crypto/inc"
+  "${PROJECT_SOURCE_DIR}/../features/storage/kvstore/conf"
 )
 
 # Create a list for test suites.
@@ -158,6 +169,7 @@ foreach(testfile ${unittest-file-list})
   set(unittest-includes ${unittest-includes-base})
   set(unittest-sources)
   set(unittest-test-sources)
+  set(unittest-test-flags)
 
   # Get source files
   include("${testfile}")
@@ -184,6 +196,8 @@ foreach(testfile ${unittest-file-list})
     add_library("${TEST_SUITE_NAME}.${LIB_NAME}" STATIC ${unittest-sources})
     target_include_directories("${TEST_SUITE_NAME}.${LIB_NAME}" PRIVATE
       ${unittest-includes})
+    target_compile_options("${TEST_SUITE_NAME}.${LIB_NAME}" PRIVATE
+      ${unittest-test-flags})
     set(LIBS_TO_BE_LINKED ${LIBS_TO_BE_LINKED} "${TEST_SUITE_NAME}.${LIB_NAME}")
 
     # Append lib build directory to list
@@ -193,8 +207,11 @@ foreach(testfile ${unittest-file-list})
   if (unittest-test-sources)
     # Create the executable.
     add_executable(${TEST_SUITE_NAME} ${unittest-test-sources})
+
     target_include_directories(${TEST_SUITE_NAME} PRIVATE
       ${unittest-includes})
+    target_compile_options(${TEST_SUITE_NAME} PRIVATE
+      ${unittest-test-flags})
 
     # Link the executable with the libraries.
     target_link_libraries(${TEST_SUITE_NAME} ${LIBS_TO_BE_LINKED})

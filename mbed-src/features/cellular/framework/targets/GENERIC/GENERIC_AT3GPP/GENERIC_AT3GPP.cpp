@@ -21,7 +21,7 @@
 using namespace mbed;
 
 // by default all properties are supported
-static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
+static const intptr_t cellular_properties[AT_CellularDevice::PROPERTY_MAX] = {
     AT_CellularNetwork::RegistrationModeLAC,    // C_EREG
     AT_CellularNetwork::RegistrationModeLAC,    // C_GREG
     AT_CellularNetwork::RegistrationModeLAC,    // C_REG
@@ -37,18 +37,23 @@ static const intptr_t cellular_properties[AT_CellularBase::PROPERTY_MAX] = {
     1,  // PROPERTY_IPV4V6_STACK
     0,  // PROPERTY_NON_IP_PDP_TYPE
     1,  // PROPERTY_AT_CGEREP
+    1,  // PROPERTY_AT_COPS_FALLBACK_AUTO
+    0,  // PROPERTY_SOCKET_COUNT
+    0,  // PROPERTY_IP_TCP
+    0,  // PROPERTY_IP_UDP
+    0,  // PROPERTY_AT_SEND_DELAY
 };
 
 GENERIC_AT3GPP::GENERIC_AT3GPP(FileHandle *fh) : AT_CellularDevice(fh)
 {
-    AT_CellularBase::set_cellular_properties(cellular_properties);
+    set_cellular_properties(cellular_properties);
 }
 
 #if MBED_CONF_GENERIC_AT3GPP_PROVIDE_DEFAULT
-#include "UARTSerial.h"
+#include "drivers/BufferedSerial.h"
 CellularDevice *CellularDevice::get_default_instance()
 {
-    static UARTSerial serial(MBED_CONF_GENERIC_AT3GPP_TX, MBED_CONF_GENERIC_AT3GPP_RX, MBED_CONF_GENERIC_AT3GPP_BAUDRATE);
+    static BufferedSerial serial(MBED_CONF_GENERIC_AT3GPP_TX, MBED_CONF_GENERIC_AT3GPP_RX, MBED_CONF_GENERIC_AT3GPP_BAUDRATE);
 #if defined (MBED_CONF_GENERIC_AT3GPP_RTS) && defined(MBED_CONF_GENERIC_AT3GPP_CTS)
     tr_debug("GENERIC_AT3GPP flow control: RTS %d CTS %d", MBED_CONF_GENERIC_AT3GPP_RTS, MBED_CONF_GENERIC_AT3GPP_CTS);
     serial.set_flow_control(SerialBase::RTSCTS, MBED_CONF_GENERIC_AT3GPP_RTS, MBED_CONF_GENERIC_AT3GPP_CTS);

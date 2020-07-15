@@ -3,14 +3,14 @@
 
 <!--****************************************************************************
 * \file seglcd.cypersonality
-* \version 1.1
+* \version 1.1.1
 *
 * \brief
 * LCD personality description file.
 *
 ********************************************************************************
 * \copyright
-* Copyright 2019 Cypress Semiconductor Corporation
+* Copyright 2019-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,8 +31,9 @@
     <IpBlock name="mxlcd,mxlcd_ver2" />
     <Resource name="lcd\.drive" used="true" />
   </Dependencies>
-  <ExposedMembers />
-
+  <ExposedMembers>
+    <ExposedMember key="configured" paramId="configured" />
+  </ExposedMembers>
   <Parameters>
     <!-- PDL documentation -->
     <ParamDoc id="pdlDoc" name="Configuration Help" group="Peripheral Documentation" default="file:///`${cy_libs_path()}`/docs/pdl_api_reference_manual/html/group__group__seglcd.html" linkText="Open SegLCD Documentation" visible="true" desc="Opens the Peripheral Driver Library Documentation" />
@@ -49,20 +50,20 @@
       <Arg value="`${&quot;--config=&quot; . cfgFilePath}`" />
       <Arg value="`${&quot;--output-dir=&quot; . cy_codegen_path()}`" />
       <Arg value="`${&quot;--design=&quot; . cy_design_file()}`" />
-      <Arg value="`${&quot;--name=&quot; . INST_NAME}`" />
+      <Arg value="`${&quot;-n=&quot; . INST_NAME}`" />
     </ParamCustom>
     
     <ParamChoice id="speed" name="Speed Mode" group="General" default="CY_SEGLCD_SPEED_LOW" visible="true" editable="true" desc="The Speed Mode: Low Speed or High Speed.">
       <Entry name="Low Speed" value="CY_SEGLCD_SPEED_LOW" visible="true" />
       <Entry name="High Speed" value="CY_SEGLCD_SPEED_HIGH" visible="true" />
     </ParamChoice>
-    
+    <ParamBool id="speedLow" name="speedLow" group="Internal" default="`${speed eq CY_SEGLCD_SPEED_LOW}`" visible="false" editable="false" desc="" />
     <ParamSignal port="clock[0]" name="Clock" group="General" visible="true" desc="High speed clock source" canBeEmpty="`${speed eq CY_SEGLCD_SPEED_LOW}`" />
     
     <ParamBool id="ipver1" name="IP Version 1" group="Internal" default="`${1 eq getVersion()}`" visible="false" editable="false" desc="" />
     <ParamBool id="ipver2" name="IP Version 2" group="Internal" default="`${2 eq getVersion()}`" visible="false" editable="false" desc="" />
     
-    <ParamChoice id="lsClk" name="Low Speed Clock Input" group="General" default="CY_SEGLCD_LSCLK_LF" visible="`${(speed eq CY_SEGLCD_SPEED_LOW) &amp;&amp; ipver2}`" editable="true" desc="The Low Speed Clock Source selection.">
+    <ParamChoice id="lsClk" name="Low Speed Clock Input" group="General" default="CY_SEGLCD_LSCLK_LF" visible="`${speedLow &amp;&amp; ipver2}`" editable="true" desc="The Low Speed Clock Source selection.">
       <Entry name="Low Frequency"    value="CY_SEGLCD_LSCLK_LF" visible="true" />
       <Entry name="Medium Frequency" value="CY_SEGLCD_LSCLK_MF" visible="true" />
     </ParamChoice>
@@ -114,6 +115,7 @@
               <Fixed value="CY_GPIO_DRIVE_1_8" />
             </Parameter>
           </Constraint>
+          <Constraint type="ACCEPT" targetLocation=".*" valid="true" />
         </ParamSignal>
     </Repeat>
 
@@ -127,25 +129,27 @@
               <Fixed value="CY_GPIO_DRIVE_1_8" />
             </Parameter>
           </Constraint>
+          <Constraint type="ACCEPT" targetLocation=".*" valid="true" />
         </ParamSignal>
     </Repeat>
 
-    <ParamString id="clkLf" name="clkLs" group="Internal" default="srss[0].clock[0].ilo[0]" visible="false" editable="false" desc="" />
+    <ParamString id="clkLf" name="clkLf" group="Internal" default="srss[0].clock[0].lfclk[0]" visible="false" editable="false" desc="" />
     <ParamString id="clkMf" name="clkMf" group="Internal" default="srss[0].clock[0].mfclk[0]" visible="false" editable="false" desc="" />
     <ParamString id="clkHsRsc" name="clkHsRsc" group="Internal" default="`${getBlockFromSignal(&quot;clock[0]&quot;)}`" visible="false" editable="false" desc="" />
     <ParamString id="clkLsRsc" name="clkLsRsc" group="Internal" default="`${(lsClk eq CY_SEGLCD_LSCLK_MF) ? clkMf : clkLf}`" visible="false" editable="false" desc="" />
     <ParamBool id="clkHsOk" name="clkHsOk" group="Internal" default="`${hasConnection(&quot;clock&quot;, 0) &amp;&amp; isBlockUsed(clkHsRsc)}`" visible="false" editable="false" desc="" />
     <ParamBool id="clkLsOk" name="clkLsOk" group="Internal" default="`${isBlockUsed(clkLsRsc)}`" visible="false" editable="false" desc="" />
+    <ParamBool id="clkOk" name="clkOk" group="Internal" default="`${speedLow ? clkLsOk : clkHsOk}`" visible="false" editable="false" desc="" />
     <ParamRange  id="frqHs" name="frqHs" group="Internal" default="`${(clkHsOk) ? getExposedMember(clkHsRsc, &quot;frequency&quot;) : 0}`" min="0" max="200000000" resolution="1" visible="false" editable="false" desc="" />
     <ParamRange  id="frqLs" name="frqLs" group="Internal" default="`${(clkLsOk) ? getExposedMember(clkLsRsc, &quot;frequency&quot;) : 0}`" min="0" max="200000000" resolution="1" visible="false" editable="false" desc="" />
     <ParamString id="accHs" name="AccHs" group="Internal" default="`${(clkHsOk) ? getExposedMember(clkHsRsc, &quot;accuracy&quot;) : 0}`" visible="false" editable="false" desc="" />
     <ParamString id="accLs" name="AccLs" group="Internal" default="`${(clkLsOk) ? getExposedMember(clkLsRsc, &quot;accuracy&quot;) : 0}`" visible="false" editable="false" desc="" />
-    <ParamRange  id="frequency" name="frequency" group="Internal" default="`${(speed eq CY_SEGLCD_SPEED_LOW) ? frqLs : frqHs}`" min="0" max="200000000" resolution="1" visible="false" editable="false" desc="" />
-    <ParamString id="accuracy"  name="accuracy"  group="Internal" default="`${(speed eq CY_SEGLCD_SPEED_LOW) ? accLs : accHs}`" visible="false" editable="false" desc="" />
+    <ParamRange  id="frequency" name="frequency" group="Internal" default="`${speedLow ? frqLs : frqHs}`" min="0" max="200000000" resolution="1" visible="false" editable="false" desc="" />
+    <ParamString id="accuracy"  name="accuracy"  group="Internal" default="`${speedLow ? accLs : accHs}`" visible="false" editable="false" desc="" />
     <ParamString id="frequencyInfo" name="Clock Frequency" group="General" default="`${formatFrequency(frequency,accuracy)}`" visible="true" editable="false" desc="The input clocking frequency" />
     <ParamRange id="instance" name="instance" group="Internal" default="`${getInstNumber(&quot;lcd&quot;)}`" min="0" max="10" resolution="1" visible="false" editable="false" desc="" />
-    <ParamRange id="subfrDiv" name="Sub-Frame Divider" group="General" default="`${configured ? ((frequency / (frRate * 4.0 * comNum) - 1.0) * contrast / 100.0) : 0}`" min="0" max="1000000000" resolution="1" visible="true" editable="false" desc="The LCD signal generator divider for sub-frame timing generation, depends on the number of common lines, input clocking frequency and the desired contrast and frame rate" />
-    <ParamRange id="deadDiv" name="Dead Divider" group="General" default="`${configured ? ((frequency / frRate) * (1.0 - (contrast / 100.0))) : 0}`" min="0" max="1000000000" resolution="1" visible="true" editable="false" desc="The LCD signal generator divider for dead time period generation, depends on the input clocking frequency and the desired contrast and frame rate" />
+    <ParamRange id="subfrDiv" name="Sub-Frame Divider" group="General" default="`${clkOk &amp;&amp; configured ? ((frequency / (frRate * 4.0 * comNum) - 1.0) * contrast / 100.0) : 0}`" min="0" max="1000000000" resolution="1" visible="true" editable="false" desc="The LCD signal generator divider for sub-frame timing generation, depends on the number of common lines, input clocking frequency and the desired contrast and frame rate" />
+    <ParamRange id="deadDiv" name="Dead Divider" group="General" default="`${clkOk &amp;&amp; configured ? ((frequency / frRate) * (1.0 - (contrast / 100.0))) : 0}`" min="0" max="1000000000" resolution="1" visible="true" editable="false" desc="The LCD signal generator divider for dead time period generation, depends on the input clocking frequency and the desired contrast and frame rate" />
 
     <ParamBool id="inFlash" name="Store Config in Flash" group="Advanced" default="true" visible="true" editable="true" desc="Controls whether the configuration structure is stored in flash (const, true) or SRAM (not const, false)." />
   </Parameters>
@@ -153,21 +157,20 @@
     <DRC type="ERROR" text="The Sub-Frame Divider should not exceed 16-bit in High Speed Mode, please decrease the input clock frequency or increase the contrast or frame rate or number of common lines using SegLCD Configurator" condition="`${(subfrDiv &gt; 65535) &amp;&amp; ((speed eq CY_SEGLCD_SPEED_HIGH) || ipver2)}`" />
     <DRC type="ERROR" text="The Dead Divider should not exceed 16-bit in High Speed Mode, please decrease the contrast or input clock frequency or increase the frame rate" condition="`${(deadDiv &gt; 65535) &amp;&amp; ((speed eq CY_SEGLCD_SPEED_HIGH) || ipver2)}`" />
     
-    <DRC type="ERROR" text="The Sub-Frame Divider should not exceed 8-bit in Low Speed Mode, please decrease the input clock frequency or increase the contrast or frame rate or number of common lines using SegLCD Configurator" condition="`${(subfrDiv &gt; 255) &amp;&amp; (speed eq CY_SEGLCD_SPEED_LOW) &amp;&amp; ipver1}`" />
-    <DRC type="ERROR" text="The Dead Divider should not exceed 8-bit in Low Speed Mode, please decrease the contrast or input clock frequency or increase the frame rate" condition="`${(deadDiv &gt; 255) &amp;&amp; (speed eq CY_SEGLCD_SPEED_LOW) &amp;&amp; ipver1}`" />
+    <DRC type="ERROR" text="The Sub-Frame Divider should not exceed 8-bit in Low Speed Mode, please decrease the input clock frequency or increase the contrast or frame rate or number of common lines using SegLCD Configurator" condition="`${(subfrDiv &gt; 255) &amp;&amp; speedLow &amp;&amp; ipver1}`" />
+    <DRC type="ERROR" text="The Dead Divider should not exceed 8-bit in Low Speed Mode, please decrease the contrast or input clock frequency or increase the frame rate" condition="`${(deadDiv &gt; 255) &amp;&amp; speedLow &amp;&amp; ipver1}`" />
     
-    <DRC type="ERROR" text="The Low Frequency Clock Source (typically ILO) should be enabled" condition="`${(speed eq CY_SEGLCD_SPEED_LOW) &amp;&amp; (lsClk eq CY_SEGLCD_LSCLK_LF) &amp;&amp; !isBlockUsed(clkLf)}`" />
-    <DRC type="ERROR" text="The Meduim Frequency Clock Source (typically CLK_MF) should be enabled" condition="`${(speed eq CY_SEGLCD_SPEED_LOW) &amp;&amp; (lsClk eq CY_SEGLCD_LSCLK_MF) &amp;&amp; !isBlockUsed(clkMf)}`" />
+    <DRC type="ERROR" text="The Low Frequency Clock Source (CLK_LF) should be enabled" condition="`${speedLow &amp;&amp; (lsClk eq CY_SEGLCD_LSCLK_LF) &amp;&amp; !isBlockUsed(clkLf)}`" />
+    <DRC type="ERROR" text="The Meduim Frequency Clock Source (typically CLK_MF) should be enabled" condition="`${speedLow &amp;&amp; (lsClk eq CY_SEGLCD_LSCLK_MF) &amp;&amp; !isBlockUsed(clkMf)}`" />
     
     <DRC type="INFO" text="Launch the SegLCD Configurator to configure your displays" condition="`${!configured}`" />
   </DRCs>
   <ConfigFirmware>
     <!-- External tools -->
-    <ConfigTool value="`${cy_tools_path(&quot;seglcd-configurator&quot;) . &quot;/seglcd-configurator&quot;}`" include="true">
+    <ConfigTool value="`${cy_tools_path(&quot;seglcd-configurator&quot;) . &quot;/seglcd-configurator-cli&quot;}`" include="`${configured}`">
       <Arg value="`${&quot;--config=&quot; . cfgFilePath}`" />
       <Arg value="`${&quot;--output-dir=&quot; . cy_codegen_path()}`" />
-      <Arg value="`${&quot;--name=&quot; . INST_NAME}`" />
-      <Arg value="`${&quot;--generate&quot;}`" />
+      <Arg value="`${&quot;-n=&quot; . INST_NAME}`" />
     </ConfigTool>
     
     <ConfigInclude value="cy_seglcd.h" include="true" />

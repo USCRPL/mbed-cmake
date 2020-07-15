@@ -22,12 +22,6 @@
 #include "CellularCommon.h"
 #include "PlatformMutex.h"
 
-#ifdef MBED_CONF_RTOS_PRESENT
-namespace rtos {
-class Thread;
-}
-#endif
-
 namespace mbed {
 
 class CellularDevice;
@@ -37,11 +31,9 @@ class CellularDevice;
  *  Finite State Machine for attaching to cellular network. Used by CellularDevice.
  */
 class CellularStateMachine {
-private:
-    // friend of CellularDevice so that it's the only way to close/delete this class.
-    friend class CellularDevice;
-    friend class AT_CellularDevice;
+public:
     friend class UT_CellularStateMachine; // for unit tests
+
     /** Constructor
      *
      * @param device    reference to CellularDevice
@@ -134,8 +126,21 @@ private:
     /** Reset the state machine to init state. After reset state machine can be used again to run to wanted state.
      */
     void reset();
-private:
+
+    /** Get retry timeout array
+     *
+     * @param timeout   Pointer to timeout array
+     * @param array_len Max lenght of the array
+     */
     void get_retry_timeout_array(uint16_t *timeout, int &array_len) const;
+
+    /** Change all cellular state timeouts
+     *
+     * @param timeout Timeout value (milliseconds)
+     */
+    void set_timeout(std::chrono::duration<int, std::milli> timeout);
+
+private:
     bool power_on();
     bool open_sim();
     bool get_network_registration(CellularNetwork::RegistrationType type, CellularNetwork::RegistrationStatus &status, bool &is_registered);
@@ -159,14 +164,9 @@ private:
     void pre_event(CellularState state);
     bool check_is_target_reached();
     void send_event_cb(cellular_connection_status_t status);
-    void change_timeout(const int &timeout);
+    void change_timeout(const std::chrono::duration<int, std::milli> &timeout);
 
 private:
-
-#ifdef MBED_CONF_RTOS_PRESENT
-    rtos::Thread *_queue_thread;
-#endif
-
     CellularDevice &_cellularDevice;
     CellularState _state;
     CellularState _next_state;
@@ -179,10 +179,10 @@ private:
 
     const char *_sim_pin;
     int _retry_count;
-    int _start_time;
-    int _event_timeout;
+    std::chrono::duration<int> _start_time;
+    std::chrono::duration<int> _event_timeout;
 
-    uint16_t _retry_timeout_array[CELLULAR_RETRY_ARRAY_SIZE];
+    std::chrono::duration<uint16_t> _retry_timeout_array[CELLULAR_RETRY_ARRAY_SIZE];
     int _retry_array_length;
     int _event_id;
     const char *_plmn;
@@ -194,13 +194,12 @@ private:
     PlatformMutex _mutex;
 
     // Cellular state timeouts
-    int _state_timeout_power_on;
-    int _state_timeout_sim_pin;
-    int _state_timeout_registration;
-    int _state_timeout_network;
-    int _state_timeout_connect; // timeout for PS attach, PDN connect and socket operations
-    // Change all cellular state timeouts to `timeout`
-    void set_timeout(int timeout);
+    std::chrono::duration<int, std::milli> _state_timeout_power_on;
+    std::chrono::duration<int, std::milli> _state_timeout_sim_pin;
+    std::chrono::duration<int, std::milli> _state_timeout_registration;
+    std::chrono::duration<int, std::milli> _state_timeout_network;
+    std::chrono::duration<int, std::milli> _state_timeout_connect; // timeout for PS attach, PDN connect and socket operations
+
     cell_signal_quality_t _signal_quality;
 };
 

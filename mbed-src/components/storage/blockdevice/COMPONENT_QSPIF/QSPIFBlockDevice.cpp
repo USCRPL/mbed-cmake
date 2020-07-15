@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2018 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,8 @@
  * limitations under the License.
  */
 
+#include "drivers/internal/SFDP.h"
+#include "platform/Callback.h"
 #include "QSPIFBlockDevice.h"
 #include <string.h>
 #include "rtos/ThisThread.h"
@@ -25,11 +28,11 @@
 #include "mbed_trace.h"
 #define TRACE_GROUP "QSPIF"
 
+using namespace std::chrono;
 using namespace mbed;
 
 /* Default QSPIF Parameters */
 /****************************/
-#define QSPIF_DEFAULT_PAGE_SIZE  256
 #define QSPIF_DEFAULT_SE_SIZE    4096
 // The SFDP spec only defines two status registers. But some devices,
 // have three "status-like" registers (one status, two config)
@@ -48,12 +51,9 @@ using namespace mbed;
 /* SFDP Header Parsing */
 /***********************/
 #define QSPIF_RSFDP_DUMMY_CYCLES 8
-#define QSPIF_SFDP_HEADER_SIZE 8
-#define QSPIF_PARAM_HEADER_SIZE 8
 
 /* Basic Parameters Table Parsing */
 /**********************************/
-#define SFDP_DEFAULT_BASIC_PARAMS_TABLE_SIZE_BYTES 64 /* 16 DWORDS */
 //READ Instruction support according to BUS Configuration
 #define QSPIF_BASIC_PARAM_TABLE_FAST_READ_SUPPORT_BYTE 2
 #define QSPIF_BASIC_PARAM_TABLE_QPI_READ_SUPPORT_BYTE 16
@@ -63,20 +63,9 @@ using namespace mbed;
 #define QSPIF_BASIC_PARAM_TABLE_222_READ_INST_BYTE 23
 #define QSPIF_BASIC_PARAM_TABLE_122_READ_INST_BYTE 15
 #define QSPIF_BASIC_PARAM_TABLE_112_READ_INST_BYTE 13
-#define QSPIF_BASIC_PARAM_TABLE_PAGE_SIZE_BYTE 40
 // Quad Enable Params
 #define QSPIF_BASIC_PARAM_TABLE_QER_BYTE 58
 #define QSPIF_BASIC_PARAM_TABLE_444_MODE_EN_SEQ_BYTE 56
-// Erase Types Params
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_1_BYTE 29
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_2_BYTE 31
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_3_BYTE 33
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_4_BYTE 35
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_1_SIZE_BYTE 28
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_2_SIZE_BYTE 30
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_3_SIZE_BYTE 32
-#define QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_4_SIZE_BYTE 34
-#define QSPIF_BASIC_PARAM_4K_ERASE_TYPE_BYTE 1
 
 #define QSPIF_BASIC_PARAM_TABLE_SOFT_RESET_BYTE 61
 #define QSPIF_BASIC_PARAM_TABLE_4BYTE_ADDR_BYTE 63
@@ -84,11 +73,6 @@ using namespace mbed;
 #define SOFT_RESET_RESET_INST_BITMASK            0b001000
 #define SOFT_RESET_ENABLE_AND_RESET_INST_BITMASK 0b010000
 
-// Erase Types Per Region BitMask
-#define ERASE_BITMASK_TYPE4 0x08
-#define ERASE_BITMASK_TYPE1 0x01
-#define ERASE_BITMASK_NONE  0x00
-#define ERASE_BITMASK_ALL   0x0F
 
 // 4-Byte Addressing Support Bitmasks
 #define FOURBYTE_ADDR_B7_BITMASK           0b00000001
@@ -117,7 +101,7 @@ using namespace mbed;
 
 // Default read/legacy erase instructions
 #define QSPIF_INST_READ_DEFAULT          0x03
-#define QSPIF_INST_LEGACY_ERASE_DEFAULT  QSPI_NO_INST
+#define QSPIF_INST_LEGACY_ERASE_DEFAULT  (-1)
 
 // Default status register 2 read/write instructions
 #define QSPIF_INST_WSR2_DEFAULT    QSPI_NO_INST
@@ -142,10 +126,12 @@ PinName *QSPIFBlockDevice::_active_qspif_flash_csel_arr = generate_initialized_a
 /********* Public API Functions *********/
 /****************************************/
 QSPIFBlockDevice::QSPIFBlockDevice(PinName io0, PinName io1, PinName io2, PinName io3, PinName sclk, PinName csel,
-                                   int clock_mode, int freq)
-    : _qspi(io0, io1, io2, io3, sclk, csel, clock_mode), _csel(csel), _freq(freq), _device_size_bytes(0),
-      _init_ref_count(0),
-      _is_initialized(false)
+                                   int clock_mode,
+                                   int freq)
+    :
+    _qspi(io0, io1, io2, io3, sclk, csel, clock_mode), _csel(csel), _freq(freq),
+    _init_ref_count(0),
+    _is_initialized(false)
 {
     _unique_device_status = add_new_csel_instance(csel);
 
@@ -158,9 +144,11 @@ QSPIFBlockDevice::QSPIFBlockDevice(PinName io0, PinName io1, PinName io2, PinNam
     }
 
     // Initialize parameters
-    _min_common_erase_size = 0;
-    _regions_count = 1;
-    _region_erase_types_bitfield[0] = ERASE_BITMASK_NONE;
+    _sfdp_info.bptbl.legacy_erase_instruction = QSPIF_INST_LEGACY_ERASE_DEFAULT;
+    _sfdp_info.bptbl.device_size_bytes = 0;
+    _sfdp_info.smptbl.regions_min_common_erase_size = 0;
+    _sfdp_info.smptbl.region_cnt = 1;
+    _sfdp_info.smptbl.region_erase_types_bitfld[0] = SFDP_ERASE_BITMASK_NONE;
 
     // Until proven otherwise, assume no quad enable
     _quad_enable_register_idx = QSPIF_NO_QUAD_ENABLE;
@@ -177,7 +165,6 @@ QSPIFBlockDevice::QSPIFBlockDevice(PinName io0, PinName io1, PinName io2, PinNam
 
     // Set default read/erase instructions
     _read_instruction = QSPIF_INST_READ_DEFAULT;
-    _legacy_erase_instruction = QSPIF_INST_LEGACY_ERASE_DEFAULT;
 
     _num_status_registers = QSPI_DEFAULT_STATUS_REGISTERS;
     // Set default status register 2 write/read instructions
@@ -193,6 +180,8 @@ QSPIFBlockDevice::QSPIFBlockDevice(PinName io0, PinName io1, PinName io2, PinNam
 
 int QSPIFBlockDevice::init()
 {
+    int status = QSPIF_BD_ERROR_OK;
+
     if (_unique_device_status == 0) {
         tr_debug("QSPIFBlockDevice csel: %d", (int)_csel);
     } else if (_unique_device_status == -1) {
@@ -202,12 +191,6 @@ int QSPIFBlockDevice::init()
         tr_error("Too many different QSPIFBlockDevice devices - max allowed: %d", QSPIF_MAX_ACTIVE_FLASH_DEVICES);
         return QSPIF_BD_ERROR_DEVICE_MAX_EXCEED;
     }
-
-    int status = QSPIF_BD_ERROR_OK;
-    uint32_t basic_table_addr = 0;
-    size_t basic_table_size = 0;
-    uint32_t sector_map_table_addr = 0;
-    size_t sector_map_table_size = 0;
 
     _mutex.lock();
 
@@ -244,35 +227,33 @@ int QSPIFBlockDevice::init()
         goto exit_point;
     }
 
-    if (0 != _handle_vendor_quirks()) {
+    if (_handle_vendor_quirks() < 0) {
         tr_error("Init - Could not read vendor id");
         status = QSPIF_BD_ERROR_DEVICE_ERROR;
         goto exit_point;
     }
 
-    /**************************** Parse SFDP Header ***********************************/
-    if (0 != _sfdp_parse_sfdp_headers(basic_table_addr, basic_table_size, sector_map_table_addr, sector_map_table_size)) {
-        tr_error("Init - Parse SFDP Headers Failed");
-        status = QSPIF_BD_ERROR_PARSING_FAILED;
-        goto exit_point;
-    }
+    /**************************** Parse SFDP data ***********************************/
+    {
+        _sfdp_info.bptbl.addr = 0x0;
+        _sfdp_info.bptbl.size = 0;
+        _sfdp_info.smptbl.addr = 0x0;
+        _sfdp_info.smptbl.size = 0;
 
-    /**************************** Parse Basic Parameters Table ***********************************/
-    if (0 != _sfdp_parse_basic_param_table(basic_table_addr, basic_table_size)) {
-        tr_error("Init - Parse Basic Param Table Failed");
-        status = QSPIF_BD_ERROR_PARSING_FAILED;
-        goto exit_point;
-    }
+        if (sfdp_parse_headers(callback(this, &QSPIFBlockDevice::_qspi_send_read_sfdp_command), _sfdp_info) < 0) {
+            tr_error("Init - Parse SFDP Headers Failed");
+            status = QSPIF_BD_ERROR_PARSING_FAILED;
+            goto exit_point;
+        }
 
-    /**************************** Parse Sector Map Table ***********************************/
-    _region_size_bytes[0] =
-        _device_size_bytes; // If there's no region map, we have a single region sized the entire device size
-    _region_high_boundary[0] = _device_size_bytes - 1;
+        if (_sfdp_parse_basic_param_table(callback(this, &QSPIFBlockDevice::_qspi_send_read_sfdp_command),
+                                          _sfdp_info) < 0) {
+            tr_error("Init - Parse Basic Param Table Failed");
+            status = QSPIF_BD_ERROR_PARSING_FAILED;
+            goto exit_point;
+        }
 
-    if ((sector_map_table_addr != 0) && (0 != sector_map_table_size)) {
-        tr_debug("Init - Parsing Sector Map Table - addr: 0x%lxh, Size: %d", sector_map_table_addr,
-                 sector_map_table_size);
-        if (0 != _sfdp_parse_sector_map_table(sector_map_table_addr, sector_map_table_size)) {
+        if (sfdp_parse_sector_map_table(callback(this, &QSPIFBlockDevice::_qspi_send_read_sfdp_command), _sfdp_info) < 0) {
             tr_error("Init - Parse Sector Map Table Failed");
             status = QSPIF_BD_ERROR_PARSING_FAILED;
             goto exit_point;
@@ -414,13 +395,13 @@ int QSPIFBlockDevice::erase(bd_addr_t addr, bd_size_t in_size)
     bool erase_failed = false;
     int status = QSPIF_BD_ERROR_OK;
     // Find region of erased address
-    int region = _utils_find_addr_region(addr);
+    int region = sfdp_find_addr_region(addr, _sfdp_info);
     // Erase Types of selected region
-    uint8_t bitfield = _region_erase_types_bitfield[region];
+    uint8_t bitfield = _sfdp_info.smptbl.region_erase_types_bitfld[region];
 
     tr_debug("Erase - addr: %llu, in_size: %llu", addr, in_size);
 
-    if ((addr + in_size) > _device_size_bytes) {
+    if ((addr + in_size) > _sfdp_info.bptbl.device_size_bytes) {
         tr_error("Erase exceeds flash device size");
         return QSPIF_BD_ERROR_INVALID_ERASE_PARAMS;
     }
@@ -433,15 +414,17 @@ int QSPIFBlockDevice::erase(bd_addr_t addr, bd_size_t in_size)
     // For each iteration erase the largest section supported by current region
     while (size > 0) {
         unsigned int eu_size;
-        if (_legacy_erase_instruction == QSPI_NO_INST) {
+        if (_sfdp_info.bptbl.legacy_erase_instruction == QSPI_NO_INST) {
             // Iterate to find next largest erase type that is a) supported by region, and b) smaller than size.
             // Find the matching instruction and erase size chunk for that type.
-            type = _utils_iterate_next_largest_erase_type(bitfield, size, (int)addr, _region_high_boundary[region]);
-            cur_erase_inst = _erase_type_inst_arr[type];
-            eu_size = _erase_type_size_arr[type];
+            type = sfdp_iterate_next_largest_erase_type(bitfield, size, (int)addr,
+                                                        region,
+                                                        _sfdp_info.smptbl);
+            cur_erase_inst = _sfdp_info.smptbl.erase_type_inst_arr[type];
+            eu_size = _sfdp_info.smptbl.erase_type_size_arr[type];
         } else {
             // Must use legacy 4k erase instruction
-            cur_erase_inst = _legacy_erase_instruction;
+            cur_erase_inst = _sfdp_info.bptbl.legacy_erase_instruction;
             eu_size = QSPIF_DEFAULT_SE_SIZE;
         }
         offset = addr % eu_size;
@@ -471,10 +454,10 @@ int QSPIFBlockDevice::erase(bd_addr_t addr, bd_size_t in_size)
         addr += chunk;
         size -= chunk;
 
-        if ((size > 0) && (addr > _region_high_boundary[region])) {
+        if ((size > 0) && (addr > _sfdp_info.smptbl.region_high_boundary[region])) {
             // erase crossed to next region
             region++;
-            bitfield = _region_erase_types_bitfield[region];
+            bitfield = _sfdp_info.smptbl.region_erase_types_bitfld[region];
         }
 
         if (false == _is_mem_ready()) {
@@ -510,7 +493,7 @@ bd_size_t QSPIFBlockDevice::get_program_size() const
 bd_size_t QSPIFBlockDevice::get_erase_size() const
 {
     // return minimal erase size supported by all regions (0 if none exists)
-    return _min_common_erase_size;
+    return _sfdp_info.smptbl.regions_min_common_erase_size;
 }
 
 const char *QSPIFBlockDevice::get_type() const
@@ -522,15 +505,15 @@ const char *QSPIFBlockDevice::get_type() const
 bd_size_t QSPIFBlockDevice::get_erase_size(bd_addr_t addr)
 {
     // If the legacy erase instruction is in use, the erase size is uniformly 4k
-    if (_legacy_erase_instruction != QSPI_NO_INST) {
+    if (_sfdp_info.bptbl.legacy_erase_instruction != QSPI_NO_INST) {
         return QSPIF_DEFAULT_SE_SIZE;
     }
 
     // Find region of current address
-    int region = _utils_find_addr_region(addr);
+    int region = sfdp_find_addr_region(addr, _sfdp_info);
 
-    int min_region_erase_size = _min_common_erase_size;
-    int8_t type_mask = ERASE_BITMASK_TYPE1;
+    int min_region_erase_size = _sfdp_info.smptbl.regions_min_common_erase_size;
+    int8_t type_mask = SFDP_ERASE_BITMASK_TYPE1;
     int i_ind = 0;
 
     if (region != -1) {
@@ -538,9 +521,9 @@ bd_size_t QSPIFBlockDevice::get_erase_size(bd_addr_t addr)
 
         for (i_ind = 0; i_ind < 4; i_ind++) {
             // loop through erase types bitfield supported by region
-            if (_region_erase_types_bitfield[region] & type_mask) {
+            if (_sfdp_info.smptbl.region_erase_types_bitfld[region] & type_mask) {
 
-                min_region_erase_size = _erase_type_size_arr[i_ind];
+                min_region_erase_size = _sfdp_info.smptbl.erase_type_size_arr[i_ind];
                 break;
             }
             type_mask = type_mask << 1;
@@ -556,7 +539,7 @@ bd_size_t QSPIFBlockDevice::get_erase_size(bd_addr_t addr)
 
 bd_size_t QSPIFBlockDevice::size() const
 {
-    return _device_size_bytes;
+    return _sfdp_info.bptbl.device_size_bytes;
 }
 
 int QSPIFBlockDevice::get_erase_value() const
@@ -629,95 +612,30 @@ int QSPIFBlockDevice::remove_csel_instance(PinName csel)
 /*********************************************************/
 /********** SFDP Parsing and Detection Functions *********/
 /*********************************************************/
-int QSPIFBlockDevice::_sfdp_parse_sfdp_headers(uint32_t &basic_table_addr, size_t &basic_table_size,
-                                               uint32_t &sector_map_table_addr, size_t &sector_map_table_size)
+int QSPIFBlockDevice::_sfdp_parse_basic_param_table(Callback<int(bd_addr_t, void *, bd_size_t)> sfdp_reader,
+                                                    sfdp_hdr_info &sfdp_info)
 {
-    uint8_t sfdp_header[QSPIF_SFDP_HEADER_SIZE];
-    uint8_t param_header[QSPIF_PARAM_HEADER_SIZE];
-    size_t data_length = QSPIF_SFDP_HEADER_SIZE;
-    bd_addr_t addr = 0x0;
+    uint8_t param_table[SFDP_BASIC_PARAMS_TBL_SIZE]; /* Up To 20 DWORDS = 80 Bytes */
 
-    qspi_status_t status = _qspi_send_read_sfdp_command(addr, (char *) sfdp_header, data_length);
-    if (status != QSPI_STATUS_OK) {
-        tr_error("Init - Read SFDP Failed");
-        return -1;
-    }
-
-    // Verify SFDP signature for sanity
-    // Also check that major/minor version is acceptable
-    if (!(memcmp(&sfdp_header[0], "SFDP", 4) == 0 && sfdp_header[5] == 1)) {
-        tr_error("Init - Verification of SFDP signature and version failed");
-        return -1;
-    } else {
-        tr_debug("Init - Verification of SFDP signature and version succeeded");
-    }
-
-    // Discover Number of Parameter Headers
-    int number_of_param_headers = (int)(sfdp_header[6]) + 1;
-    tr_debug("Number of Param Headers: %d", number_of_param_headers);
-
-
-    addr += QSPIF_SFDP_HEADER_SIZE;
-    data_length = QSPIF_PARAM_HEADER_SIZE;
-
-    // Loop over Param Headers and parse them (currently supports Basic Param Table and Sector Region Map Table)
-    for (int i_ind = 0; i_ind < number_of_param_headers; i_ind++) {
-        status = _qspi_send_read_sfdp_command(addr, (char *) param_header, data_length);
-        if (status != QSPI_STATUS_OK) {
-            tr_error("Init - Read Param Table %d Failed", i_ind + 1);
-            return -1;
-        }
-
-        // The SFDP spec indicates the standard table is always at offset 0
-        // in the parameter headers, we check just to be safe
-        if (param_header[2] != 1) {
-            tr_error("Param Table %d - Major Version should be 1!", i_ind + 1);
-            return -1;
-        }
-
-        if ((param_header[0] == 0) && (param_header[7] == 0xFF)) {
-            // Found Basic Params Table: LSB=0x00, MSB=0xFF
-            tr_debug("Found Basic Param Table at Table: %d", i_ind + 1);
-            basic_table_addr = ((param_header[6] << 16) | (param_header[5] << 8) | (param_header[4]));
-            // Supporting up to 64 Bytes Table (16 DWORDS)
-            basic_table_size = ((param_header[3] * 4) < SFDP_DEFAULT_BASIC_PARAMS_TABLE_SIZE_BYTES) ? (param_header[3] * 4) : 64;
-        } else if ((param_header[0] == 81) && (param_header[7] == 0xFF)) {
-            // Found Sector Map Table: LSB=0x81, MSB=0xFF
-            tr_debug("Found Sector Map Table at Table: %d", i_ind + 1);
-            sector_map_table_addr = ((param_header[6] << 16) | (param_header[5] << 8) | (param_header[4]));
-            sector_map_table_size = param_header[3] * 4;
-        }
-        addr += QSPIF_PARAM_HEADER_SIZE;
-    }
-
-    return 0;
-}
-
-int QSPIFBlockDevice::_sfdp_parse_basic_param_table(uint32_t basic_table_addr, size_t basic_table_size)
-{
-    uint8_t param_table[SFDP_DEFAULT_BASIC_PARAMS_TABLE_SIZE_BYTES]; /* Up To 16 DWORDS = 64 Bytes */
-
-    qspi_status_t status = _qspi_send_read_sfdp_command(basic_table_addr, (char *) param_table, basic_table_size);
+    int status = sfdp_reader(sfdp_info.bptbl.addr, param_table, sfdp_info.bptbl.size);
     if (status != QSPI_STATUS_OK) {
         tr_error("Init - Read SFDP First Table Failed");
         return -1;
     }
 
     // Check that density is not greater than 4 gigabits (i.e. that addressing beyond 4 bytes is not required)
-    if ((param_table[7] & 0x80) != 0) {
-        tr_error("Init - verify flash density failed");
+    if (sfdp_detect_addressability(param_table, _sfdp_info.bptbl) < 0) {
+        tr_error("Verify 4byte addressing failed");
         return -1;
     }
 
-    // Get device density (stored in bits - 1)
-    uint32_t density_bits = ((param_table[7] << 24) |
-                             (param_table[6] << 16) |
-                             (param_table[5] << 8)  |
-                             param_table[4]);
-    _device_size_bytes = (density_bits + 1) / 8;
+    if (sfdp_detect_device_density(param_table, _sfdp_info.bptbl) < 0) {
+        tr_error("Detecting device density failed");
+        return -1;
+    }
 
     // Set Page Size (QSPI write must be done on Page limits)
-    _page_size_bytes = _sfdp_detect_page_size(param_table, basic_table_size);
+    _page_size_bytes = sfdp_detect_page_size(param_table, sfdp_info.bptbl.size);
 
     if (_sfdp_detect_reset_protocol_and_reset(param_table) != QSPIF_BD_ERROR_OK) {
         tr_error("Init - Detecting reset protocol/resetting failed");
@@ -728,13 +646,13 @@ int QSPIFBlockDevice::_sfdp_parse_basic_param_table(uint32_t basic_table_addr, s
     bool shouldSetQuadEnable = false;
     bool is_qpi_mode = false;
 
-    if (_sfdp_detect_erase_types_inst_and_size(param_table, basic_table_size) != 0) {
+    if (sfdp_detect_erase_types_inst_and_size(param_table, _sfdp_info) < 0) {
         tr_error("Init - Detecting erase types instructions/sizes failed");
         return -1;
     }
 
     // Detect and Set fastest Bus mode (default 1-1-1)
-    _sfdp_detect_best_bus_read_mode(param_table, basic_table_size, shouldSetQuadEnable, is_qpi_mode);
+    _sfdp_detect_best_bus_read_mode(param_table, sfdp_info.bptbl.size, shouldSetQuadEnable, is_qpi_mode);
     if (true == shouldSetQuadEnable) {
         if (_needs_fast_mode) {
             _enable_fast_mode();
@@ -754,7 +672,7 @@ int QSPIFBlockDevice::_sfdp_parse_basic_param_table(uint32_t basic_table_addr, s
 #ifndef TARGET_NORDIC
     // 4 byte addressing is not currently supported with the Nordic QSPI controller
     if (_attempt_4_byte_addressing) {
-        if (_sfdp_detect_and_enable_4byte_addressing(param_table, basic_table_size) != QSPIF_BD_ERROR_OK) {
+        if (_sfdp_detect_and_enable_4byte_addressing(param_table, sfdp_info.bptbl.size) != QSPIF_BD_ERROR_OK) {
             tr_error("Init - Detecting/enabling 4-byte addressing failed");
             return -1;
         }
@@ -897,62 +815,6 @@ int QSPIFBlockDevice::_sfdp_set_qpi_enabled(uint8_t *basic_param_table_ptr)
     return 0;
 }
 
-int QSPIFBlockDevice::_sfdp_detect_page_size(uint8_t *basic_param_table_ptr, int basic_param_table_size)
-{
-    unsigned int page_size = QSPIF_DEFAULT_PAGE_SIZE;
-
-    if (basic_param_table_size > QSPIF_BASIC_PARAM_TABLE_PAGE_SIZE_BYTE) {
-        // Page Size is specified by 4 Bits (N), calculated by 2^N
-        int page_to_power_size = ((int)basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_PAGE_SIZE_BYTE]) >> 4;
-        page_size = 1 << page_to_power_size;
-        tr_debug("Detected Page Size: %d", page_size);
-    } else {
-        tr_debug("Using Default Page Size: %d", page_size);
-    }
-    return page_size;
-}
-
-int QSPIFBlockDevice::_sfdp_detect_erase_types_inst_and_size(uint8_t *basic_param_table_ptr, int basic_param_table_size)
-{
-    uint8_t bitfield = 0x01;
-
-    // Erase 4K Inst is taken either from param table legacy 4K erase or superseded by erase Instruction for type of size 4K
-    if (basic_param_table_size > QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_1_SIZE_BYTE) {
-        // Loop Erase Types 1-4
-        for (int i_ind = 0; i_ind < 4; i_ind++) {
-            _erase_type_inst_arr[i_ind] = QSPI_NO_INST; // Default for unsupported type
-            _erase_type_size_arr[i_ind] = 1 << basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_1_SIZE_BYTE + 2 * i_ind]; // Size is 2^N where N is the table value
-            tr_debug("Erase Type(A) %d - Inst: 0x%xh, Size: %d", (i_ind + 1), _erase_type_inst_arr[i_ind],
-                     _erase_type_size_arr[i_ind]);
-            if (_erase_type_size_arr[i_ind] > 1) {
-                // if size==1 type is not supported
-                _erase_type_inst_arr[i_ind] = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_ERASE_TYPE_1_BYTE + 2 * i_ind];
-
-                if ((_erase_type_size_arr[i_ind] < _min_common_erase_size) || (_min_common_erase_size == 0)) {
-                    //Set default minimal common erase for signal region
-                    _min_common_erase_size = _erase_type_size_arr[i_ind];
-                }
-                _region_erase_types_bitfield[0] |= bitfield; // If there's no region map, set region "0" types bitfield as default
-            }
-
-            tr_debug("Erase Type %d - Inst: 0x%xh, Size: %d", (i_ind + 1), _erase_type_inst_arr[i_ind],
-                     _erase_type_size_arr[i_ind]);
-            bitfield = bitfield << 1;
-        }
-    } else {
-        tr_debug("SFDP erase types are not available - falling back to legacy 4k erase instruction");
-
-        // 0xFF indicates that the legacy 4k erase instruction is not supported
-        _legacy_erase_instruction = basic_param_table_ptr[QSPIF_BASIC_PARAM_4K_ERASE_TYPE_BYTE];
-        if (_legacy_erase_instruction == 0xFF) {
-            tr_error("_detectEraseTypesInstAndSize - Legacy 4k erase instruction not supported");
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
 int QSPIFBlockDevice::_sfdp_detect_best_bus_read_mode(uint8_t *basic_param_table_ptr, int basic_param_table_size,
                                                       bool &set_quad_enable, bool &is_qpi_mode)
 {
@@ -961,24 +823,6 @@ int QSPIFBlockDevice::_sfdp_detect_best_bus_read_mode(uint8_t *basic_param_table
     uint8_t examined_byte;
 
     do { // compound statement is the loop body
-
-        if (basic_param_table_size > QSPIF_BASIC_PARAM_TABLE_QPI_READ_SUPPORT_BYTE) {
-            examined_byte = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_QPI_READ_SUPPORT_BYTE];
-
-            if (examined_byte & 0x10) {
-                // QPI 4-4-4 Supported
-                _read_instruction = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_444_READ_INST_BYTE];
-                set_quad_enable = true;
-                is_qpi_mode = true;
-                _dummy_cycles = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_444_READ_INST_BYTE - 1] & 0x1F;
-                uint8_t mode_cycles = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_444_READ_INST_BYTE - 1] >> 5;
-                _alt_size = mode_cycles * 4;
-                tr_debug("Read Bus Mode set to 4-4-4, Instruction: 0x%xh", _read_instruction);
-                _address_width = QSPI_CFG_BUS_QUAD;
-                _data_width = QSPI_CFG_BUS_QUAD;
-            }
-        }
-        is_qpi_mode = false;
         examined_byte = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_FAST_READ_SUPPORT_BYTE];
         if (examined_byte & 0x20) {
             //  Fast Read 1-4-4 Supported
@@ -992,7 +836,25 @@ int QSPIFBlockDevice::_sfdp_detect_best_bus_read_mode(uint8_t *basic_param_table
             tr_debug("Read Bus Mode set to 1-4-4, Instruction: 0x%xh", _read_instruction);
             break;
         }
+        // QPI is checked as second option.
+        if (basic_param_table_size > QSPIF_BASIC_PARAM_TABLE_QPI_READ_SUPPORT_BYTE) {
+            examined_byte = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_QPI_READ_SUPPORT_BYTE];
+            if (examined_byte & 0x10) {
+                // QPI 4-4-4 Supported
+                _read_instruction = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_444_READ_INST_BYTE];
+                set_quad_enable = true;
+                is_qpi_mode = true;
+                _dummy_cycles = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_444_READ_INST_BYTE - 1] & 0x1F;
+                uint8_t mode_cycles = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_444_READ_INST_BYTE - 1] >> 5;
+                _alt_size = mode_cycles * 4;
+                tr_debug("Read Bus Mode set to 4-4-4, Instruction: 0x%xh", _read_instruction);
+                _address_width = QSPI_CFG_BUS_QUAD;
+                _data_width = QSPI_CFG_BUS_QUAD;
+                break;
+            }
+        }
 
+        examined_byte = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_FAST_READ_SUPPORT_BYTE];
         if (examined_byte & 0x40) {
             //  Fast Read 1-1-4 Supported
             _read_instruction = basic_param_table_ptr[QSPIF_BASIC_PARAM_TABLE_114_READ_INST_BYTE];
@@ -1169,63 +1031,6 @@ int QSPIFBlockDevice::_sfdp_detect_reset_protocol_and_reset(uint8_t *basic_param
     return status;
 }
 
-int QSPIFBlockDevice::_sfdp_parse_sector_map_table(uint32_t sector_map_table_addr, size_t sector_map_table_size)
-{
-    uint8_t sector_map_table[SFDP_DEFAULT_BASIC_PARAMS_TABLE_SIZE_BYTES]; /* Up To 16 DWORDS = 64 Bytes */
-    uint32_t tmp_region_size = 0;
-    int i_ind = 0;
-    int prev_boundary = 0;
-    // Default set to all type bits 1-4 are common
-    int min_common_erase_type_bits = ERASE_BITMASK_ALL;
-
-    qspi_status_t status = _qspi_send_read_sfdp_command(sector_map_table_addr, (char *) sector_map_table, sector_map_table_size);
-    if (status != QSPI_STATUS_OK) {
-        tr_error("Init - Read SFDP First Table Failed");
-        return -1;
-    }
-
-    // Currently we support only Single Map Descriptor
-    if (!((sector_map_table[0] & 0x3) == 0x03) && (sector_map_table[1]  == 0x0)) {
-        tr_error("Sector Map - Supporting Only Single! Map Descriptor (not map commands)");
-        return -1;
-    }
-
-    _regions_count = sector_map_table[2] + 1;
-    if (_regions_count > QSPIF_MAX_REGIONS) {
-        tr_error("Supporting up to %d regions, current setup to %d regions - fail",
-                 QSPIF_MAX_REGIONS, _regions_count);
-        return -1;
-    }
-
-    // Loop through Regions and set for each one: size, supported erase types, high boundary offset
-    // Calculate minimum Common Erase Type for all Regions
-    for (i_ind = 0; i_ind < _regions_count; i_ind++) {
-        tmp_region_size = ((*((uint32_t *)&sector_map_table[(i_ind + 1) * 4])) >> 8) & 0x00FFFFFF; // bits 9-32
-        _region_size_bytes[i_ind] = (tmp_region_size + 1) * 256; // Region size is 0 based multiple of 256 bytes;
-        _region_erase_types_bitfield[i_ind] = sector_map_table[(i_ind + 1) * 4] & 0x0F; // bits 1-4
-        min_common_erase_type_bits &= _region_erase_types_bitfield[i_ind];
-        _region_high_boundary[i_ind] = (_region_size_bytes[i_ind] - 1) + prev_boundary;
-        prev_boundary = _region_high_boundary[i_ind] + 1;
-    }
-
-    // Calc minimum Common Erase Size from min_common_erase_type_bits
-    uint8_t type_mask = ERASE_BITMASK_TYPE1;
-    for (i_ind = 0; i_ind < 4; i_ind++) {
-        if (min_common_erase_type_bits & type_mask) {
-            _min_common_erase_size = _erase_type_size_arr[i_ind];
-            break;
-        }
-        type_mask = type_mask << 1;
-    }
-
-    if (i_ind == 4) {
-        // No common erase type was found between regions
-        _min_common_erase_size = 0;
-    }
-
-    return 0;
-}
-
 int QSPIFBlockDevice::_handle_vendor_quirks()
 {
     uint8_t vendor_device_ids[QSPI_RDID_DATA_LENGTH] = {0};
@@ -1257,6 +1062,11 @@ int QSPIFBlockDevice::_handle_vendor_quirks()
             _num_status_registers = 3;
             _read_status_reg_2_inst = QSPIF_INST_RDCR;
             _attempt_4_byte_addressing = false;
+            break;
+        case 0x9d:
+            // ISSI devices have only one status register
+            tr_debug("Applying quirks for ISSI");
+            _num_status_registers = 1;
             break;
     }
 
@@ -1419,7 +1229,7 @@ bool QSPIFBlockDevice::_is_mem_ready()
     bool mem_ready = true;
 
     do {
-        rtos::ThisThread::sleep_for(1);
+        rtos::ThisThread::sleep_for(1ms);
         retries++;
         //Read Status Register 1 from device
         if (QSPI_STATUS_OK != _qspi_send_general_command(QSPIF_INST_RSR1, QSPI_NO_ADDRESS_COMMAND,
@@ -1434,56 +1244,6 @@ bool QSPIFBlockDevice::_is_mem_ready()
         mem_ready = false;
     }
     return mem_ready;
-}
-
-/*********************************************/
-/************* Utility Functions *************/
-/*********************************************/
-int QSPIFBlockDevice::_utils_find_addr_region(bd_size_t offset)
-{
-    //Find the region to which the given offset belong to
-    if ((offset > _device_size_bytes) || (_regions_count == 0)) {
-        return -1;
-    }
-
-    if (_regions_count == 1) {
-        return 0;
-    }
-
-    for (int i_ind = _regions_count - 2; i_ind >= 0; i_ind--) {
-
-        if (offset > _region_high_boundary[i_ind]) {
-            return (i_ind + 1);
-        }
-    }
-    return -1;
-
-}
-
-int QSPIFBlockDevice::_utils_iterate_next_largest_erase_type(uint8_t &bitfield, int size, int offset, int boundry)
-{
-    // Iterate on all supported Erase Types of the Region to which the offset belong to.
-    // Iterates from highest type to lowest
-    uint8_t type_mask = ERASE_BITMASK_TYPE4;
-    int i_ind  = 0;
-    int largest_erase_type = 0;
-    for (i_ind = 3; i_ind >= 0; i_ind--) {
-        if (bitfield & type_mask) {
-            largest_erase_type = i_ind;
-            if ((size > (int)(_erase_type_size_arr[largest_erase_type])) &&
-                    ((boundry - offset) > (int)(_erase_type_size_arr[largest_erase_type]))) {
-                break;
-            } else {
-                bitfield &= ~type_mask;
-            }
-        }
-        type_mask = type_mask >> 1;
-    }
-
-    if (i_ind == 4) {
-        tr_error("No erase type was found for current region addr");
-    }
-    return largest_erase_type;
 }
 
 /***************************************************/
@@ -1621,7 +1381,7 @@ qspi_status_t QSPIFBlockDevice::_qspi_send_general_command(qspi_inst_t instructi
     return QSPI_STATUS_OK;
 }
 
-qspi_status_t QSPIFBlockDevice::_qspi_send_read_sfdp_command(bd_addr_t addr, void *rx_buffer, bd_size_t rx_length)
+int QSPIFBlockDevice::_qspi_send_read_sfdp_command(bd_addr_t addr, void *rx_buffer, bd_size_t rx_length)
 {
     size_t rx_len = rx_length;
 
@@ -1666,17 +1426,19 @@ qspi_status_t QSPIFBlockDevice::_qspi_read_status_registers(uint8_t *reg_buffer)
 
     // Read Status Register 2 (and beyond, if applicable)
     unsigned int read_length = _num_status_registers - 1; // We already read status reg 1 above
-    status = _qspi_send_general_command(_read_status_reg_2_inst, QSPI_NO_ADDRESS_COMMAND,
-                                        NULL, 0,
-                                        (char *) &reg_buffer[1], read_length);
-    if (QSPI_STATUS_OK == status) {
-        tr_debug("Reading Status Register 2 Success: value = 0x%x", (int) reg_buffer[1]);
-        if (_num_status_registers > 2) {
-            tr_debug("Reading Register 3 Success: value = 0x%x", (int) reg_buffer[2]);
+    if (read_length > 0) {
+        status = _qspi_send_general_command(_read_status_reg_2_inst, QSPI_NO_ADDRESS_COMMAND,
+                                            NULL, 0,
+                                            (char *) &reg_buffer[1], read_length);
+        if (QSPI_STATUS_OK == status) {
+            tr_debug("Reading Status Register 2 Success: value = 0x%x", (int) reg_buffer[1]);
+            if (_num_status_registers > 2) {
+                tr_debug("Reading Register 3 Success: value = 0x%x", (int) reg_buffer[2]);
+            }
+        } else {
+            tr_error("Reading Status Register 2 failed");
+            return status;
         }
-    } else {
-        tr_error("Reading Status Register 2 failed");
-        return status;
     }
 
     return QSPI_STATUS_OK;

@@ -1,6 +1,7 @@
 """
 mbed SDK
-Copyright (c) 2011-2013 ARM Limited
+Copyright (c) 2011-2020 ARM Limited
+SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,12 +16,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import re
+import fnmatch
 from os.path import join, basename, splitext, dirname, exists
-from os import getenv
+from os import getcwd, getenv
 from distutils.spawn import find_executable
 from distutils.version import LooseVersion
 
-from tools.toolchains.mbed_toolchain import mbedToolchain, TOOLCHAIN_PATHS
+from tools.toolchains.mbed_toolchain import (
+    mbedToolchain, TOOLCHAIN_PATHS, should_replace_small_c_lib
+)
 from tools.utils import run_cmd
 
 
@@ -34,41 +38,62 @@ class GCC(mbedToolchain):
 
     GCC_RANGE = (LooseVersion("9.0.0"), LooseVersion("10.0.0"))
     GCC_VERSION_RE = re.compile(b"\d+\.\d+\.\d+")
+    DWARF_PRODUCER_RE = re.compile(r'(DW_AT_producer)(.*:\s*)(?P<producer>.*)')
 
     def __init__(self, target,  notify=None, macros=None, build_profile=None,
-                 build_dir=None):
+                 build_dir=None, coverage_patterns=None):
         mbedToolchain.__init__(
             self,
             target,
             notify,
             macros,
             build_profile=build_profile,
-            build_dir=build_dir
+            build_dir=build_dir,
+            coverage_patterns=coverage_patterns
         )
 
         tool_path = TOOLCHAIN_PATHS['GCC_ARM']
         # Add flags for current size setting
-        default_lib = "std"
-        if hasattr(target, "default_lib"):
-            default_lib = target.default_lib
-        elif hasattr(target, "default_build"):
-            default_lib = target.default_build
+        c_lib = "std"
+        if hasattr(target, "c_lib"):
+            toolchain = "gcc_arm"
 
-        if default_lib == "small":
-            self.flags["common"].append("-DMBED_RTOS_SINGLE_THREAD")
+            if should_replace_small_c_lib(target, toolchain):
+                target.c_lib = "std"
+
+            self.check_c_lib_supported(target, toolchain)
+            c_lib = target.c_lib
+        elif hasattr(target, "default_build"):
+            c_lib = target.default_build
+
+        if c_lib == "small":
+            common_flags = ["-DMBED_RTOS_SINGLE_THREAD", "-D__NEWLIB_NANO"]
+            self.flags["common"].extend(common_flags)
             self.flags["ld"].append("--specs=nano.specs")
 
-        self.cpu = []
-        if target.is_TrustZone_secure_target:
-            # Enable compiler security extensions
-            self.cpu.append("-mcmse")
-            # Output secure import library
-            self.flags["ld"].extend([
-                "-Wl,--cmse-implib",
-                "-Wl,--out-implib=%s" % join(build_dir, "cmse_lib.o")
-            ])
+        self.check_and_add_minimal_printf(target)
 
-        if target.is_TrustZone_non_secure_target:
+        if getattr(target, "printf_lib", "std") == "minimal-printf":
+            minimal_printf_wraps = [
+                "-Wl,--wrap,printf",
+                "-Wl,--wrap,sprintf",
+                "-Wl,--wrap,snprintf",
+                "-Wl,--wrap,vprintf",
+                "-Wl,--wrap,vsprintf",
+                "-Wl,--wrap,vsnprintf",
+                "-Wl,--wrap,fprintf",
+                "-Wl,--wrap,vfprintf",
+            ]
+
+            # Add the linker option to wrap the f\v\s\printf functions if not
+            # already added.
+            for minimal_printf_wrap in minimal_printf_wraps:
+                if minimal_printf_wrap not in self.flags["ld"]:
+                    self.flags["ld"].append(minimal_printf_wrap)
+
+        self.cpu = []
+        # Enable DOMAIN_NS macro for TF-M NS targets
+        if target.is_TFM_target:
             # Add linking time preprocessor macro DOMAIN_NS
             # (DOMAIN_NS is passed to compiler and assembler via CORTEX_SYMBOLS
             # in mbedToolchain.get_symbols)
@@ -115,7 +140,7 @@ class GCC(mbedToolchain):
             self.cpu.append("-mno-unaligned-access")
 
         self.flags["common"] += self.cpu
-
+        self.coverage_supported = True
         main_cc = join(tool_path, "arm-none-eabi-gcc")
         main_cppc = join(tool_path, "arm-none-eabi-g++")
         self.asm = [main_cc] + self.flags['asm'] + self.flags["common"]
@@ -125,15 +150,33 @@ class GCC(mbedToolchain):
         self.cppc += self.flags['cxx'] + self.flags['common']
 
         self.flags['ld'] += self.cpu
-        self.ld = [join(tool_path, "arm-none-eabi-gcc")] + self.flags['ld']
+        self.ld = [join(tool_path, "arm-none-eabi-gcc")]
+        self.ld += self.flags['ld'] + self.flags['common']
         self.sys_libs = ["stdc++", "supc++", "m", "c", "gcc", "nosys"]
         self.preproc = [join(tool_path, "arm-none-eabi-cpp"), "-E", "-P"]
 
         self.ar = join(tool_path, "arm-none-eabi-ar")
         self.elf2bin = join(tool_path, "arm-none-eabi-objcopy")
+        self.objdump = join(tool_path, "arm-none-eabi-objdump")
 
         self.use_distcc = (bool(getenv("DISTCC_POTENTIAL_HOSTS", False))
                            and not getenv("MBED_DISABLE_DISTCC", False))
+
+        # create copies of gcc/ld options as coverage build options, and injects extra coverage options 
+        self.coverage_cc = self.cc + ["--coverage", "-DENABLE_LIBGCOV_PORT"]
+        self.coverage_cppc = self.cppc + ["--coverage", "-DENABLE_LIBGCOV_PORT"]
+        self.coverage_ld = self.ld + ['--coverage', '-Wl,--wrap,GREENTEA_SETUP', '-Wl,--wrap,_Z25GREENTEA_TESTSUITE_RESULTi']
+
+        # for gcc coverage options remove MBED_DEBUG macro (this is required by code coverage function)
+        for flag in ["-DMBED_DEBUG"]:
+            if flag in self.coverage_cc:
+                self.coverage_cc.remove(flag)
+            if flag in self.coverage_cppc:
+                self.coverage_cppc.remove(flag)
+        #  for lg coverage options remove exit wrapper (this is required by code coverage function)
+        for flag in ['-Wl,--wrap,exit', '-Wl,--wrap,atexit']:
+            if flag in self.coverage_ld:
+                self.coverage_ld.remove(flag)
 
     def version_check(self):
         stdout, _, retcode = run_cmd([self.cc[0], "--version"], redirect=True)
@@ -208,6 +251,13 @@ class GCC(mbedToolchain):
             opts = opts + self.get_config_option(config_header)
         return opts
 
+    def match_coverage_patterns(self, source):
+        """Check whether the give source file match with coverage patterns, if so return True. """
+        for pattern in self.coverage_patterns:
+            if fnmatch.fnmatch(source, pattern):
+                return True
+        return False
+
     def assemble(self, source, object, includes):
         # Build assemble command
         cmd = self.asm + self.get_compile_options(
@@ -231,9 +281,13 @@ class GCC(mbedToolchain):
         return [cmd]
 
     def compile_c(self, source, object, includes):
+        if self.coverage_patterns and self.match_coverage_patterns(source):
+            return self.compile(self.coverage_cc, source, object, includes)
         return self.compile(self.cc, source, object, includes)
 
     def compile_cpp(self, source, object, includes):
+        if self.coverage_patterns and self.match_coverage_patterns(source):
+             return self.compile(self.coverage_cppc, source, object, includes)
         return self.compile(self.cppc, source, object, includes)
 
     def link(self, output, objects, libraries, lib_dirs, mem_map):
@@ -254,12 +308,31 @@ class GCC(mbedToolchain):
             self.default_cmd(cmd)
             mem_map = preproc_output
 
+        # NOTE: GCC_ARM_LTO_WORKAROUND
+        # This is a workaround for the GCC not using the strong symbols from
+        # C files to override the weak symbols from ASM files. This GCC bug is only
+        # present when building with the link-time optimizer (LTO) enabled. For
+        # more details please see:
+        #   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83967
+        #
+        # This can be fixed by changing the order of object files in the linker
+        # command; objects providing the weak symbols and compiled from assembly
+        # must be listed before the objects providing the strong symbols.
+        # To keep things simple, ALL object files from ASM are listed before
+        # other object files.
+        asm_objects = []
+        if '-flto' in self.ld:
+            asm_objects = self.get_asm_objects(objects)
+        reorg_objects = (
+            [o for o in objects if o in asm_objects] +
+            [o for o in objects if o not in asm_objects]
+        )
         # Build linker command
         map_file = splitext(output)[0] + ".map"
         cmd = (
-            self.ld +
+            (self.coverage_ld if self.coverage_patterns else self.ld) +
             ["-o", output, "-Wl,-Map=%s" % map_file] +
-            objects +
+            reorg_objects +
             ["-Wl,--start-group"] +
             libs +
             ["-Wl,--end-group"]
@@ -331,6 +404,21 @@ class GCC(mbedToolchain):
             exec_name = join(TOOLCHAIN_PATHS['GCC_ARM'], 'arm-none-eabi-gcc')
             return exists(exec_name) or exists(exec_name + '.exe')
 
+    def check_if_obj_from_asm(self, obj_file):
+        """Check if obj_file was build by the GNU Assembler."""
+        dw_producer = ''
+        cmd = [self.objdump, '--dwarf=info', obj_file]
+        stdout, stderr, rc = run_cmd(cmd, work_dir=getcwd(), chroot=self.CHROOT)
+        if rc != 0:
+            return False
+        match = self.DWARF_PRODUCER_RE.search(stdout)
+        if match:
+            dw_producer = match.group('producer')
+        return 'GNU AS' in dw_producer
+
+    def get_asm_objects(self, objects):
+        """Return a list of object files built from ASM."""
+        return [o for o in objects if self.check_if_obj_from_asm(o)]
 
 class GCC_ARM(GCC):
     pass

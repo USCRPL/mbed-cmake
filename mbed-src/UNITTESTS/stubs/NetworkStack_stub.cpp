@@ -27,6 +27,11 @@ nsapi_error_t NetworkStack::gethostbyname(const char *name, SocketAddress *addre
     return NSAPI_ERROR_OK;
 }
 
+nsapi_value_or_error_t NetworkStack::getaddrinfo(const char *hostname, SocketAddress *hints, SocketAddress **res, const char *interface_name)
+{
+    return NSAPI_ERROR_OK;
+}
+
 nsapi_error_t NetworkStack::add_dns_server(const SocketAddress &address, const char *interface_name)
 {
     return NSAPI_ERROR_OK;
@@ -60,16 +65,16 @@ nsapi_error_t NetworkStack::getsockopt(void *handle, int level, int optname, voi
 // Conversion function for network stacks
 NetworkStack *nsapi_create_stack(nsapi_stack_t *stack)
 {
-    return reinterpret_cast<NetworkStack *>(stack);
-}
-
-NetworkStack *nsapi_create_stack(NetworkStack *stack)
-{
-    return reinterpret_cast<NetworkStack *>(stack);
+    return nullptr;
 }
 
 nsapi_value_or_error_t NetworkStack::gethostbyname_async(const char *host, hostbyname_cb_t callback, nsapi_version_t version,
                                                          const char *interface_name)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
+nsapi_value_or_error_t NetworkStack::getaddrinfo_async(const char *hostname, SocketAddress *hints, hostbyname_cb_t callback, const char *interface_name)
 {
     return NSAPI_ERROR_UNSUPPORTED;
 }
@@ -94,11 +99,6 @@ nsapi_error_t NetworkStack::get_ip_address(SocketAddress* address)
     return NSAPI_ERROR_UNSUPPORTED;
 }
 
-const char *NetworkStack::get_ip_address()
-{
-    return NULL;
-}
-
 nsapi_error_t NetworkStack::get_ipv6_link_local_address(SocketAddress *address)
 {
     return NSAPI_ERROR_UNSUPPORTED;
@@ -107,9 +107,4 @@ nsapi_error_t NetworkStack::get_ipv6_link_local_address(SocketAddress *address)
 nsapi_error_t NetworkStack::get_ip_address_if(SocketAddress* address, const char *interface_name)
 {
     return NSAPI_ERROR_UNSUPPORTED;
-}
-
-const char *NetworkStack::get_ip_address_if(const char *interface_name)
-{
-    return NULL;
 }

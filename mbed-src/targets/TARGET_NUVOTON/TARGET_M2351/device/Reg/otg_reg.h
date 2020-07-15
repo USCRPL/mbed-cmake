@@ -3,11 +3,18 @@
  * @version  V1.00
  * @brief    OTG register definition header file
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __OTG_REG_H__
 #define __OTG_REG_H__
 
+/** @addtogroup REGISTER Control Register
+
+  @{
+
+*/
 
 
 /*---------------------- USB On-The-Go Controller -------------------------*/
@@ -382,6 +389,7 @@ typedef struct
 
 /**@}*/ /* OTG_CONST */
 /**@}*/ /* end of OTG register group */
+/**@}*/ /* end of REGISTER group */
 
 
 

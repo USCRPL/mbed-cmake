@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if defined(MBED_RTOS_SINGLE_THREAD) || !defined(MBED_CONF_RTOS_PRESENT)
-#error [NOT_SUPPORTED] Semaphore test cases require RTOS with multithread to run
-#else
-
 #if !DEVICE_USTICKER
 #error [NOT_SUPPORTED] UsTicker need to be enabled for this test.
 #else
@@ -28,11 +25,24 @@
 #include "rtos.h"
 
 using namespace utest::v1;
+using namespace std::chrono;
 
-#define THREAD_DELAY     30
+struct test_data {
+    Semaphore *sem;
+    uint32_t data;
+};
+
+#define TEST_ASSERT_DURATION_WITHIN(delta, expected, actual) \
+    do { \
+        using ct = std::common_type_t<decltype(delta), decltype(expected), decltype(actual)>; \
+        TEST_ASSERT_INT_WITHIN(ct(delta).count(), ct(expected).count(), ct(actual).count()); \
+    } while (0)
+
+#if defined(MBED_CONF_RTOS_PRESENT)
+#define THREAD_DELAY     30ms
 #define SEMAPHORE_SLOTS  2
 #define SEM_CHANGES      100
-#define SHORT_WAIT       5
+#define SHORT_WAIT       5ms
 
 #define THREAD_STACK_SIZE 320 /* larger stack cause out of heap memory on some 16kB RAM boards in multi thread test*/
 
@@ -42,9 +52,9 @@ volatile int change_counter = 0;
 volatile int sem_counter = 0;
 volatile bool sem_defect = false;
 
-void test_thread(int const *delay)
+void test_thread(rtos::Kernel::Clock::duration const *delay)
 {
-    const int thread_delay = *delay;
+    const auto thread_delay = *delay;
     while (true) {
         two_slots.acquire();
         sem_counter++;
@@ -67,9 +77,9 @@ void test_thread(int const *delay)
 */
 void test_multi()
 {
-    const int t1_delay = THREAD_DELAY * 1;
-    const int t2_delay = THREAD_DELAY * 2;
-    const int t3_delay = THREAD_DELAY * 3;
+    const rtos::Kernel::Clock::duration t1_delay = THREAD_DELAY * 1;
+    const rtos::Kernel::Clock::duration t2_delay = THREAD_DELAY * 2;
+    const rtos::Kernel::Clock::duration t3_delay = THREAD_DELAY * 3;
 
     Thread t1(osPriorityNormal, THREAD_STACK_SIZE);
     Thread t2(osPriorityNormal, THREAD_STACK_SIZE);
@@ -89,12 +99,7 @@ void test_multi()
     }
 }
 
-struct thread_data {
-    Semaphore *sem;
-    uint32_t data;
-};
-
-void single_thread(struct thread_data *data)
+void single_thread(struct test_data *data)
 {
     data->sem->acquire();
     data->data++;
@@ -103,7 +108,7 @@ void single_thread(struct thread_data *data)
 /** Test single thread
 
     Given a two threads A & B and a semaphore (with count of 0) and a counter (equals to 0)
-    when thread B calls @a wait
+    when thread B calls @a acquire
     then thread B waits for a token to become available
     then the counter is equal to 0
     when thread A calls @a release on the semaphore
@@ -114,7 +119,7 @@ void test_single_thread()
 {
     Thread t(osPriorityNormal, THREAD_STACK_SIZE);
     Semaphore sem(0);
-    struct thread_data data;
+    struct test_data data;
     osStatus res;
 
     data.sem = &sem;
@@ -139,15 +144,15 @@ void test_single_thread()
 
 void timeout_thread(Semaphore *sem)
 {
-    bool acquired = sem->try_acquire_for(30);
+    bool acquired = sem->try_acquire_for(30ms);
     TEST_ASSERT_FALSE(acquired);
 }
 
 /** Test timeout
 
     Given thread and a semaphore with no tokens available
-    when thread calls @a wait on the semaphore with timeout of 10ms
-    then the thread waits for 10ms and timeouts after
+    when a thread calls @a try_acquire_for with a timeout of 30ms
+    then the thread is blocked for up to 30ms and timeouts after.
  */
 void test_timeout()
 {
@@ -164,19 +169,114 @@ void test_timeout()
     TEST_ASSERT_EQUAL(Thread::WaitingSemaphore, t.get_state());
 
     t.join();
-    TEST_ASSERT_UINT32_WITHIN(5000, 30000, timer.read_us());
+    TEST_ASSERT_DURATION_WITHIN(5ms, 30ms, timer.elapsed_time());
+}
+#endif
+
+void test_ticker_release(struct test_data *data)
+{
+    osStatus res;
+    data->data++;
+    res = data->sem->release();
+    TEST_ASSERT_EQUAL(osOK, res);
+}
+
+/** Test semaphore acquire
+
+    Given a semaphore with no tokens available and ticker with the callback registered
+    when the main thread calls @a acquire
+    then the main thread is blocked
+    when callback calls @a release on the semaphore
+    then the main thread is unblocked
+ */
+void test_semaphore_acquire()
+{
+    Semaphore sem(0);
+    struct test_data data;
+
+    data.sem = &sem;
+    data.data = 0;
+    Ticker t1;
+    t1.attach(callback(test_ticker_release, &data), 3ms);
+    sem.acquire();
+    t1.detach();
+
+    TEST_ASSERT_EQUAL(1, data.data);
+}
+
+void test_ticker_try_acquire(Semaphore *sem)
+{
+    osStatus res;
+    res = sem->try_acquire();
+    TEST_ASSERT_FALSE(res);
+}
+
+/** Test semaphore try acquire
+
+    Given a semaphore with no tokens available and ticker with the callback registered
+    when callback tries to acquire the semaphore, it fails.
+ */
+void test_semaphore_try_acquire()
+{
+    Semaphore sem(0);
+    Ticker t1;
+    t1.attach(callback(test_ticker_try_acquire, &sem), 3ms);
+    ThisThread::sleep_for(4ms);
+    t1.detach();
+}
+
+
+/** Test semaphore try timeout
+
+    Given a semaphore with no tokens available
+    when the main thread calls @a try_acquire_for with 3ms timeout
+    then the main thread is blocked for 3ms and timeouts after
+ */
+void test_semaphore_try_timeout()
+{
+    Semaphore sem(0);
+    bool res;
+    res = sem.try_acquire_for(3ms);
+    TEST_ASSERT_FALSE(res);
+}
+
+
+void test_ticker_semaphore_release(struct Semaphore *sem)
+{
+    osStatus res;
+    res = sem->release();
+    TEST_ASSERT_EQUAL(osOK, res);
+}
+
+/** Test semaphore try acquire timeout
+
+    Given a semaphore with no tokens available and ticker with the callback registered
+    when the main thread calls @a try_acquire_for with 10ms timeout
+    then the main thread is blocked for up to 10ms
+    when callback call @a release on the semaphore after 3ms
+    then the main thread is unblocked.
+ */
+void test_semaphore_try_acquire_timeout()
+{
+    Semaphore sem(0);
+    bool res;
+    Ticker t1;
+    t1.attach(callback(test_ticker_semaphore_release, &sem), 3ms);
+    res = sem.try_acquire_for(10ms);
+    t1.detach();
+    TEST_ASSERT_TRUE(res);
 }
 
 /** Test no timeouts
 
 Test 1 token no timeout
 Given thread and a semaphore with one token available
-when thread calls @a wait on the semaphore with timeout of 0ms
+when thread calls @a try_acquire with timeout of 0ms
 then the thread acquires the token immediately
 
 Test 0 tokens no timeout
 Given thread and a semaphore with no tokens available
-when thread calls @a wait on the semaphore with timeout of 0ms
+when thread calls @a try_acquire with timeout of 0ms
 then the thread returns immediately without acquiring a token
  */
 template<int T>
@@ -190,13 +290,13 @@ void test_no_timeout()
     bool acquired = sem.try_acquire();
     TEST_ASSERT_EQUAL(T > 0, acquired);
 
-    TEST_ASSERT_UINT32_WITHIN(5000, 0, timer.read_us());
+    TEST_ASSERT_DURATION_WITHIN(5ms, 0ms, timer.elapsed_time());
 }
 
 /** Test multiple tokens wait
 
     Given a thread and a semaphore initialized with 5 tokens
-    when thread calls @a wait 6 times on the semaphore
+    when thread calls @a try_acquire 6 times in a loop
     then the token counts goes to zero
  */
 void test_multiple_tokens_wait()
@@ -234,13 +334,19 @@ utest::v1::status_t test_setup(const size_t number_of_cases)
 }
 
 Case cases[] = {
-    Case("Test single thread", test_single_thread),
-    Case("Test timeout", test_timeout),
     Case("Test 1 token no timeout", test_no_timeout<1>),
     Case("Test 0 tokens no timeout", test_no_timeout<0>),
     Case("Test multiple tokens wait", test_multiple_tokens_wait),
     Case("Test multiple tokens release", test_multiple_tokens_release),
+    Case("Test semaphore acquire", test_semaphore_acquire),
+    Case("Test semaphore try acquire", test_semaphore_try_acquire),
+    Case("Test semaphore try timeout", test_semaphore_try_timeout),
+    Case("Test semaphore try acquire timeout", test_semaphore_try_acquire_timeout),
+#if defined(MBED_CONF_RTOS_PRESENT)
+    Case("Test single thread", test_single_thread),
+    Case("Test timeout", test_timeout),
     Case("Test multiple threads", test_multi)
+#endif
 };
 
 Specification specification(test_setup, cases);
@@ -251,4 +357,3 @@ int main()
 }
 
 #endif // !DEVICE_USTICKER
-#endif // defined(MBED_RTOS_SINGLE_THREAD) || !defined(MBED_CONF_RTOS_PRESENT)

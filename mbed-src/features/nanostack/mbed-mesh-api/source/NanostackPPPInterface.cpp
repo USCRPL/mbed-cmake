@@ -26,18 +26,20 @@
 #include "enet_tasklet.h"
 #include "ip6string.h"
 
+using namespace std::chrono_literals;
+
 class PPPPhy : public NanostackPPPPhy {
 public:
     PPPPhy(NanostackMemoryManager &mem, PPP &m);
-    virtual int8_t phy_register();
+    int8_t phy_register() override;
 
-    virtual void phy_power_on();
-    virtual void phy_power_off();
+    void phy_power_on();
+    void phy_power_off();
 
-    virtual void get_iid64(uint8_t *iid64);
-    virtual uint16_t get_mtu();
+    void get_iid64(uint8_t *iid64) override;
+    uint16_t get_mtu() override;
 
-    virtual void set_link_state_change_cb(link_state_change_cb_t cb);
+    void set_link_state_change_cb(link_state_change_cb_t cb) override;
 
     int8_t tx(uint8_t *data_ptr, uint16_t data_len, uint8_t tx_handle, data_protocol_e data_flow);
 
@@ -48,10 +50,10 @@ private:
     NanostackMemoryManager &memory_manager;
     PPP &ppp;
     uint8_t iid64[8];
-    link_state_change_cb_t link_state_change_cb;
-    bool active;
-    bool powered_up;
-    int8_t device_id;
+    link_state_change_cb_t link_state_change_cb = nullptr;
+    bool active = false;
+    bool powered_up = false;
+    int8_t device_id = -1;
     phy_device_driver_s phy;
 };
 
@@ -86,8 +88,8 @@ nsapi_error_t Nanostack::PPPInterface::bringup(bool dhcp, const char *ip,
     if (blocking) {
         uint8_t retries = 10;
         while (_connect_status != NSAPI_STATUS_GLOBAL_UP) {
-            int32_t count = connect_semaphore.try_acquire_for(3000);
-            if (count <= 0 && retries-- == 0) {
+            bool acquired = connect_semaphore.try_acquire_for(3s);
+            if (!acquired && retries-- == 0) {
                 return NSAPI_ERROR_DHCP_FAILURE; // sort of...
             }
             // Not up until global up
@@ -153,9 +155,9 @@ nsapi_error_t Nanostack::PPPInterface::bringdown()
     }
 
     if (_blocking) {
-        int32_t count = disconnect_semaphore.try_acquire_for(30000);
+        bool acquired = disconnect_semaphore.try_acquire_for(30s);
 
-        if (count <= 0) {
+        if (!acquired) {
             return NSAPI_ERROR_TIMEOUT;
         }
     }
@@ -181,6 +183,15 @@ void Nanostack::PPPInterface::set_link_state_changed_callback(link_state_cb_t ne
     link_state_cb = new_link_state_cb;
 }
 
+char *Nanostack::PPPInterface::get_interface_name(char *buf)
+{
+    if (interface_id < 0) {
+        return NULL;
+    }
+    sprintf(buf, "PPP%d", interface_id);
+    return buf;
+};
+
 // GAH! no handles on the callback. Force a single interface
 static PPPPhy *single_phy;
 
@@ -196,7 +207,7 @@ extern "C"
         return single_phy->tx(data_ptr, data_len, tx_handle, data_flow);
     }
 
-    PPPPhy::PPPPhy(NanostackMemoryManager &mem, PPP &m) : memory_manager(mem), ppp(m), link_state_change_cb(NULL), active(false), powered_up(false), device_id(-1)
+    PPPPhy::PPPPhy(NanostackMemoryManager &mem, PPP &m) : memory_manager(mem), ppp(m)
     {
     }
 

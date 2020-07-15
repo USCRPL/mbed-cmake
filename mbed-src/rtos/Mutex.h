@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2019 ARM Limited
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +27,7 @@
 #include "rtos/mbed_rtos_types.h"
 #include "rtos/mbed_rtos1_types.h"
 #include "rtos/mbed_rtos_storage.h"
+#include "rtos/Kernel.h"
 
 #include "platform/NonCopyable.h"
 #include "platform/ScopedLock.h"
@@ -83,36 +85,9 @@ public:
     /**
       Wait until a Mutex becomes available.
 
-      @return  status code that indicates the execution status of the function:
-               @a osOK the mutex has been obtained.
-
       @note You cannot call this function from ISR context.
-      @note This function treats RTOS errors as fatal system errors, so it can only return osOK.
-            Use of the return value is deprecated, as the return is expected to become void in the future.
      */
-#if MBED_CONF_RTOS_PRESENT
-    osStatus lock();
-#else
-    void lock(); // Value return backwards compatibility not required for non-RTOS
-#endif
-
-    /**
-      Wait until a Mutex becomes available.
-
-      @deprecated Do not use this function. This function has been replaced with lock(), trylock() and trylock_for() functions.
-
-      @param   millisec  timeout value.
-      @return  status code that indicates the execution status of the function:
-               @a osOK the mutex has been obtained.
-               @a osErrorTimeout the mutex could not be obtained in the given time.
-               @a osErrorResource the mutex could not be obtained when no timeout was specified.
-
-      @note You cannot call this function from ISR context.
-      @note This function treats RTOS errors as fatal system errors, so it can only return osOK or
-            osErrorResource in case when millisec is 0 or osErrorTimeout if millisec is not osWaitForever.
-     */
-    MBED_DEPRECATED_SINCE("mbed-os-5.10.0", "Replaced with lock(), trylock() and trylock_for() functions")
-    osStatus lock(uint32_t millisec);
+    void lock();
 
     /** Try to lock the mutex, and return immediately
       @return true if the mutex was acquired, false otherwise.
@@ -131,8 +106,22 @@ public:
             the lock attempt will time out earlier than specified.
 
       @note You cannot call this function from ISR context.
+      @deprecated Pass a chrono duration, not an integer millisecond count. For example use `5s` rather than `5000`.
      */
+    MBED_DEPRECATED_SINCE("mbed-os-6.0.0", "Pass a chrono duration, not an integer millisecond count. For example use `5s` rather than `5000`.")
     bool trylock_for(uint32_t millisec);
+
+    /** Try to lock the mutex for a specified time
+      @param   rel_time  timeout value.
+      @return true if the mutex was acquired, false otherwise.
+      @note the underlying RTOS may have a limit to the maximum wait time
+            due to internal 32-bit computations, but this is guaranteed to work if the
+            wait is <= 0x7fffffff milliseconds (~24 days). If the limit is exceeded,
+            the lock attempt will time out earlier than specified.
+
+      @note You cannot call this function from ISR context.
+     */
+    bool trylock_for(Kernel::Clock::duration_u32 rel_time);
 
     /** Try to lock the mutex until specified time
       @param   millisec  absolute timeout time, referenced to Kernel::get_ms_count()
@@ -143,24 +132,30 @@ public:
             the lock attempt will time out earlier than specified.
 
       @note You cannot call this function from ISR context.
+      @deprecated Pass a chrono time_point, not an integer millisecond count. For example use
+                  `Kernel::Clock::now() + 5s` rather than `Kernel::get_ms_count() + 5000`.
      */
+    MBED_DEPRECATED_SINCE("mbed-os-6.0.0", "Pass a chrono time_point, not an integer millisecond count. For example use `Kernel::Clock::now() + 5s` rather than `Kernel::get_ms_count() + 5000`.")
     bool trylock_until(uint64_t millisec);
+
+    /** Try to lock the mutex until specified time
+      @param   abs_time  absolute timeout time, referenced to Kernel::get_ms_count()
+      @return true if the mutex was acquired, false otherwise.
+      @note the underlying RTOS may have a limit to the maximum wait time
+            due to internal 32-bit computations, but this is guaranteed to work if the
+            wait is <= 0x7fffffff milliseconds (~24 days). If the limit is exceeded,
+            the lock attempt will time out earlier than specified.
+
+      @note You cannot call this function from ISR context.
+     */
+    bool trylock_until(Kernel::Clock::time_point abs_time);
 
     /**
       Unlock the mutex that has previously been locked by the same thread
 
-      @return status code that indicates the execution status of the function:
-              @a osOK the mutex has been released.
-
       @note You cannot call this function from ISR context.
-      @note This function treats RTOS errors as fatal system errors, so it can only return osOK.
-            Use of the return value is deprecated, as the return is expected to become void in the future.
      */
-#if MBED_CONF_RTOS_PRESENT
-    osStatus unlock();
-#else
-    void unlock(); // Value return backwards compatibility not required for non-RTOS
-#endif
+    void unlock();
 
     /** Get the owner the this mutex
       @return  the current owner of this mutex.
@@ -213,7 +208,17 @@ inline bool Mutex::trylock_for(uint32_t)
     return true;
 }
 
+inline bool Mutex::trylock_for(Kernel::Clock::duration_u32)
+{
+    return true;
+}
+
 inline bool Mutex::trylock_until(uint64_t)
+{
+    return true;
+}
+
+inline bool Mutex::trylock_until(Kernel::Clock::time_point)
 {
     return true;
 }

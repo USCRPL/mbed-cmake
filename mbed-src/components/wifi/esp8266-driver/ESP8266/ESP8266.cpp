@@ -1,5 +1,6 @@
 /* ESP8266 Example
  * Copyright (c) 2015 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +15,7 @@
  * limitations under the License.
  */
 
-#if DEVICE_SERIAL && DEVICE_INTERRUPTIN && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_PRESENT)
+#if DEVICE_SERIAL && DEVICE_INTERRUPTIN && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_API_PRESENT)
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
@@ -35,13 +36,18 @@
 
 #define ESP8266_ALL_SOCKET_IDS      -1
 
+#define ESP8266_DEFAULT_SERIAL_BAUDRATE 115200
+
+
 using namespace mbed;
+using namespace std::chrono;
+using std::milli;
 
 ESP8266::ESP8266(PinName tx, PinName rx, bool debug, PinName rts, PinName cts)
     : _sdk_v(-1, -1, -1),
       _at_v(-1, -1, -1),
       _tcp_passive(false),
-      _callback(0),
+      _callback(),
       _serial(tx, rx, MBED_CONF_ESP8266_SERIAL_BAUDRATE),
       _serial_rts(rts),
       _serial_cts(cts),
@@ -57,11 +63,11 @@ ESP8266::ESP8266(PinName tx, PinName rx, bool debug, PinName rts, PinName cts)
       _closed(false),
       _error(false),
       _busy(false),
-      _reset_check(_rmutex),
       _reset_done(false),
+      _sock_sending_id(-1),
       _conn_status(NSAPI_STATUS_DISCONNECTED)
 {
-    _serial.set_baud(MBED_CONF_ESP8266_SERIAL_BAUDRATE);
+    _serial.set_baud(ESP8266_DEFAULT_SERIAL_BAUDRATE);
     _parser.debug_on(debug);
     _parser.set_delimiter("\r\n");
     _parser.oob("+IPD", callback(this, &ESP8266::_oob_packet_hdlr));
@@ -90,6 +96,10 @@ ESP8266::ESP8266(PinName tx, PinName rx, bool debug, PinName rts, PinName cts)
     _parser.oob("busy ", callback(this, &ESP8266::_oob_busy));
     // NOTE: documentation v3.0 says '+CIPRECVDATA:<data_len>,' but it's not how the FW responds...
     _parser.oob("+CIPRECVDATA,", callback(this, &ESP8266::_oob_tcp_data_hdlr));
+    // Register 'SEND OK'/'SEND FAIL' oobs here. Don't get involved in oob management with send status
+    // because ESP8266 modem possibly doesn't reply these packets on error case.
+    _parser.oob("SEND OK", callback(this, &ESP8266::_oob_send_ok_received));
+    _parser.oob("SEND FAIL", callback(this, &ESP8266::_oob_send_fail_received));
 
     for (int i = 0; i < SOCKET_COUNT; i++) {
         _sock_i[i].open = false;
@@ -97,6 +107,7 @@ ESP8266::ESP8266(PinName tx, PinName rx, bool debug, PinName rts, PinName cts)
         _sock_i[i].tcp_data = NULL;
         _sock_i[i].tcp_data_avbl = 0;
         _sock_i[i].tcp_data_rcvd = 0;
+        _sock_i[i].send_fail = false;
     }
 
     _scan_r.res = NULL;
@@ -117,6 +128,14 @@ bool ESP8266::at_available()
             break;
         }
         tr_debug("at_available(): Waiting AT response.");
+    }
+    // Switch baud-rate from default one to assigned one
+    if (MBED_CONF_ESP8266_SERIAL_BAUDRATE !=  ESP8266_DEFAULT_SERIAL_BAUDRATE) {
+        ready &= _parser.send("AT+UART_CUR=%u,8,1,0,0", MBED_CONF_ESP8266_SERIAL_BAUDRATE)
+                 && _parser.recv("OK\n");
+        _serial.set_baud(MBED_CONF_ESP8266_SERIAL_BAUDRATE);
+        ready &= _parser.send("AT")
+                 && _parser.recv("OK\n");
     }
     _smutex.unlock();
 
@@ -258,12 +277,12 @@ bool ESP8266::startup(int mode)
 
 bool ESP8266::reset(void)
 {
-    static const int ESP8266_BOOTTIME = 10000; // [ms]
+    static const auto ESP8266_BOOTTIME = 10s;
     bool done = false;
 
     _smutex.lock();
 
-    unsigned long int start_time = rtos::Kernel::get_ms_count();
+    auto start_time = rtos::Kernel::Clock::now();
     _reset_done = false;
     set_timeout(ESP8266_RECV_TIMEOUT);
     for (int i = 0; i < 2; i++) {
@@ -272,14 +291,15 @@ bool ESP8266::reset(void)
             continue;
         }
 
-        _rmutex.lock();
-        while ((rtos::Kernel::get_ms_count() - start_time < ESP8266_BOOTTIME) && !_reset_done) {
+        while (!_reset_done) {
             _process_oob(ESP8266_RECV_TIMEOUT, true); // UART mutex claimed -> need to check for OOBs ourselves
-            _reset_check.wait_for(100); // Arbitrary relatively short delay
+            if (_reset_done || rtos::Kernel::Clock::now() - start_time >= ESP8266_BOOTTIME) {
+                break;
+            }
+            rtos::ThisThread::sleep_for(100ms);
         }
 
         done = _reset_done;
-        _rmutex.unlock();
         if (done) {
             break;
         }
@@ -288,6 +308,7 @@ bool ESP8266::reset(void)
     tr_debug("reset(): Done: %s.", done ? "OK" : "FAIL");
 
     _clear_socket_packets(ESP8266_ALL_SOCKET_IDS);
+    _sock_sending_id = -1;
     set_timeout();
     _smutex.unlock();
 
@@ -366,6 +387,17 @@ bool ESP8266::disconnect(void)
     return done;
 }
 
+bool ESP8266::ip_info_print(int enable)
+{
+    _smutex.lock();
+    _disconnect = true;
+    bool done = _parser.send("AT+CIPDINFO=%d", enable) && _parser.recv("OK\n");
+    _smutex.unlock();
+
+    return done;
+}
+
+
 const char *ESP8266::ip_addr(void)
 {
     _smutex.lock();
@@ -380,6 +412,32 @@ const char *ESP8266::ip_addr(void)
     _smutex.unlock();
 
     return _ip_buffer;
+}
+
+bool ESP8266::set_ip_addr(const char *ip, const char *gateway, const char *netmask)
+{
+    if (ip == nullptr || ip[0] == '\0') {
+        return false;
+    }
+
+    bool ok = false;
+    bool parser_send = false;
+
+    _smutex.lock();
+
+    if ((gateway == nullptr) || (netmask == nullptr) || gateway[0] == '\0' || netmask[0] == '\0') {
+        parser_send = _parser.send("AT+CIPSTA_CUR=\"%s\"", ip);
+    } else {
+        parser_send = _parser.send("AT+CIPSTA_CUR=\"%s\",\"%s\",\"%s\"", ip, gateway, netmask);
+    }
+
+    if (parser_send  && _parser.recv("OK\n")) {
+        ok = true;
+    } else {
+        ok = false;
+    }
+    _smutex.unlock();
+    return ok;
 }
 
 const char *ESP8266::mac_addr(void)
@@ -464,12 +522,12 @@ int8_t ESP8266::rssi()
     return rssi;
 }
 
-int ESP8266::scan(WiFiAccessPoint *res, unsigned limit, scan_mode mode, unsigned t_max, unsigned t_min)
+int ESP8266::scan(WiFiAccessPoint *res, unsigned limit, scan_mode mode, duration<unsigned, milli> t_max, duration<unsigned, milli> t_min)
 {
     _smutex.lock();
 
     // Default timeout plus time spend scanning each channel
-    set_timeout(ESP8266_MISC_TIMEOUT + 13 * (t_max ? t_max : ESP8266_SCAN_TIME_MAX_DEFAULT));
+    set_timeout(ESP8266_MISC_TIMEOUT + 13 * (t_max != t_max.zero() ? t_max : duration<unsigned, milli>(ESP8266_SCAN_TIME_MAX_DEFAULT)));
 
     _scan_r.res = res;
     _scan_r.limit = limit;
@@ -478,7 +536,7 @@ int ESP8266::scan(WiFiAccessPoint *res, unsigned limit, scan_mode mode, unsigned
     bool ret_parse_send = true;
 
     if (FW_AT_LEAST_VERSION(_at_v.major, _at_v.minor, _at_v.patch, 0, ESP8266_AT_VERSION_WIFI_SCAN_CHANGE)) {
-        ret_parse_send = _parser.send("AT+CWLAP=,,,%u,%u,%u", (mode == SCANMODE_ACTIVE ? 0 : 1), t_min, t_max);
+        ret_parse_send = _parser.send("AT+CWLAP=,,,%u,%u,%u", (mode == SCANMODE_ACTIVE ? 0 : 1), t_min.count(), t_max.count());
     } else {
         ret_parse_send = _parser.send("AT+CWLAP");
     }
@@ -501,24 +559,34 @@ int ESP8266::scan(WiFiAccessPoint *res, unsigned limit, scan_mode mode, unsigned
     return cnt;
 }
 
-nsapi_error_t ESP8266::open_udp(int id, const char *addr, int port, int local_port)
+nsapi_error_t ESP8266::open_udp(int id, const char *addr, int port, int local_port, int udp_mode)
 {
     static const char *type = "UDP";
     bool done = false;
+
+    ip_info_print(1);
 
     _smutex.lock();
 
     // process OOB so that _sock_i reflects the correct state of the socket
     _process_oob(ESP8266_SEND_TIMEOUT, true);
 
-    if (id >= SOCKET_COUNT || _sock_i[id].open) {
+    // Previous close() can fail with busy in sending. Usually, user will ignore the close()
+    // error code and cause 'spurious close', in which case user has closed the socket but ESP8266 modem
+    // hasn't yet. Because we don't know how long ESP8266 modem will trap in busy, enlarge retry count
+    // or timeout in close() isn't a nice way. Here, we actively re-call close() in open() to let the modem
+    // close the socket. User can re-try open() on failure. Without this active close(), open() can fail forever
+    // with previous 'spurious close', unless peer closes the socket and so ESP8266 modem closes it accordingly.
+    if (id >= SOCKET_COUNT) {
         _smutex.unlock();
         return NSAPI_ERROR_PARAMETER;
+    } else if (_sock_i[id].open) {
+        close(id);
     }
 
     for (int i = 0; i < 2; i++) {
         if (local_port) {
-            done = _parser.send("AT+CIPSTART=%d,\"%s\",\"%s\",%d,%d", id, type, addr, port, local_port);
+            done = _parser.send("AT+CIPSTART=%d,\"%s\",\"%s\",%d,%d,%d", id, type, addr, port, local_port, udp_mode);
         } else {
             done = _parser.send("AT+CIPSTART=%d,\"%s\",\"%s\",%d", id, type, addr, port);
         }
@@ -557,14 +625,22 @@ nsapi_error_t ESP8266::open_tcp(int id, const char *addr, int port, int keepaliv
     static const char *type = "TCP";
     bool done = false;
 
+    ip_info_print(1);
+
+    if (!addr) {
+        return NSAPI_ERROR_PARAMETER;
+    }
     _smutex.lock();
 
     // process OOB so that _sock_i reflects the correct state of the socket
     _process_oob(ESP8266_SEND_TIMEOUT, true);
 
-    if (id >= SOCKET_COUNT || _sock_i[id].open) {
+    // See the reason above with close()
+    if (id >= SOCKET_COUNT) {
         _smutex.unlock();
         return NSAPI_ERROR_PARAMETER;
+    } else if (_sock_i[id].open) {
+        close(id);
     }
 
     for (int i = 0; i < 2; i++) {
@@ -606,15 +682,33 @@ nsapi_error_t ESP8266::open_tcp(int id, const char *addr, int port, int keepaliv
 bool ESP8266::dns_lookup(const char *name, char *ip)
 {
     _smutex.lock();
-    bool done = _parser.send("AT+CIPDOMAIN=\"%s\"", name) && _parser.recv("+CIPDOMAIN:%s%*[\r]%*[\n]", ip);
+    set_timeout(ESP8266_DNS_TIMEOUT);
+    bool done = _parser.send("AT+CIPDOMAIN=\"%s\"", name)
+                && _parser.recv("+CIPDOMAIN:%15[^\n]\n", ip)
+                && _parser.recv("OK\n");
+    set_timeout();
     _smutex.unlock();
 
     return done;
 }
 
-nsapi_error_t ESP8266::send(int id, const void *data, uint32_t amount)
+nsapi_size_or_error_t ESP8266::send(int id, const void *data, uint32_t amount)
 {
+    if (_sock_i[id].proto == NSAPI_TCP) {
+        if (_sock_sending_id >= 0 && _sock_sending_id < SOCKET_COUNT) {
+            if (!_sock_i[id].send_fail) {
+                tr_debug("send(): Previous packet (socket %d) was not yet ACK-ed with SEND OK.", _sock_sending_id);
+                return NSAPI_ERROR_WOULD_BLOCK;
+            } else {
+                tr_debug("send(): Previous packet (socket %d) failed.", id);
+                return NSAPI_ERROR_DEVICE_ERROR;
+            }
+        }
+    }
+
     nsapi_error_t ret = NSAPI_ERROR_DEVICE_ERROR;
+    int bytes_confirmed = 0;
+
     // +CIPSEND supports up to 2048 bytes at a time
     // Data stream can be truncated
     if (amount > 2048 && _sock_i[id].proto == NSAPI_TCP) {
@@ -626,6 +720,10 @@ nsapi_error_t ESP8266::send(int id, const void *data, uint32_t amount)
     }
 
     _smutex.lock();
+    // Mark this socket is sending. We allow only one actively sending socket because:
+    // 1. ESP8266 AT packets 'SEND OK'/'SEND FAIL' are not associated with socket ID. No way to tell them.
+    // 2. In original implementation, ESP8266::send() is synchronous, which implies only one actively sending socket.
+    _sock_sending_id = id;
     set_timeout(ESP8266_SEND_TIMEOUT);
     _busy = false;
     _error = false;
@@ -635,37 +733,70 @@ nsapi_error_t ESP8266::send(int id, const void *data, uint32_t amount)
     }
 
     if (!_parser.recv(">")) {
+        // This means ESP8266 hasn't even started to receive data
         tr_debug("send(): Didn't get \">\"");
-        ret = NSAPI_ERROR_WOULD_BLOCK;
+        if (_sock_i[id].proto == NSAPI_TCP) {
+            ret = NSAPI_ERROR_WOULD_BLOCK; // Not necessarily critical error.
+        } else if (_sock_i[id].proto == NSAPI_UDP) {
+            ret = NSAPI_ERROR_NO_MEMORY;
+        }
         goto END;
     }
 
-    if (_parser.write((char *)data, (int)amount) >= 0 && _parser.recv("SEND OK")) {
-        ret = NSAPI_ERROR_OK;
+    if (_parser.write((char *)data, (int)amount) < 0) {
+        tr_debug("send(): Failed to write serial data");
+        // Serial is not working, serious error, reset needed.
+        ret = NSAPI_ERROR_DEVICE_ERROR;
+        goto END;
+    }
+
+    // The "Recv X bytes" is not documented.
+    if (!_parser.recv("Recv %d bytes", &bytes_confirmed)) {
+        tr_debug("send(): Bytes not confirmed.");
+        if (_sock_i[id].proto == NSAPI_TCP) {
+            ret = NSAPI_ERROR_WOULD_BLOCK;
+        } else if (_sock_i[id].proto == NSAPI_UDP) {
+            ret = NSAPI_ERROR_NO_MEMORY;
+        }
+    } else if (bytes_confirmed != (int)amount && _sock_i[id].proto == NSAPI_UDP) {
+        tr_debug("send(): Error: confirmed %d bytes, but expected %d.", bytes_confirmed, amount);
+        ret = NSAPI_ERROR_DEVICE_ERROR;
+    } else {
+        // TCP can accept partial writes (if they ever happen)
+        ret = bytes_confirmed;
     }
 
 END:
     _process_oob(ESP8266_RECV_TIMEOUT, true); // Drain USART receive register to avoid data overrun
 
     // error hierarchy, from low to high
-    if (_busy) {
+    // NOTE: We cannot return NSAPI_ERROR_WOULD_BLOCK when "Recv X bytes" has reached, otherwise duplicate data send.
+    if (_busy && ret < 0) {
         ret = NSAPI_ERROR_WOULD_BLOCK;
-        tr_debug("send(): Modem busy. ");
-    }
-
-    if (ret == NSAPI_ERROR_DEVICE_ERROR) {
-        ret = NSAPI_ERROR_WOULD_BLOCK;
-        tr_debug("send(): Send failed.");
+        tr_debug("send(): Modem busy.");
     }
 
     if (_error) {
+        // FIXME: Not sure clear or not of _error. See it as device error and it can recover only via reset?
+        _sock_sending_id = -1;
         ret = NSAPI_ERROR_CONNECTION_LOST;
         tr_debug("send(): Connection disrupted.");
     }
 
-    if (!_sock_i[id].open && ret != NSAPI_ERROR_OK) {
+    if (_sock_i[id].send_fail) {
+        _sock_sending_id = -1;
+        if (_sock_i[id].proto == NSAPI_TCP) {
+            ret = NSAPI_ERROR_DEVICE_ERROR;
+        } else {
+            ret = NSAPI_ERROR_NO_MEMORY;
+        }
+        tr_debug("send(): SEND FAIL received.");
+    }
+
+    if (!_sock_i[id].open && ret < 0) {
+        _sock_sending_id = -1;
         ret = NSAPI_ERROR_CONNECTION_LOST;
-        tr_debug("send(): Socket closed abruptly.");
+        tr_debug("send(): Socket %d closed abruptly.", id);
     }
 
     set_timeout();
@@ -677,6 +808,7 @@ END:
 void ESP8266::_oob_packet_hdlr()
 {
     int id;
+    int port;
     int amount;
     int pdu_len;
 
@@ -686,6 +818,8 @@ void ESP8266::_oob_packet_hdlr()
     }
 
     if (_tcp_passive && _sock_i[id].open == true && _sock_i[id].proto == NSAPI_TCP) {
+        //For TCP +IPD return only id and amount and it is independent on AT+CIPDINFO settings
+        //Unfortunately no information about that in ESP manual but it has sense.
         if (_parser.recv("%d\n", &amount)) {
             _sock_i[id].tcp_data_avbl = amount;
 
@@ -695,8 +829,12 @@ void ESP8266::_oob_packet_hdlr()
             }
         }
         return;
-    } else if (!_parser.scanf("%d:", &amount)) {
-        return;
+    } else {
+        if (!(_parser.scanf("%d,", &amount)
+                && _parser.scanf("%15[^,],", _ip_buffer)
+                && _parser.scanf("%d:", &port))) {
+            return;
+        }
     }
 
     pdu_len = sizeof(struct packet) + amount;
@@ -714,6 +852,10 @@ void ESP8266::_oob_packet_hdlr()
     _heap_usage += pdu_len;
 
     packet->id = id;
+    if (_sock_i[id].proto == NSAPI_UDP) {
+        packet->remote_port = port;
+        memcpy(packet->remote_ip, _ip_buffer, 16);
+    }
     packet->len = amount;
     packet->alloc_len = amount;
     packet->next = 0;
@@ -729,7 +871,7 @@ void ESP8266::_oob_packet_hdlr()
     _packets_end = &packet->next;
 }
 
-void ESP8266::_process_oob(uint32_t timeout, bool all)
+void ESP8266::_process_oob(duration<uint32_t, milli> timeout, bool all)
 {
     set_timeout(timeout);
     // Poll for inbound packets
@@ -738,14 +880,14 @@ void ESP8266::_process_oob(uint32_t timeout, bool all)
     set_timeout();
 }
 
-void ESP8266::bg_process_oob(uint32_t timeout, bool all)
+void ESP8266::bg_process_oob(duration<uint32_t, milli> timeout, bool all)
 {
     _smutex.lock();
     _process_oob(timeout, all);
     _smutex.unlock();
 }
 
-int32_t ESP8266::_recv_tcp_passive(int id, void *data, uint32_t amount, uint32_t timeout)
+int32_t ESP8266::_recv_tcp_passive(int id, void *data, uint32_t amount, duration<uint32_t, milli> timeout)
 {
     int32_t ret = NSAPI_ERROR_WOULD_BLOCK;
 
@@ -808,7 +950,7 @@ BUSY:
     return ret;
 }
 
-int32_t ESP8266::recv_tcp(int id, void *data, uint32_t amount, uint32_t timeout)
+int32_t ESP8266::recv_tcp(int id, void *data, uint32_t amount, duration<uint32_t, milli> timeout)
 {
     if (_tcp_passive) {
         return _recv_tcp_passive(id, data, amount, timeout);
@@ -866,7 +1008,7 @@ int32_t ESP8266::recv_tcp(int id, void *data, uint32_t amount, uint32_t timeout)
     return NSAPI_ERROR_WOULD_BLOCK;
 }
 
-int32_t ESP8266::recv_udp(int id, void *data, uint32_t amount, uint32_t timeout)
+int32_t ESP8266::recv_udp(struct esp8266_socket *socket, void *data, uint32_t amount, duration<uint32_t, milli> timeout)
 {
     _smutex.lock();
     set_timeout(timeout);
@@ -879,8 +1021,11 @@ int32_t ESP8266::recv_udp(int id, void *data, uint32_t amount, uint32_t timeout)
 
     // check if any packets are ready for us
     for (struct packet **p = &_packets; *p; p = &(*p)->next) {
-        if ((*p)->id == id) {
+        if ((*p)->id == socket->id) {
             struct packet *q = *p;
+
+            socket->addr.set_ip_address((*p)->remote_ip);
+            socket->addr.set_port((*p)->remote_port);
 
             // Return and remove packet (truncated if necessary)
             uint32_t len = q->len < amount ? q->len : amount;
@@ -938,6 +1083,14 @@ void ESP8266::_clear_socket_packets(int id)
     }
 }
 
+void ESP8266::_clear_socket_sending(int id)
+{
+    if (id == _sock_sending_id) {
+        _sock_sending_id = -1;
+    }
+    _sock_i[id].send_fail = false;
+}
+
 bool ESP8266::close(int id)
 {
     //May take a second try if device is busy
@@ -949,26 +1102,33 @@ bool ESP8266::close(int id)
                     _closed = false;
                     _sock_i[id].open = false;
                     _clear_socket_packets(id);
+                    // Closed, so this socket escapes from SEND FAIL status.
+                    _clear_socket_sending(id);
                     _smutex.unlock();
                     // ESP8266 has a habit that it might close a socket on its own.
+                    tr_debug("close(%d): socket close OK with UNLINK ERROR", id);
                     return true;
                 }
             } else {
                 // _sock_i[id].open set to false with an OOB
                 _clear_socket_packets(id);
+                // Closed, so this socket escapes from SEND FAIL status
+                _clear_socket_sending(id);
                 _smutex.unlock();
+                tr_debug("close(%d): socket close OK with AT+CIPCLOSE OK", id);
                 return true;
             }
         }
         _smutex.unlock();
     }
 
+    tr_debug("close(%d): socket close FAIL'ed (spurious close)", id);
     return false;
 }
 
-void ESP8266::set_timeout(uint32_t timeout_ms)
+void ESP8266::set_timeout(duration<uint32_t, milli> timeout)
 {
-    _parser.set_timeout(timeout_ms);
+    _parser.set_timeout(timeout.count());
 }
 
 bool ESP8266::readable()
@@ -990,6 +1150,130 @@ void ESP8266::sigio(Callback<void()> func)
 void ESP8266::attach(Callback<void()> status_cb)
 {
     _conn_stat_cb = status_cb;
+}
+
+bool ESP8266::set_sntp_config(bool enable, int timezone, const char *server0,
+                              const char *server1, const char *server2)
+{
+    bool done = false;
+    _smutex.lock();
+    if ((server0 == nullptr || server0[0] == '\0')) {
+        done = _parser.send("AT+CIPSNTPCFG=%d,%d",
+                            enable ? 1 : 0, timezone);
+    } else if ((server0 != nullptr || server0[0] != '\0')
+               && (server1 == nullptr && server1[0] == '\0')) {
+        done = _parser.send("AT+CIPSNTPCFG=%d,%d,%s",
+                            enable ? 1 : 0, timezone, server0);
+    } else if ((server0 != nullptr || server0[0] != '\0')
+               && (server1 != nullptr && server1[0] != '\0')
+               && (server2 == nullptr && server2[0] == '\0')) {
+        done = _parser.send("AT+CIPSNTPCFG=%d,%d,%s,%s",
+                            enable ? 1 : 0, timezone, server0, server1);
+    } else {
+        done = _parser.send("AT+CIPSNTPCFG=%d,%d,%s,%s,%s",
+                            enable ? 1 : 0, timezone, server0, server1, server2);
+    }
+    done &= _parser.recv("OK\n");
+    _smutex.unlock();
+    return done;
+}
+
+bool ESP8266::get_sntp_config(bool *enable, int *timezone, char *server0,
+                              char *server1, char *server2)
+{
+    _smutex.lock();
+    unsigned int tmp;
+    bool done = _parser.send("AT+CIPSNTPCFG?")
+                && _parser.scanf("+CIPSNTPCFG:%d,%d,\"%32[^\"]\",\"%32[^\"]\",\"%32[^\"]\"",
+                                 &tmp, timezone, server0, server1, server2)
+                && _parser.recv("OK\n");
+    _smutex.unlock();
+    *enable = tmp ? true : false;
+    return done;
+}
+
+bool ESP8266::get_sntp_time(std::tm *t)
+{
+    _smutex.lock();
+    char buf[25]; // Thu Aug 04 14:48:05 2016 (always 24 chars + \0)
+    memset(buf, 0, 25);
+
+    bool done = _parser.send("AT+CIPSNTPTIME?")
+                && _parser.scanf("+CIPSNTPTIME:%24c", buf)
+                && _parser.recv("OK\n");
+    _smutex.unlock();
+
+    if (!done) {
+        return false;
+    }
+
+    char wday[4] = "\0", mon[4] = "\0";
+    int mday = 0, hour = 0, min = 0, sec = 0, year = 0;
+    int ret = sscanf(buf, "%s %s %d %d:%d:%d %d",
+                     wday, mon, &mday, &hour, &min, &sec, &year);
+    if (ret != 7) {
+        tr_debug("get_sntp_time(): sscanf returned %d", ret);
+        return false;
+    }
+
+    t->tm_sec = sec;
+    t->tm_min = min;
+    t->tm_hour = hour;
+    t->tm_mday = mday;
+
+    t->tm_wday = 0;
+    if (strcmp(wday, "Mon") == 0) {
+        t->tm_wday = 0;
+    } else if (strcmp(wday, "Tue") == 0) {
+        t->tm_wday = 1;
+    } else if (strcmp(wday, "Wed") == 0) {
+        t->tm_wday = 2;
+    } else if (strcmp(wday, "Thu") == 0) {
+        t->tm_wday = 3;
+    } else if (strcmp(wday, "Fri") == 0) {
+        t->tm_wday = 4;
+    } else if (strcmp(wday, "Sat") == 0) {
+        t->tm_wday = 5;
+    } else if (strcmp(wday, "Sun") == 0) {
+        t->tm_wday = 6;
+    } else {
+        tr_debug("get_sntp_time(): Invalid weekday: %s", wday);
+        return false;
+    }
+
+    t->tm_mon = 0;
+    if (strcmp(mon, "Jan") == 0) {
+        t->tm_mon = 0;
+    } else if (strcmp(mon, "Feb") == 0) {
+        t->tm_mon = 1;
+    } else if (strcmp(mon, "Mar") == 0) {
+        t->tm_mon = 2;
+    } else if (strcmp(mon, "Apr") == 0) {
+        t->tm_mon = 3;
+    } else if (strcmp(mon, "May") == 0) {
+        t->tm_mon = 4;
+    } else if (strcmp(mon, "Jun") == 0) {
+        t->tm_mon = 5;
+    } else if (strcmp(mon, "Jul") == 0) {
+        t->tm_mon = 6;
+    } else if (strcmp(mon, "Aug") == 0) {
+        t->tm_mon = 7;
+    } else if (strcmp(mon, "Sep") == 0) {
+        t->tm_mon = 8;
+    } else if (strcmp(mon, "Oct") == 0) {
+        t->tm_mon = 9;
+    } else if (strcmp(mon, "Nov") == 0) {
+        t->tm_mon = 10;
+    } else if (strcmp(mon, "Dec") == 0) {
+        t->tm_mon = 11;
+    } else {
+        tr_debug("get_sntp_time(): Invalid month: %s", mon);
+        return false;
+    }
+
+    t->tm_year = (year - 1900);
+
+    return true;
 }
 
 bool ESP8266::_recv_ap(nsapi_wifi_ap_t *ap)
@@ -1040,11 +1324,7 @@ void ESP8266::_oob_watchdog_reset()
 
 void ESP8266::_oob_ready()
 {
-
-    _rmutex.lock();
     _reset_done = true;
-    _reset_check.notify_all();
-    _rmutex.unlock();
 
     for (int i = 0; i < SOCKET_COUNT; i++) {
         _sock_i[i].open = false;
@@ -1075,7 +1355,6 @@ void ESP8266::_oob_busy()
                    "ESP8266::_oob_busy() AT timeout\n");
     }
     _busy = true;
-    _parser.abort();
 }
 
 void ESP8266::_oob_tcp_data_hdlr()
@@ -1144,6 +1423,8 @@ void ESP8266::_oob_socket0_closed()
 {
     static const int id = 0;
     _sock_i[id].open = false;
+    // Closed, so this socket escapes from SEND FAIL status
+    _clear_socket_sending(id);
     tr_debug("_oob_socket0_closed(): Socket %d closed.", id);
 }
 
@@ -1151,6 +1432,8 @@ void ESP8266::_oob_socket1_closed()
 {
     static const int id = 1;
     _sock_i[id].open = false;
+    // Closed, so this socket escapes from SEND FAIL status
+    _clear_socket_sending(id);
     tr_debug("_oob_socket1_closed(): Socket %d closed.", id);
 }
 
@@ -1158,6 +1441,7 @@ void ESP8266::_oob_socket2_closed()
 {
     static const int id = 2;
     _sock_i[id].open = false;
+    _clear_socket_sending(id);
     tr_debug("_oob_socket2_closed(): Socket %d closed.", id);
 }
 
@@ -1165,6 +1449,7 @@ void ESP8266::_oob_socket3_closed()
 {
     static const int id = 3;
     _sock_i[id].open = false;
+    _clear_socket_sending(id);
     tr_debug("_oob_socket3_closed(): %d closed.", id);
 }
 
@@ -1172,6 +1457,8 @@ void ESP8266::_oob_socket4_closed()
 {
     static const int id = 4;
     _sock_i[id].open = false;
+    // Closed, so this socket escapes from SEND FAIL status
+    _clear_socket_sending(id);
     tr_debug("_oob_socket0_closed(): Socket %d closed.", id);
 }
 
@@ -1207,6 +1494,21 @@ void ESP8266::_oob_connection_status()
 
     MBED_ASSERT(_conn_stat_cb);
     _conn_stat_cb();
+}
+
+void ESP8266::_oob_send_ok_received()
+{
+    tr_debug("_oob_send_ok_received called for socket %d", _sock_sending_id);
+    _sock_sending_id = -1;
+}
+
+void ESP8266::_oob_send_fail_received()
+{
+    tr_debug("_oob_send_fail_received called for socket %d", _sock_sending_id);
+    if (_sock_sending_id >= 0 && _sock_sending_id < SOCKET_COUNT) {
+        _sock_i[_sock_sending_id].send_fail = true;
+    }
+    _sock_sending_id = -1;
 }
 
 int8_t ESP8266::default_wifi_mode()

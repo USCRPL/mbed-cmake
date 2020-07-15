@@ -34,10 +34,14 @@
  */
 #ifndef __error_t_defined
 #define __error_t_defined 1
+#endif
 #include <errno.h>
-#undef __error_t_defined
-#else
-#include <errno.h>
+
+#if defined __has_include
+#  if __has_include (<sys/stat.h>)
+#    include <sys/stat.h>
+#    define HAVE_SYS_STAT_H
+#  endif
 #endif
 
 /* We can get the following standard types from sys/types for gcc, but we
@@ -100,7 +104,7 @@ class DirHandle;
  * to give the target a chance to specify a FileHandle for the console.
  *
  * If this is not provided or returns NULL, the console will be:
- *   - UARTSerial if configuration option "platform.stdio-buffered-serial" is
+ *   - BufferedSerial if configuration option "platform.stdio-buffered-serial" is
  *     true and the target has DEVICE_SERIAL;
  *   - Raw HAL serial via serial_getc and serial_putc if
  *     "platform.stdio-buffered-serial" is false and the target has DEVICE_SERIAL;
@@ -121,10 +125,10 @@ FileHandle *mbed_target_override_console(int fd);
  * by mbed_target_override_console, else will default to serial - see
  * mbed_target_override_console for more details.
  *
- * Example using UARTSerial:
+ * Example using BufferedSerial:
  * @code
  * FileHandle *mbed::mbed_override_console(int) {
- *     static UARTSerial my_serial(D0, D1);
+ *     static BufferedSerial my_serial(D0, D1);
  *     return &my_serial;
  * }
  * @endcode
@@ -495,6 +499,8 @@ typedef struct Dir DIR;
 #define     S_IWOTH 0000002 ///< write permission, other
 #define     S_IXOTH 0000001 ///< execute/search permission, other
 
+#ifndef HAVE_SYS_STAT_H
+
 /* Refer to sys/stat standard
  * Note: Not all fields may be supported by the underlying filesystem
  */
@@ -513,6 +519,8 @@ struct stat {
     time_t    st_mtime;   ///< Time of last data modification
     time_t    st_ctime;   ///< Time of last status change
 };
+
+#endif
 
 struct statvfs {
     unsigned long  f_bsize;    ///< Filesystem block size
@@ -592,7 +600,7 @@ extern "C" {
     int mkdir(const char *name, mode_t n);
 #endif // !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
 #if __cplusplus
-}; // extern "C"
+} // extern "C"
 
 namespace mbed {
 #if !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY

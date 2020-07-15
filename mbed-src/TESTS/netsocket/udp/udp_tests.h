@@ -21,6 +21,8 @@
 #include "../test_params.h"
 #include "mbed_trace.h"
 
+using namespace std::chrono;
+
 #define TRACE_GROUP "GRNT"
 
 NetworkInterface *get_interface();
@@ -37,13 +39,19 @@ int fetch_stats(void);
 /**
  * Single testcase might take only half of the remaining execution time
  */
-int split2half_rmng_udp_test_time(); // [s]
+microseconds split2half_rmng_udp_test_time();
 
 namespace udp_global {
 #ifdef MBED_GREENTEA_TEST_UDPSOCKET_TIMEOUT_S
-static const int TESTS_TIMEOUT = MBED_GREENTEA_TEST_UDPSOCKET_TIMEOUT_S;
+static constexpr seconds TESTS_TIMEOUT(MBED_GREENTEA_TEST_UDPSOCKET_TIMEOUT_S);
 #else
-static const int TESTS_TIMEOUT = 480;
+#define MESH 3
+#define WISUN 0x2345
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == MESH && MBED_CONF_NSAPI_DEFAULT_MESH_TYPE == WISUN
+static constexpr seconds TESTS_TIMEOUT = 25min;
+#else
+static constexpr seconds TESTS_TIMEOUT = 20min;
+#endif
 #endif
 
 static const int MAX_SEND_SIZE_IPV4 = 536;
@@ -54,7 +62,9 @@ static const int MAX_SEND_SIZE_IPV6 = 1220;
  * Test cases
  */
 void UDPSOCKET_ECHOTEST();
+void UDPSOCKET_ECHOTEST_CONNECT_SEND_RECV();
 void UDPSOCKET_ECHOTEST_NONBLOCK();
+void UDPSOCKET_ECHOTEST_NONBLOCK_CONNECT_SEND_RECV();
 void UDPSOCKET_ECHOTEST_BURST();
 void UDPSOCKET_ECHOTEST_BURST_NONBLOCK();
 void UDPSOCKET_OPEN_CLOSE_REPEAT();

@@ -1,6 +1,7 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
  *
+ * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,7 +28,8 @@
 #include "utest.h"
 #include "rtos.h"
 #include "SynchronizedIntegral.h"
-#include "LockGuard.h"
+#include <mstd_mutex>
+#include <type_traits>
 
 #define THREAD_STACK_SIZE 512
 #if defined(__CORTEX_A9) || defined(__CORTEX_M23) || defined(__CORTEX_M33) || defined(TARGET_ARM_FM) ||  defined(TARGET_CY8CKIT_062_WIFI_BT_PSA)
@@ -38,8 +40,15 @@
 #define CHILD_THREAD_STACK_SIZE 384
 #endif
 
+#define TEST_ASSERT_DURATION_WITHIN(delta, expected, actual) \
+    do { \
+        using ct = std::common_type_t<decltype(delta), decltype(expected), decltype(actual)>; \
+        TEST_ASSERT_INT_WITHIN(ct(delta).count(), ct(expected).count(), ct(actual).count()); \
+    } while (0)
+
 
 using namespace utest::v1;
+using mstd::lock_guard;
 
 // The counter type used accross all the tests
 // It is internall ysynchronized so read
@@ -65,7 +74,7 @@ void increment_with_yield(counter_t *counter)
 
 void increment_with_wait(counter_t *counter)
 {
-    ThisThread::sleep_for(100);
+    ThisThread::sleep_for(100ms);
     (*counter)++;
 }
 
@@ -91,7 +100,7 @@ void increment_with_murder(counter_t *counter)
     {
         // take ownership of the counter mutex so it prevent the child to
         // modify counter.
-        LockGuard lock(counter->internal_mutex());
+        lock_guard<rtos::Mutex> lock(counter->internal_mutex());
         Thread *child = new (std::nothrow) Thread(osPriorityNormal, CHILD_THREAD_STACK_SIZE);
         char *dummy = new (std::nothrow) char[CHILD_THREAD_STACK_SIZE];
         delete[] dummy;
@@ -292,7 +301,7 @@ void flags_wait()
 
 void flags_wait_tout()
 {
-    uint32_t flags = ThisThread::flags_wait_all_for(0x2, 50);
+    uint32_t flags = ThisThread::flags_wait_all_for(0x2, 50ms);
     TEST_ASSERT_EQUAL(0x1, flags);
 }
 
@@ -310,7 +319,7 @@ void flags_wait_multibit_any()
 
 void flags_wait_multibit_tout()
 {
-    uint32_t flags = ThisThread::flags_wait_all_for(0x1 | 0x2, 50);
+    uint32_t flags = ThisThread::flags_wait_all_for(0x1 | 0x2, 50ms);
     TEST_ASSERT_NOT_EQUAL(0x3, flags);
 }
 
@@ -374,7 +383,7 @@ void flags_clear()
     TEST_ASSERT_EQUAL(0x1, sig);
 
     /* Flags cleared we should get timeout */
-    uint32_t flags = ThisThread::flags_wait_all_for(0x1, 0);
+    uint32_t flags = ThisThread::flags_wait_all_for(0x1, 0s);
     TEST_ASSERT_EQUAL(0, flags);
 }
 
@@ -472,9 +481,9 @@ void test_thread_wait()
     Timer timer;
     timer.start();
 
-    ThisThread::sleep_for(150);
+    ThisThread::sleep_for(150ms);
 
-    TEST_ASSERT_UINT32_WITHIN(50000, 150000, timer.read_us());
+    TEST_ASSERT_DURATION_WITHIN(50ms, 150ms, timer.elapsed_time());
 }
 
 /** Testing thread name
@@ -491,9 +500,8 @@ void test_thread_name()
 
     const char tname[] = "Amazing thread";
     Thread t(osPriorityNormal, THREAD_STACK_SIZE, NULL, tname);
-    t.start(callback(thread_wait_flags));
     TEST_ASSERT_EQUAL(strcmp(tname, t.get_name()), 0);
-    t.flags_set(0x1);
+    t.start([&] { TEST_ASSERT_EQUAL(strcmp(tname, ThisThread::get_name()), 0); });
     t.join();
 }
 
@@ -526,7 +534,7 @@ void test_deleted()
 
 void test_delay_thread()
 {
-    ThisThread::sleep_for(50);
+    ThisThread::sleep_for(50ms);
 }
 
 /** Testing thread states: wait delay
@@ -696,12 +704,12 @@ void test_msg_get()
 
     TEST_ASSERT_EQUAL(Thread::WaitingMessageGet, t.get_state());
 
-    queue.put((int32_t *)0xE1EE7);
+    queue.try_put((int32_t *)0xE1EE7);
 }
 
 void test_msg_put_thread(Queue<int32_t, 1> *queue)
 {
-    queue->put((int32_t *)0xDEADBEEF, osWaitForever);
+    queue->try_put_for(Kernel::wait_for_u32_forever, (int32_t *)0xDEADBEEF);
 
 }
 
@@ -720,7 +728,7 @@ void test_msg_put()
     Thread t(osPriorityNormal, THREAD_STACK_SIZE);
     Queue<int32_t, 1> queue;
 
-    queue.put((int32_t *)0xE1EE7);
+    queue.try_put((int32_t *)0xE1EE7);
 
     t.start(callback(test_msg_put_thread, &queue));
 
@@ -788,7 +796,7 @@ void test_thread_prio()
 
 utest::v1::status_t test_setup(const size_t number_of_cases)
 {
-    GREENTEA_SETUP(20, "default_auto");
+    GREENTEA_SETUP(25, "default_auto");
     return verbose_test_setup_handler(number_of_cases);
 }
 

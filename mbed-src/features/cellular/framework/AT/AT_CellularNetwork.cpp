@@ -20,6 +20,7 @@
 #include "CellularUtil.h"
 #include "CellularLog.h"
 #include "CellularCommon.h"
+#include "AT_CellularDevice.h"
 
 using namespace std;
 using namespace mbed_cellular_util;
@@ -70,22 +71,22 @@ static const char *const rat_str[AT_CellularNetwork::RAT_MAX] = {
 #endif
 
 
-AT_CellularNetwork::AT_CellularNetwork(ATHandler &atHandler) : AT_CellularBase(atHandler),
-    _connection_status_cb(NULL), _ciotopt_network_support_cb(NULL), _op_act(RAT_UNKNOWN),
-    _connect_status(NSAPI_STATUS_DISCONNECTED), _supported_network_opt(CIOT_OPT_MAX)
+AT_CellularNetwork::AT_CellularNetwork(ATHandler &atHandler, AT_CellularDevice &device) :
+    _connection_status_cb(), _ciotopt_network_support_cb(), _op_act(RAT_UNKNOWN),
+    _connect_status(NSAPI_STATUS_DISCONNECTED), _supported_network_opt(CIOT_OPT_MAX),
+    _at(atHandler), _device(device)
 {
-
     _urc_funcs[C_EREG] = callback(this, &AT_CellularNetwork::urc_cereg);
     _urc_funcs[C_GREG] = callback(this, &AT_CellularNetwork::urc_cgreg);
     _urc_funcs[C_REG] = callback(this, &AT_CellularNetwork::urc_creg);
 
     for (int type = 0; type < CellularNetwork::C_MAX; type++) {
-        if (get_property((AT_CellularBase::CellularProperty)type) != RegistrationModeDisable) {
+        if (_device.get_property((AT_CellularDevice::CellularProperty)type) != RegistrationModeDisable) {
             _at.set_urc_handler(at_reg[type].urc_prefix, _urc_funcs[type]);
         }
     }
 
-    if (get_property(AT_CellularBase::PROPERTY_AT_CGEREP)) {
+    if (_device.get_property(AT_CellularDevice::PROPERTY_AT_CGEREP)) {
         // additional urc to get better disconnect info for application. Not critical.
         _at.set_urc_handler("+CGEV: NW DET", callback(this, &AT_CellularNetwork::urc_cgev));
         _at.set_urc_handler("+CGEV: ME DET", callback(this, &AT_CellularNetwork::urc_cgev));
@@ -99,16 +100,16 @@ AT_CellularNetwork::~AT_CellularNetwork()
 {
     (void)set_packet_domain_event_reporting(false);
     for (int type = 0; type < CellularNetwork::C_MAX; type++) {
-        if (get_property((AT_CellularBase::CellularProperty)type) != RegistrationModeDisable) {
-            _at.set_urc_handler(at_reg[type].urc_prefix, 0);
+        if (_device.get_property((AT_CellularDevice::CellularProperty)type) != RegistrationModeDisable) {
+            _at.set_urc_handler(at_reg[type].urc_prefix, nullptr);
         }
     }
 
-    if (get_property(AT_CellularBase::PROPERTY_AT_CGEREP)) {
-        _at.set_urc_handler("+CGEV: ME DET", 0);
-        _at.set_urc_handler("+CGEV: NW DET", 0);
+    if (_device.get_property(AT_CellularDevice::PROPERTY_AT_CGEREP)) {
+        _at.set_urc_handler("+CGEV: ME DET", nullptr);
+        _at.set_urc_handler("+CGEV: NW DET", nullptr);
     }
-    _at.set_urc_handler("+CCIOTOPTI:", 0);
+    _at.set_urc_handler("+CCIOTOPTI:", nullptr);
 }
 
 void AT_CellularNetwork::urc_cgev()
@@ -122,7 +123,6 @@ void AT_CellularNetwork::read_reg_params_and_compare(RegistrationType type)
     read_reg_params(type, reg_params);
 
     if (_at.get_last_error() == NSAPI_ERROR_OK && _connection_status_cb) {
-        _reg_params._type = type;
         cell_callback_data_t data;
         data.error = NSAPI_ERROR_OK;
         if (reg_params._act != _reg_params._act) {
@@ -130,7 +130,7 @@ void AT_CellularNetwork::read_reg_params_and_compare(RegistrationType type)
             data.status_data = reg_params._act;
             _connection_status_cb((nsapi_event_t)CellularRadioAccessTechnologyChanged, (intptr_t)&data);
         }
-        if (reg_params._status != _reg_params._status) {
+        if (reg_params._status != _reg_params._status || type != _reg_params._type) {
             RegistrationStatus previous_registration_status = _reg_params._status;
             _reg_params._status = reg_params._status;
             data.status_data = reg_params._status;
@@ -150,6 +150,7 @@ void AT_CellularNetwork::read_reg_params_and_compare(RegistrationType type)
             data.status_data = reg_params._cell_id;
             _connection_status_cb((nsapi_event_t)CellularCellIDChanged, (intptr_t)&data);
         }
+        _reg_params._type = type;
     }
 }
 
@@ -185,7 +186,7 @@ nsapi_error_t AT_CellularNetwork::set_registration_urc(RegistrationType type, bo
     int index = (int)type;
     MBED_ASSERT(index >= 0 && index < C_MAX);
 
-    RegistrationMode mode = (RegistrationMode)get_property((AT_CellularBase::CellularProperty)type);
+    RegistrationMode mode = (RegistrationMode)_device.get_property((AT_CellularDevice::CellularProperty)type);
     if (mode == RegistrationModeDisable) {
         return NSAPI_ERROR_UNSUPPORTED;
     } else {
@@ -201,16 +202,19 @@ nsapi_error_t AT_CellularNetwork::get_network_registering_mode(NWRegisteringMode
 {
     int ret;
     nsapi_error_t error = _at.at_cmd_int("+COPS", "?", ret);
-    mode = (NWRegisteringMode)ret;
+    if (error == NSAPI_ERROR_OK) {
+        mode = (NWRegisteringMode)ret;
+    }
     return error;
 }
 
 nsapi_error_t AT_CellularNetwork::set_registration(const char *plmn)
 {
 
+    NWRegisteringMode mode = NWModeAutomatic;
+
     if (!plmn) {
         tr_debug("Automatic network registration");
-        NWRegisteringMode mode;
         if (get_network_registering_mode(mode) != NSAPI_ERROR_OK) {
             return NSAPI_ERROR_DEVICE_ERROR;
         }
@@ -220,10 +224,17 @@ nsapi_error_t AT_CellularNetwork::set_registration(const char *plmn)
         return NSAPI_ERROR_OK;
     } else {
         tr_debug("Manual network registration to %s", plmn);
+        mode = NWModeManual;
+        OperatorNameFormat format = OperatorNameNumeric;
+#ifdef MBED_CONF_CELLULAR_PLMN_FALLBACK_AUTO
+        if (_device.get_property(AT_CellularDevice::PROPERTY_AT_COPS_FALLBACK_AUTO)) {
+            mode = NWModeManualAutomatic;
+        }
+#endif
         if (_op_act != RAT_UNKNOWN) {
-            return _at.at_cmd_discard("+COPS", "=1,2,", "%s%d", plmn, _op_act);
+            return _at.at_cmd_discard("+COPS", "=", "%d%d%s%d", mode, format, plmn, _op_act);
         } else {
-            return _at.at_cmd_discard("+COPS", "=1,2", "%s", plmn);
+            return _at.at_cmd_discard("+COPS", "=", "%d%d%s", mode, format, plmn);
         }
     }
 }
@@ -366,7 +377,11 @@ nsapi_error_t AT_CellularNetwork::set_ciot_optimization_config(CIoT_Supported_Op
                                                                Callback<void(CIoT_Supported_Opt)> network_support_cb)
 {
     _ciotopt_network_support_cb = network_support_cb;
-    return _at.at_cmd_discard("+CCIOTOPT", "=1,", "%d%d", supported_opt, preferred_opt);
+    nsapi_error_t err = _at.at_cmd_discard("+CRTDCP", "=", "%d", 1);
+    if (!err) {
+        err = _at.at_cmd_discard("+CCIOTOPT", "=1,", "%d%d", supported_opt, preferred_opt);
+    }
+    return err;
 }
 
 void AT_CellularNetwork::urc_cciotopti()
@@ -544,7 +559,7 @@ nsapi_error_t AT_CellularNetwork::get_registration_params(RegistrationType type,
     int i = (int)type;
     MBED_ASSERT(i >= 0 && i < C_MAX);
 
-    if (!get_property((AT_CellularBase::CellularProperty)at_reg[i].type)) {
+    if (!_device.get_property((AT_CellularDevice::CellularProperty)at_reg[i].type)) {
         return NSAPI_ERROR_UNSUPPORTED;
     }
 
@@ -625,7 +640,7 @@ nsapi_error_t AT_CellularNetwork::set_receive_period(int mode, EDRXAccessTechnol
 
 nsapi_error_t AT_CellularNetwork::set_packet_domain_event_reporting(bool on)
 {
-    if (!get_property(AT_CellularBase::PROPERTY_AT_CGEREP)) {
+    if (!_device.get_property(AT_CellularDevice::PROPERTY_AT_CGEREP)) {
         return NSAPI_ERROR_UNSUPPORTED;
     }
 
@@ -681,12 +696,12 @@ nsapi_error_t AT_CellularNetwork::clear()
             }
             context = context->next;
         }
-#ifdef MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN
+#if defined(MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN) && !MBED_CONF_CELLULAR_CONTROL_PLANE_OPT
         char pdp_type_str[sizeof("IPV4V6")];
-        if (get_property(PROPERTY_IPV4V6_PDP_TYPE) ||
-                (get_property(PROPERTY_IPV4_PDP_TYPE) && get_property(PROPERTY_IPV6_PDP_TYPE))) {
+        if (_device.get_property(AT_CellularDevice::PROPERTY_IPV4V6_PDP_TYPE) ||
+                (_device.get_property(AT_CellularDevice::PROPERTY_IPV4_PDP_TYPE) && _device.get_property(AT_CellularDevice::PROPERTY_IPV6_PDP_TYPE))) {
             strcpy(pdp_type_str, "IPV4V6");
-        } else if (get_property(PROPERTY_IPV6_PDP_TYPE)) {
+        } else if (_device.get_property(AT_CellularDevice::PROPERTY_IPV6_PDP_TYPE)) {
             strcpy(pdp_type_str, "IPV6");
         } else {
             strcpy(pdp_type_str, "IP");

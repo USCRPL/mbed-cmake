@@ -47,7 +47,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef __ARMCC_VERSION
 #include <rt_misc.h>
 #endif
+
+#define __PROGRAM_START
 #include <cmsis.h>
+#undef __PROGRAM_START
 #include <startup_ADuCM4050.h>
 #include <mbed_rtx.h>
 
@@ -60,8 +63,10 @@ extern void SramInit(void);
   Checksum options
  *----------------------------------------------------------------------------*/
 
-#if defined(__ICCARM__)
+#if defined( __ICCARM__)
 __root
+#else
+__attribute__((used))
 #endif
 const uint32_t SECTION_PLACE(blank_checksum[],".checksum") =
 {
@@ -144,6 +149,11 @@ WEAK_FUNCTION( Root_Clk_Err_Handler       )
 /*----------------------------------------------------------------------------
   Exception / Interrupt Vector table
  *----------------------------------------------------------------------------*/
+#if defined( __ICCARM__)
+__root
+#else
+__attribute__((used))
+#endif
 const pFunc SECTION_PLACE(IVT_NAME[104],VECTOR_SECTION) = {
     (pFunc) INITIAL_SP,    /* Initial Stack Pointer */
     ADUCM4050_VECTORS

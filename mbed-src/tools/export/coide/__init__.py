@@ -1,6 +1,7 @@
 """
 mbed SDK
 Copyright (c) 2014-2016 ARM Limited
+SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,36 +28,20 @@ class CoIDE(Exporter):
 
     TARGETS = [
         'KL25Z',
-        'KL05Z',
         'LPC1768',
         'ARCH_PRO',
         'ARCH_MAX',
-        'UBLOX_C027',
-        'NUCLEO_L053R8',
         'NUCLEO_L152RE',
-        'NUCLEO_F030R8',
-        'NUCLEO_F042K6',
         'NUCLEO_F070RB',
         'NUCLEO_F072RB',
         'NUCLEO_F091RC',
         'NUCLEO_F103RB',
-        'NUCLEO_F302R8',
         'NUCLEO_F303K8',
         'NUCLEO_F303RE',
-        'NUCLEO_F334R8',
         'NUCLEO_F401RE',
-        'NUCLEO_F410RB',
         'NUCLEO_F411RE',
         'NUCLEO_F446RE',
-        'DISCO_L053C8',
-        'DISCO_F051R8',
-        'DISCO_F100RB',
-        'DISCO_F303VC',
-        'DISCO_F334C8',
-        'DISCO_F401VC',
-        'DISCO_F407VG',
         'DISCO_F429ZI',
-        'MTS_MDOT_F405RG',
         'MTS_MDOT_F411RE',
         'MOTE_L152RC',
         'NZ32_SC151',

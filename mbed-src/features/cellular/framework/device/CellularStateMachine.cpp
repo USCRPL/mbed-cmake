@@ -18,27 +18,28 @@
 #include "CellularStateMachine.h"
 #include "CellularDevice.h"
 #include "CellularLog.h"
-#include "Thread.h"
-#include "mbed_shared_queues.h"
+#include "CellularInformation.h"
+
+using namespace std::chrono_literals;
 
 #ifndef MBED_TRACE_MAX_LEVEL
 #define MBED_TRACE_MAX_LEVEL TRACE_LEVEL_INFO
 #endif
 
 // timeout to wait for AT responses
-#define TIMEOUT_POWER_ON     (1*1000)
-#define TIMEOUT_SIM_PIN      (1*1000)
-#define TIMEOUT_NETWORK      (10*1000)
+#define TIMEOUT_POWER_ON     1s
+#define TIMEOUT_SIM_PIN      1s
+#define TIMEOUT_NETWORK      10s
 /** CellularStateMachine does connecting up to packet service attach, and
  *  after that it's up to CellularContext::connect() to connect to PDN.
  *  If CellularContext or an application does not set timeout (via `CellularDevice::set_timeout`)
  *  then TIMEOUT_CONNECT is used also for connecting to PDN and also for socket operations.
  */
-#define TIMEOUT_CONNECT      (60*1000)
-#define TIMEOUT_REGISTRATION (180*1000)
+#define TIMEOUT_CONNECT      1min
+#define TIMEOUT_REGISTRATION 3min
 
 // maximum time when retrying network register, attach and connect in seconds ( 20minutes )
-#define TIMEOUT_NETWORK_MAX (20*60)
+#define TIMEOUT_NETWORK_MAX 20min
 
 #define RETRY_COUNT_DEFAULT 3
 
@@ -51,31 +52,28 @@ const int DEVICE_READY = 0x04;
 namespace mbed {
 
 CellularStateMachine::CellularStateMachine(CellularDevice &device, events::EventQueue &queue, CellularNetwork &nw) :
-#ifdef MBED_CONF_RTOS_PRESENT
-    _queue_thread(0),
-#endif
     _cellularDevice(device), _state(STATE_INIT), _next_state(_state), _target_state(_state),
-    _event_status_cb(0), _network(nw), _queue(queue), _sim_pin(0), _retry_count(0),
-    _event_timeout(-1), _event_id(-1), _plmn(0), _command_success(false),
-    _is_retry(false), _cb_data(), _current_event(CellularDeviceReady), _status(0)
-{
+    _event_status_cb(), _network(nw), _queue(queue), _sim_pin(0), _retry_count(0),
 #if MBED_CONF_CELLULAR_RANDOM_MAX_START_DELAY == 0
-    _start_time = 0;
+    _start_time(),
 #else
     // so that not every device don't start at the exact same time (for example after power outage)
-    _start_time = rand() % (MBED_CONF_CELLULAR_RANDOM_MAX_START_DELAY);
+    _start_time(rand() % (MBED_CONF_CELLULAR_RANDOM_MAX_START_DELAY)),
 #endif // MBED_CONF_CELLULAR_RANDOM_MAX_START_DELAY
+    _event_timeout(-1s), _event_id(-1), _plmn(0), _command_success(false),
+    _is_retry(false), _cb_data(), _current_event(CellularDeviceReady), _status(0)
+{
 
     // set initial retry values in seconds
-    _retry_timeout_array[0] = 1; // double time on each retry in order to keep network happy
-    _retry_timeout_array[1] = 2;
-    _retry_timeout_array[2] = 4;
-    _retry_timeout_array[3] = 8;
-    _retry_timeout_array[4] = 16;
-    _retry_timeout_array[5] = 32;
-    _retry_timeout_array[6] = 64;
-    _retry_timeout_array[7] = 128; // if around two minutes was not enough then let's wait much longer
-    _retry_timeout_array[8] = 600;
+    _retry_timeout_array[0] = 1s; // double time on each retry in order to keep network happy
+    _retry_timeout_array[1] = 2s;
+    _retry_timeout_array[2] = 4s;
+    _retry_timeout_array[3] = 8s;
+    _retry_timeout_array[4] = 16s;
+    _retry_timeout_array[5] = 32s;
+    _retry_timeout_array[6] = 64s;
+    _retry_timeout_array[7] = 128s; // if around two minutes was not enough then let's wait much longer
+    _retry_timeout_array[8] = 10min;
     _retry_timeout_array[9] = TIMEOUT_NETWORK_MAX;
     _retry_array_length = CELLULAR_RETRY_ARRAY_SIZE;
 
@@ -95,7 +93,7 @@ CellularStateMachine::~CellularStateMachine()
 void CellularStateMachine::reset()
 {
     _state = STATE_INIT;
-    _event_timeout = -1;
+    _event_timeout = -1s;
     _event_id = -1;
     _is_retry = false;
     _status = 0;
@@ -106,16 +104,6 @@ void CellularStateMachine::reset()
 void CellularStateMachine::stop()
 {
     tr_debug("CellularStateMachine stop");
-#ifdef MBED_CONF_RTOS_PRESENT
-    if (_queue_thread) {
-        _queue_thread->terminate();
-        delete _queue_thread;
-        _queue_thread = NULL;
-    }
-#else
-    _queue.chain(NULL);
-#endif
-
     reset();
     _event_id = STM_STOPPED;
 }
@@ -258,8 +246,8 @@ bool CellularStateMachine::get_network_registration(CellularNetwork::Registratio
             break;
     }
 
-    if (is_roaming) {
-        tr_info("Roaming network.");
+    if (is_registered || is_roaming) {
+        tr_info("Roaming %u Registered %u", is_roaming, is_registered);
     }
 
     return true;
@@ -324,8 +312,8 @@ void CellularStateMachine::state_init()
     _status = _cb_data.error ? 0 : DEVICE_READY;
     if (_cb_data.error != NSAPI_ERROR_OK) {
         _event_timeout = _start_time;
-        if (_start_time > 0) {
-            tr_info("Startup delay %d ms", _start_time);
+        if (_start_time > 0s) {
+            tr_info("Startup delay %d s", _start_time.count());
         }
         enter_to_state(STATE_POWER_ON);
     } else {
@@ -360,7 +348,7 @@ bool CellularStateMachine::device_ready()
 #endif // MBED_CONF_CELLULAR_DEBUG_AT
 
     send_event_cb(CellularDeviceReady);
-    _cellularDevice.set_ready_cb(0);
+    _cellularDevice.set_ready_cb(nullptr);
 
     return true;
 }
@@ -375,6 +363,26 @@ void CellularStateMachine::state_device_ready()
     if (_cb_data.error == NSAPI_ERROR_OK) {
         _cb_data.error = _cellularDevice.init();
         if (_cb_data.error == NSAPI_ERROR_OK) {
+
+#if MBED_CONF_MBED_TRACE_ENABLE
+            CellularInformation *info = _cellularDevice.open_information();
+
+            char *buf = new (std::nothrow) char[2048]; // size from 3GPP TS 27.007
+            if (buf) {
+                if (info->get_manufacturer(buf, 2048) == NSAPI_ERROR_OK) {
+                    tr_info("Modem manufacturer: %s", buf);
+                }
+                if (info->get_model(buf, 2048) == NSAPI_ERROR_OK) {
+                    tr_info("Modem model: %s", buf);
+                }
+                if (info->get_revision(buf, 2048) == NSAPI_ERROR_OK) {
+                    tr_info("Modem revision: %s", buf);
+                }
+                delete[] buf;
+            }
+            _cellularDevice.close_information();
+#endif // MBED_CONF_MBED_TRACE_ENABLE
+
             if (device_ready()) {
                 _status = 0;
                 enter_to_state(STATE_SIM_PIN);
@@ -388,6 +396,7 @@ void CellularStateMachine::state_device_ready()
             }
         }
     }
+
     if (_cb_data.error != NSAPI_ERROR_OK) {
         if (_retry_count == 0) {
             _cellularDevice.set_ready_cb(callback(this, &CellularStateMachine::device_ready_cb));
@@ -496,7 +505,7 @@ void CellularStateMachine::continue_from_state(CellularState state)
             get_state_string((CellularStateMachine::CellularState)state));
     _state = state;
     enter_to_state(state);
-    _event_id = _queue.call_in(0, this, &CellularStateMachine::event);
+    _event_id = _queue.call(this, &CellularStateMachine::event);
     if (!_event_id) {
         _event_id = -1;
         _cb_data.error = NSAPI_ERROR_NO_MEMORY;
@@ -510,7 +519,7 @@ nsapi_error_t CellularStateMachine::run_to_state(CellularStateMachine::CellularS
 {
     _mutex.lock();
     // call pre_event via queue so that it's in same thread and it's safe to decisions
-    int id = _queue.call_in(0, this, &CellularStateMachine::pre_event, state);
+    int id = _queue.call(this, &CellularStateMachine::pre_event, state);
     if (!id) {
         report_failure("Failed to call queue.");
         stop();
@@ -538,7 +547,7 @@ void CellularStateMachine::pre_event(CellularState state)
             _state = _next_state;
         }
         enter_to_state(_next_state);
-        _event_id = _queue.call_in(0, this, &CellularStateMachine::event);
+        _event_id = _queue.call(this, &CellularStateMachine::event);
         if (!_event_id) {
             _event_id = -1;
             report_failure("Failed to call queue.");
@@ -579,7 +588,7 @@ void CellularStateMachine::event()
         }
     }
 
-    _event_timeout = -1;
+    _event_timeout = -1s;
     _is_retry = false;
 
     switch (_state) {
@@ -621,7 +630,7 @@ void CellularStateMachine::event()
         return;
     }
 
-    if (_next_state != _state || _event_timeout >= 0) {
+    if (_next_state != _state || _event_timeout >= 0s) {
         if (_next_state != _state) { // state exit condition
             tr_debug("%s => %s", get_state_string((CellularStateMachine::CellularState)_state),
                      get_state_string((CellularStateMachine::CellularState)_next_state));
@@ -629,10 +638,10 @@ void CellularStateMachine::event()
             tr_info("Continue after %d seconds", _event_timeout);
         }
         _state = _next_state;
-        if (_event_timeout == -1) {
-            _event_timeout = 0;
+        if (_event_timeout == -1s) {
+            _event_timeout = 0s;
         }
-        _event_id = _queue.call_in(_event_timeout * 1000, callback(this, &CellularStateMachine::event));
+        _event_id = _queue.call_in(_event_timeout, callback(this, &CellularStateMachine::event));
         if (!_event_id) {
             _cb_data.error = NSAPI_ERROR_NO_MEMORY;
             report_failure("CellularStateMachine event failure!");
@@ -643,24 +652,11 @@ void CellularStateMachine::event()
 
 nsapi_error_t CellularStateMachine::start_dispatch()
 {
-#ifdef MBED_CONF_RTOS_PRESENT
-    if (!_queue_thread) {
-        _queue_thread = new rtos::Thread(osPriorityNormal, 2048, NULL, "stm_queue");
-        _event_id = STM_STOPPED;
+    if (_event_id != -1) {
+        tr_warn("Canceling ongoing event (%d)", _event_id);
+        _queue.cancel(_event_id);
     }
-
-    if (_event_id == STM_STOPPED) {
-        if (_queue_thread->start(callback(&_queue, &events::EventQueue::dispatch_forever)) != osOK) {
-            report_failure("Failed to start thread.");
-            stop();
-            return NSAPI_ERROR_NO_MEMORY;
-        }
-    }
-
     _event_id = -1;
-#else
-    _queue.chain(mbed_event_queue());
-#endif
     return NSAPI_ERROR_OK;
 }
 
@@ -676,7 +672,7 @@ void CellularStateMachine::send_event_cb(cellular_connection_status_t status)
     }
 }
 
-void CellularStateMachine::change_timeout(const int &timeout)
+void CellularStateMachine::change_timeout(const std::chrono::duration<int, std::milli> &timeout)
 {
     _cb_data.status_data = _current_event;
     _cb_data.data = &timeout;
@@ -752,19 +748,19 @@ void CellularStateMachine::set_retry_timeout_array(const uint16_t timeout[], int
     }
     _retry_array_length = array_len > CELLULAR_RETRY_ARRAY_SIZE ? CELLULAR_RETRY_ARRAY_SIZE : array_len;
     for (int i = 0; i < _retry_array_length; i++) {
-        _retry_timeout_array[i] = timeout[i];
+        _retry_timeout_array[i] = std::chrono::duration<uint16_t>(timeout[i]);
     }
 }
 
 void CellularStateMachine::get_retry_timeout_array(uint16_t *timeout, int &array_len) const
 {
     for (int i = 0; i < _retry_array_length; i++) {
-        timeout[i] = _retry_timeout_array[i];
+        timeout[i] = _retry_timeout_array[i].count();
     }
     array_len = _retry_array_length;
 }
 
-void CellularStateMachine::set_timeout(int timeout)
+void CellularStateMachine::set_timeout(std::chrono::duration<int, std::milli> timeout)
 {
     _state_timeout_power_on = timeout;
     _state_timeout_sim_pin = timeout;

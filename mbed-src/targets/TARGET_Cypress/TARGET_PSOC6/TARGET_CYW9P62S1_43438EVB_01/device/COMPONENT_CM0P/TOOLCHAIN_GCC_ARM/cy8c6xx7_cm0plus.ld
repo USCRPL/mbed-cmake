@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file cy8c6xx7_cm0plus.ld
-* \version 2.50
+* \version 2.70.1
 *
 * Linker file for the GNU C compiler.
 *
@@ -19,7 +19,7 @@
 *
 ********************************************************************************
 * \copyright
-* Copyright 2016-2019 Cypress Semiconductor Corporation
+* Copyright 2016-2020 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,7 +76,7 @@ ENTRY(Reset_Handler)
   #define MBED_PUBLIC_RAM_SIZE     0x200
 #endif
 
-/* Size of the stack section at the end of CM0+ SRAM */
+/* The size of the stack section at the end of CM0+ SRAM */
 #if !defined(MBED_BOOT_STACK_SIZE)
     #define MBED_BOOT_STACK_SIZE 0x400
 #endif

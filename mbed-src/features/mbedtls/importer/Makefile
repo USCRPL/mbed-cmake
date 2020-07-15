@@ -27,18 +27,22 @@
 #
 
 # Set the mbed TLS release to import (this can/should be edited before import)
-MBED_TLS_RELEASE ?= mbedtls-2.20.0d0
-MBED_TLS_REPO_URL ?= git@github.com:ARMmbed/mbedtls-restricted.git
+MBED_TLS_RELEASE ?= mbedtls-2.22.0
+MBED_TLS_REPO_URL ?= git@github.com:ARMmbed/mbedtls.git
 
 # Translate between mbed TLS namespace and mbed namespace
 TARGET_PREFIX:=../
+TARGET_EXPERIMENTAL:=../../FEATURE_EXPERIMENTAL_API/
 TARGET_SRC:=$(TARGET_PREFIX)src
 TARGET_INC:=$(TARGET_PREFIX)inc
+TARGET_PSA:=$(TARGET_EXPERIMENTAL)FEATURE_PSA/TARGET_MBED_PSA_SRV/mbedtls
+TARGET_PSA_INC:=$(TARGET_PSA)/inc
 TARGET_TESTS:=$(TARGET_PREFIX)TESTS
 
 # mbed TLS source directory - hidden from mbed via TARGET_IGNORE
 MBED_TLS_DIR:=TARGET_IGNORE/mbedtls
 MBED_TLS_API:=$(MBED_TLS_DIR)/include/mbedtls
+CRYPTO_API:=$(MBED_TLS_DIR)/include/psa
 MBED_TLS_GIT_CFG=$(MBED_TLS_DIR)/.git/config
 
 .PHONY: all deploy deploy-tests rsync mbedtls clean update
@@ -56,12 +60,25 @@ rsync:
 	# Copying mbed TLS headers to mbed includes...
 	rm -rf $(TARGET_INC)
 	mkdir -p $(TARGET_INC)
+	mkdir -p $(TARGET_PSA_INC)
 	rsync -a --delete $(MBED_TLS_API) $(TARGET_INC)
+	rsync -a --delete --exclude='crypto_struct.h' $(CRYPTO_API) $(TARGET_PSA_INC)/
 	#
 	# Copying licenses
 	cp $(MBED_TLS_DIR)/LICENSE $(TARGET_PREFIX)
-	cp $(MBED_TLS_DIR)/apache-2.0.txt $(TARGET_PREFIX)
 	#
+	# Copying Mbed Crypto into Mbed OS...
+	rm -rf $(TARGET_PSA)
+
+	mkdir -p $(TARGET_PSA)
+
+	rsync -a --delete $(CRYPTO_API)/crypto_struct.h $(TARGET_PSA)/
+	rsync -a --delete $(MBED_TLS_DIR)/library/psa_*.c $(TARGET_PSA)/
+	rsync -a --delete $(MBED_TLS_DIR)/library/psa_*.h $(TARGET_PSA)/
+	#
+	# Remove PSA-specific C & H files (they go into $(TARGET_PSA))
+	rm -rf $(TARGET_SRC)/psa_*.c
+	rm -rf $(TARGET_SRC)/psa_*.h
 
 deploy: rsync
 	#
@@ -106,9 +123,9 @@ $(MBED_TLS_GIT_CFG):
 
 clean:
 	rm -f $(TARGET_PREFIX)LICENSE
-	rm -f $(TARGET_PREFIX)apache-2.0.txt
 	rm -f $(TARGET_PREFIX)VERSION.txt
 	rm -f $(TARGET_PREFIX)AUTHORS.txt
 	rm -rf $(TARGET_SRC)
 	rm -rf $(TARGET_INC)
 	rm -rf $(MBED_TLS_DIR)
+	rm -rf $(TARGET_PSA)

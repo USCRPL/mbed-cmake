@@ -23,7 +23,6 @@
 #include <stdarg.h>
 #include "FileHandle_stub.h"
 #include "mbed_poll_stub.h"
-#include "Timer_stub.h"
 
 using namespace mbed;
 
@@ -97,7 +96,7 @@ TEST_F(test_ATCmdParser, test_ATCmdParser_process_oob)
     filehandle_stub_short_value_counter = 2;
     at.process_oob();
 
-    char buf[5];
+    char buf[5] = {0};
     char table[] = "ssssssssssssssssssssssssssssssss\0";
     filehandle_stub_table = table;
     filehandle_stub_table_pos = 0;
@@ -110,7 +109,6 @@ TEST_F(test_ATCmdParser, test_ATCmdParser_process_oob)
     at.process_oob();
     expected_oob_callback = false;
 
-    timer_stub_value = 0;
     filehandle_stub_table_pos = 0;
     at.read(buf, 5);
 
@@ -127,7 +125,6 @@ TEST_F(test_ATCmdParser, test_ATCmdParser_process_oob)
     table2[4] = 0;
     filehandle_stub_table = table2;
 
-    timer_stub_value = 0;
     filehandle_stub_table_pos = 0;
     mbed_poll_stub::revents_value = POLLIN;
     mbed_poll_stub::int_value = 1;
@@ -189,8 +186,8 @@ TEST_F(test_ATCmdParser, test_ATCmdParser_read)
     filehandle_stub_table_pos = 0;
 
     ATCmdParser at(&fh1, ",");
-    char buf[6];
-    memset(buf, 0, 6);
+    char buf[8] = {0};
+    
 
     // TEST EMPTY BUFFER
     // Shouldn't read any byte since buffer is empty
@@ -345,7 +342,7 @@ TEST_F(test_ATCmdParser, test_ATCmdParser_recv)
 
     expected_oob_callback = true;
     at1.oob("s", &urc_callback);
-    EXPECT_TRUE(at1.recv("%c %d %x %s\r\n%c %d %x %s\r\n", &c, &intval, &hexval, &text));
+    EXPECT_TRUE(at1.recv("%c %d %x %s\r\n%c %d %x %s\r\n", &c, &intval, &hexval, &text, &c, &intval, &hexval, &text));
     expected_oob_callback = false;
     EXPECT_EQ(c, 't');
     EXPECT_EQ(intval, 2);

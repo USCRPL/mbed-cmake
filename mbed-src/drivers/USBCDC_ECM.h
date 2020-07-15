@@ -18,6 +18,7 @@
 #ifndef USBCDC_ECM_H
 #define USBCDC_ECM_H
 
+#if defined(MBED_CONF_RTOS_PRESENT) || defined(DOXYGEN_ONLY)
 #include "USBDescriptor.h"
 #include "USBDevice.h"
 #include "ByteBuffer.h"
@@ -42,6 +43,7 @@
  * \defgroup drivers_USBCDC_ECM USBCDC_ECM class
  * \ingroup drivers-public-api-usb
  * @{
+ * @note Bare metal profile: This class is not supported.
  */
 
 class USBCDC_ECM: public USBDevice {
@@ -274,5 +276,5 @@ private:
 };
 
 /** @}*/
-
+#endif // defined(MBED_CONF_RTOS_PRESENT)
 #endif

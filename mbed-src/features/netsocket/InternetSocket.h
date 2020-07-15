@@ -38,7 +38,7 @@ public:
      *
      *  @note Closes socket if it's still open.
      */
-    virtual ~InternetSocket();
+    ~InternetSocket() override;
 
     /** Open a network socket on the network stack of the given
      *  network interface.
@@ -70,7 +70,7 @@ public:
      *  @retval         int negative error codes for stack-related failures.
      *                  See @ref NetworkStack::socket_close.
      */
-    virtual nsapi_error_t close();
+    nsapi_error_t close() override;
 
     /** Subscribe to an IP multicast group.
      *
@@ -86,6 +86,35 @@ public:
      */
     int leave_multicast_group(const SocketAddress &address);
 
+    /** Get estimated round trip time to destination address.
+     *
+     * Use estimated round trip time to adjust application retry timers to work in networks
+     * that have low data rate and high latency.
+     *
+     * @param address   Destination address to use in rtt estimate.
+     * @param rtt_estimate   Returned round trip time value in milliseconds.
+     *  @return         NSAPI_ERROR_OK on success.
+     *  @return         NSAPI_ERROR_PARAMETER if the provided pointer is invalid.
+     *  @return         negative error code on other failures (@see InternetSocket::getsockopt).
+     */
+    int get_rtt_estimate_to_address(const SocketAddress &address, uint32_t *rtt_estimate);
+
+    /** Get estimated stagger value.
+     *
+     * Stagger value is a time that application should wait before using heavy network operations after connecting to network.
+     * Purpose of staggering is to avoid network congestion that may happen in low bandwith networks if multiple
+     * applications simultaneously start heavy network usage after joining to the network.
+     *
+     * @param address       Destination added used to estimate stagger value.
+     * @param data_amount   Amount of bytes to transfer in kilobytes.
+     * @param stagger_min   Minimum stagger value in seconds.
+     * @param stagger_max   Maximum stagger value in seconds.
+     * @param stagger_rand  Randomized stagger value between stagger_min and stagger_max in seconds.
+     * @return              NSAPI_ERROR_OK on success.
+     * @return              negative error code on other failures (@see InternetSocket::getsockopt).
+     */
+    int get_stagger_estimate_to_address(const SocketAddress &address, uint16_t data_amount, uint16_t *stagger_min, uint16_t *stagger_max, uint16_t *stagger_rand);
+
     /** Bind the socket to a port on which to receive data.
      *
      *  @param port     Local port to bind.
@@ -96,95 +125,55 @@ public:
      */
     nsapi_error_t bind(uint16_t port);
 
-    /** Bind the socket to a specific address and port on which to receive
-     *  data. If the IP address is zeroed, only the port is bound.
-     *
-     *  @param address  Null-terminated local address to bind.
-     *  @param port     Local port to bind.
-     *  @retval         NSAPI_ERROR_OK on success.
-     *  @retval         NSAPI_ERROR_NO_SOCKET if socket is not open.
-     *  @retval         int negative error codes for stack-related failures.
-     *                  See @ref NetworkStack::socket_bind.
-     */
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-    nsapi_error_t bind(const char *address, uint16_t port);
-
     /** @copydoc Socket::bind
      */
-    virtual nsapi_error_t bind(const SocketAddress &address);
+    nsapi_error_t bind(const SocketAddress &address) override;
 
     /** @copydoc Socket::set_blocking
      */
-    virtual void set_blocking(bool blocking);
+    void set_blocking(bool blocking) override;
 
     /** @copydoc Socket::set_timeout
      */
-    virtual void set_timeout(int timeout);
+    void set_timeout(int timeout) override;
 
     /** @copydoc Socket::setsockopt
      */
-    virtual nsapi_error_t setsockopt(int level, int optname, const void *optval, unsigned optlen);
+    nsapi_error_t setsockopt(int level, int optname, const void *optval, unsigned optlen) override;
 
     /** @copydoc Socket::getsockopt
      */
-    virtual nsapi_error_t getsockopt(int level, int optname, void *optval, unsigned *optlen);
+    nsapi_error_t getsockopt(int level, int optname, void *optval, unsigned *optlen) override;
 
     /** @copydoc Socket::sigio
      */
-    virtual void sigio(mbed::Callback<void()> func);
+    void sigio(mbed::Callback<void()> func) override;
 
     /** @copydoc Socket::getpeername
      */
-    virtual nsapi_error_t getpeername(SocketAddress *address);
+    nsapi_error_t getpeername(SocketAddress *address) override;
 
-    /** Register a callback on state change of the socket.
-     *
-     *  @see Socket::sigio
-     *  @deprecated
-     *      The behavior of Socket::attach differs from other attach functions in
-     *      Mbed OS and has been known to cause confusion. Replaced by Socket::sigio.
-     */
-    MBED_DEPRECATED_SINCE("mbed-os-5.4",
-                          "The behavior of Socket::attach differs from other attach functions in "
-                          "Mbed OS and has been known to cause confusion. Replaced by Socket::sigio.")
-    void attach(mbed::Callback<void()> func);
-
-    /** Register a callback on state change of the socket.
-     *
-     *  @see Socket::sigio
-     *  @deprecated
-     *      The attach function does not support cv-qualifiers. Replaced by
-     *      attach(callback(obj, method)).
-     */
-    template <typename T, typename M>
-    MBED_DEPRECATED_SINCE("mbed-os-5.1",
-                          "The attach function does not support cv-qualifiers. Replaced by "
-                          "attach(callback(obj, method)).")
-    void attach(T *obj, M method)
-    {
-        attach(mbed::callback(obj, method));
-    }
 
 #if !defined(DOXYGEN_ONLY)
 
 protected:
     InternetSocket();
     virtual nsapi_protocol_t get_proto() = 0;
-    virtual void event();
+    void event();
     int modify_multicast_group(const SocketAddress &address, nsapi_socket_option_t socketopt);
     char _interface_name[NSAPI_INTERFACE_NAME_MAX_SIZE];
-    NetworkStack *_stack;
-    nsapi_socket_t _socket;
-    uint32_t _timeout;
+    NetworkStack *_stack = nullptr;
+    nsapi_socket_t _socket = nullptr;
+    uint32_t _timeout = osWaitForever;
     mbed::Callback<void()> _event;
     mbed::Callback<void()> _callback;
     rtos::EventFlags _event_flag;
     rtos::Mutex _lock;
     SocketAddress _remote_peer;
-    uint8_t _readers;
-    uint8_t _writers;
-    core_util_atomic_flag _pending;
-    bool _factory_allocated;
+    uint8_t _readers = 0;
+    uint8_t _writers = 0;
+    core_util_atomic_flag _pending = CORE_UTIL_ATOMIC_FLAG_INIT;
+    bool _factory_allocated = false;
 
     // Event flags
     static const int READ_FLAG     = 0x1u;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited and affiliates.
+ * Copyright (c) 2019-2020, Arm Limited and affiliates.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#if !USB_DEVICE_TESTS
+#error [NOT_SUPPORTED] usb device tests not enabled
+#else
 
 #if !defined(MBED_CONF_RTOS_PRESENT)
 #error [NOT_SUPPORTED] USB stack and test cases require RTOS to run.
@@ -33,8 +37,8 @@
 #include "HeapBlockDevice.h"
 #include "FATFileSystem.h"
 
-
-#if !defined(DEVICE_USBDEVICE) || !DEVICE_USBDEVICE
+// TARGET_NANO100 SRAM 16KB can't afford mass-storage-disk test, so skip usb_msd_test.
+#if !defined(DEVICE_USBDEVICE) || !DEVICE_USBDEVICE || TARGET_NANO100
 #error [NOT_SUPPORTED] USB Device not supported for this target
 #else
 
@@ -217,7 +221,7 @@ void msd_process(USBMSD *msd)
     Semaphore proc;
     msd->attach(callback(run_processing, &proc));
     while (!msd_process_done) {
-        proc.wait(100);
+        proc.try_acquire_for(100);
         msd->process();
         if (msd->media_removed()) {
             media_remove_event.release();
@@ -341,7 +345,7 @@ void mount_unmount_test(BlockDevice *bd, FileSystem *fs)
             TEST_ASSERT_EQUAL_STRING_LOOP("passed", _key, i);
 
             // wait for unmount event (set 10s timeout)
-            media_remove_event.wait(10000);
+            media_remove_event.try_acquire_for(10000);
             if (!usb.media_removed()) {
                 TEST_ASSERT_EQUAL_LOOP(true, usb.media_removed(), i);
             }
@@ -436,7 +440,7 @@ void mount_unmount_and_data_test(BlockDevice *bd, FileSystem *fs)
     TEST_ASSERT_EQUAL_STRING("passed", _key);
 
     do {
-        wait_ms(1);
+        ThisThread::sleep_for(1);
     } while (test_files_exist(fs_root));
     TEST_ASSERT_EQUAL(false, test_files_exist(fs_root));
 
@@ -488,3 +492,4 @@ int main()
 
 #endif // !defined(DEVICE_USBDEVICE) || !DEVICE_USBDEVICE
 #endif // !defined(MBED_CONF_RTOS_PRESENT)
+#endif // !defined(USB_DEVICE_TESTS)

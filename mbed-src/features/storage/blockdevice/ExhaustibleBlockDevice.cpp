@@ -99,9 +99,11 @@ int ExhaustibleBlockDevice::read(void *buffer, bd_addr_t addr, bd_size_t size)
 
 int ExhaustibleBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_t size)
 {
-    MBED_ASSERT(is_valid_program(addr, size));
-
     if (!_is_initialized) {
+        return BD_ERROR_DEVICE_ERROR;
+    }
+
+    if (!is_valid_program(addr, size)) {
         return BD_ERROR_DEVICE_ERROR;
     }
 
@@ -114,8 +116,11 @@ int ExhaustibleBlockDevice::program(const void *buffer, bd_addr_t addr, bd_size_
 
 int ExhaustibleBlockDevice::erase(bd_addr_t addr, bd_size_t size)
 {
-    MBED_ASSERT(is_valid_erase(addr, size));
     if (!_is_initialized) {
+        return BD_ERROR_DEVICE_ERROR;
+    }
+
+    if (!is_valid_erase(addr, size)) {
         return BD_ERROR_DEVICE_ERROR;
     }
 

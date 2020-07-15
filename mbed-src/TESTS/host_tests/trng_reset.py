@@ -1,10 +1,12 @@
 """
-Copyright (c) 2018 ARM Limited
+Copyright (c) 2018-2020, Arm Limited and affiliates
+SPDX-License-Identifier: Apache-2.0
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +19,7 @@ limitations under the License.
 This script is the host script for trng test sequence, it send the 
 step signaling sequence and receive and transmit data to the device after 
 reset if necesarry (default loading and storing mechanism while reseting the device
-is NVstore, in case NVstore isn't enabled we'll use current infrastructure,
+is KVStore, in case KVStore isn't enabled we'll use current infrastructure,
 for more details see main.cpp file)
 """
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2018, ARM Limited, All Rights Reserved
+ * Copyright (c) 2018-2020, ARM Limited, All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#if !defined(MBED_CONF_RTOS_PRESENT)
-#error [NOT_SUPPORTED] USB stack and test cases require RTOS to run.
+#if !USB_DEVICE_TESTS
+#error [NOT_SUPPORTED] usb device tests not enabled
 #else
 
 #include <stdio.h>
@@ -229,7 +229,7 @@ void ep_test_data_correctness()
         // Wait for host before terminating
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 #if EP_DBG
-        wait_ms(100);
+        ThisThread::sleep_for(100);
         printf("cnt_cb_set_conf = %lu\r\n", serial.get_cnt_cb_set_conf());
         printf("cnt_cb_set_intf = %lu\r\n", serial.get_cnt_cb_set_intf());
         printf("cnt_cb_bulk_out = %lu\r\n", serial.get_cnt_cb_bulk_out());
@@ -266,7 +266,7 @@ void ep_test_halt()
         // Wait for host before terminating
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 #if EP_DBG
-        wait_ms(100);
+        ThisThread::sleep_for(100);
         printf("cnt_cb_set_conf = %lu\r\n", serial.get_cnt_cb_set_conf());
         printf("cnt_cb_set_intf = %lu\r\n", serial.get_cnt_cb_set_intf());
         printf("cnt_cb_bulk_out = %lu\r\n", serial.get_cnt_cb_bulk_out());
@@ -303,7 +303,7 @@ void ep_test_parallel_transfers()
         // Wait for host before terminating
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 #if EP_DBG
-        wait_ms(100);
+        ThisThread::sleep_for(100);
         printf("cnt_cb_set_conf = %lu\r\n", serial.get_cnt_cb_set_conf());
         printf("cnt_cb_set_intf = %lu\r\n", serial.get_cnt_cb_set_intf());
         printf("cnt_cb_bulk_out = %lu\r\n", serial.get_cnt_cb_bulk_out());
@@ -341,7 +341,7 @@ void ep_test_parallel_transfers_ctrl()
         // Wait for host before terminating
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 #if EP_DBG
-        wait_ms(100);
+        ThisThread::sleep_for(100);
         printf("cnt_cb_set_conf = %lu\r\n", serial.get_cnt_cb_set_conf());
         printf("cnt_cb_set_intf = %lu\r\n", serial.get_cnt_cb_set_intf());
         printf("cnt_cb_bulk_out = %lu\r\n", serial.get_cnt_cb_bulk_out());
@@ -377,7 +377,7 @@ void ep_test_abort()
         greentea_send_kv("ep_test_abort", serial.get_serial_desc_string());
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 #if EP_DBG
-        wait_ms(100);
+        ThisThread::sleep_for(100);
         printf("cnt_cb_set_conf = %lu\r\n", serial.get_cnt_cb_set_conf());
         printf("cnt_cb_set_intf = %lu\r\n", serial.get_cnt_cb_set_intf());
         printf("cnt_cb_bulk_out = %lu\r\n", serial.get_cnt_cb_bulk_out());
@@ -416,7 +416,7 @@ void ep_test_data_toggle()
         greentea_send_kv("ep_test_data_toggle", serial.get_serial_desc_string());
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 #if EP_DBG
-        wait_ms(100);
+        ThisThread::sleep_for(100);
         printf("cnt_cb_set_conf = %lu\r\n", serial.get_cnt_cb_set_conf());
         printf("cnt_cb_set_intf = %lu\r\n", serial.get_cnt_cb_set_intf());
         printf("cnt_cb_bulk_out = %lu\r\n", serial.get_cnt_cb_bulk_out());
@@ -562,7 +562,7 @@ void device_suspend_resume_test()
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
         printf("[2] suspend_count: %d  resume_count: %d\n", serial.get_suspend_count(), serial.get_resume_count());
         TEST_ASSERT_EQUAL_STRING("pass", _key);
-        wait_ms(5000);
+        ThisThread::sleep_for(5000);
         printf("[3] suspend_count: %d  resume_count: %d\n", serial.get_suspend_count(), serial.get_resume_count());
     }
 }
@@ -665,4 +665,4 @@ int main()
 }
 
 #endif // !defined(DEVICE_USBDEVICE) || !DEVICE_USBDEVICE
-#endif // !defined(MBED_CONF_RTOS_PRESENT)
+#endif // !defined(USB_DEVICE_TESTS)

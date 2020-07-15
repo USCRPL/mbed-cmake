@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2019 ARM Limited
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +22,7 @@
  */
 
 #include "rtos/source/rtos_idle.h"
+#include "rtos/Kernel.h"
 #include "platform/mbed_power_mgmt.h"
 #include "platform/source/mbed_os_timer.h"
 #include "TimerEvent.h"
@@ -40,10 +42,6 @@ extern "C" {
 
 #if MBED_CONF_TARGET_TICKLESS_FROM_US_TICKER && !DEVICE_USTICKER
 #error Microsecond ticker required when MBED_CONF_TARGET_TICKLESS_FROM_US_TICKER is true
-#endif
-
-#if !MBED_CONF_TARGET_TICKLESS_FROM_US_TICKER && !DEVICE_LPTICKER
-#error Low power ticker required when MBED_CONF_TARGET_TICKLESS_FROM_US_TICKER is false
 #endif
 
     // Setup OS Tick timer to generate periodic RTOS Kernel Ticks
@@ -94,7 +92,7 @@ extern "C" {
     // Get System Timer count.
     uint32_t OS_Tick_GetCount(void)
     {
-        return (uint32_t) os_timer->get_time_since_tick();
+        return (uint32_t) os_timer->get_time_since_tick().count();
     }
 
     // Get OS Tick IRQ number.
@@ -114,13 +112,17 @@ extern "C" {
     // Get OS Tick timer clock frequency
     uint32_t OS_Tick_GetClock(void)
     {
-        return 1000000;
+        static_assert(OsTimer::highres_duration::period::num == 1, "Non-integral timer frequency");
+        static_assert(OsTimer::highres_duration::period::den <= 0xFFFFFFFF, "Too fast timer frequency");
+        return OsTimer::highres_duration::period::den;
     }
 
     // Get OS Tick interval.
     uint32_t OS_Tick_GetInterval(void)
     {
-        return 1000;
+        static_assert(OsTimer::period::num == 1, "Non-integral tick frequency");
+        static_assert(OsTimer::period::den <= 0xFFFFFFFF, "Too fast tick frequency");
+        return OsTimer::period::den;
     }
 
     static bool rtos_event_pending(void *)
@@ -130,12 +132,12 @@ extern "C" {
 
     static void default_idle_hook(void)
     {
-        uint32_t ticks_to_sleep = osKernelSuspend();
+        rtos::Kernel::Clock::duration_u32 ticks_to_sleep{osKernelSuspend()};
         // osKernelSuspend will call OS_Tick_Disable, cancelling the tick, which frees
         // up the os timer for the timed sleep
-        uint64_t ticks_slept = mbed::internal::do_timed_sleep_relative(ticks_to_sleep, rtos_event_pending);
-        MBED_ASSERT(ticks_slept < osWaitForever);
-        osKernelResume((uint32_t) ticks_slept);
+        rtos::Kernel::Clock::duration_u32 ticks_slept = mbed::internal::do_timed_sleep_relative_to_acknowledged_ticks(ticks_to_sleep, rtos_event_pending);
+        MBED_ASSERT(ticks_slept < rtos::Kernel::wait_for_u32_max);
+        osKernelResume(ticks_slept.count());
     }
 
 

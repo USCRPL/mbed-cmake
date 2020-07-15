@@ -24,6 +24,7 @@
 #include "fhss_config.h"
 #include "NWK_INTERFACE/Include/protocol.h"
 #include "6LoWPAN/ws/ws_config.h"
+#include "Security/protocols/sec_prot_cfg.h"
 #include "Security/kmp/kmp_addr.h"
 #include "Security/kmp/kmp_api.h"
 #include "Security/PANA/pana_eap_header.h"
@@ -267,6 +268,7 @@ static int8_t key_sec_prot_receive(sec_prot_t *prot, void *pdu, uint16_t size)
         // Checks if supplicant indicates that it has valid PMK
         uint8_t remote_keyid[KEYID_LEN];
         if (kde_pmkid_read(kde, kde_len, remote_keyid) >= 0) {
+            tr_debug("recv PMKID: %s", trace_array(remote_keyid, 16));
             uint8_t pmkid[PMKID_LEN];
             if (sec_prot_lib_pmkid_generate(prot, pmkid, true) >= 0) {
                 if (memcmp(remote_keyid, pmkid, PMKID_LEN) == 0) {
@@ -277,6 +279,7 @@ static int8_t key_sec_prot_receive(sec_prot_t *prot, void *pdu, uint16_t size)
 
         // Checks if supplicant indicates that it has valid PTK
         if (kde_ptkid_read(kde, kde_len, remote_keyid) >= 0) {
+            tr_debug("recv PTKID: %s", trace_array(remote_keyid, 16));
             uint8_t ptkid[PTKID_LEN];
             if (sec_prot_lib_ptkid_generate(prot, ptkid, true) >= 0) {
                 if (memcmp(remote_keyid, ptkid, PTKID_LEN) == 0) {
@@ -318,10 +321,10 @@ static int8_t key_sec_prot_tx_status_ind(sec_prot_t *prot, sec_prot_tx_status_e 
 
     // Indicates TX failure
     if (tx_status == SEC_PROT_TX_ERR_TX_NO_ACK) {
-        sec_prot_result_set(&data->common, KMP_RESULT_ERR_TX_NO_ACK);
+        sec_prot_result_set(&data->common, SEC_RESULT_ERR_TX_NO_ACK);
     } else if (tx_status != SEC_PROT_TX_OK) {
         // Indicates other failure
-        sec_prot_result_set(&data->common, KMP_RESULT_ERR_UNSPEC);
+        sec_prot_result_set(&data->common, SEC_RESULT_ERR_UNSPEC);
     }
     prot->state_machine_call(prot);
     return 0;

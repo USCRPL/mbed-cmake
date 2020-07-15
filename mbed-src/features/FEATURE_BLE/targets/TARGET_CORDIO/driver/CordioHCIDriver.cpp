@@ -96,6 +96,13 @@ buf_pool_desc_t CordioHCIDriver::get_default_buffer_pool_description()
     return buf_pool_desc_t(buffer, pool_desc);
 }
 
+void CordioHCIDriver::set_random_static_address(const ble::address_t& address)
+{
+    ble_error_t err = cordio::BLE::deviceInstance().getGap().setRandomStaticAddress(address);
+    MBED_ASSERT(err == BLE_ERROR_NONE);
+}
+
+
 void CordioHCIDriver::start_reset_sequence()
 {
     /* send an HCI Reset command to start the sequence */
@@ -148,10 +155,7 @@ void CordioHCIDriver::handle_reset_sequence(uint8_t *pMsg)
 
                 if (get_random_static_address(static_address)) {
                     // note: will send the HCI command to send the random address
-                    cordio::BLE::deviceInstance().getGap().setAddress(
-                        BLEProtocol::AddressType::RANDOM_STATIC,
-                        static_address.data()
-                    );
+                    set_random_static_address(static_address.data());
                 } else {
                     /* send next command in sequence */
                     HciLeReadBufSizeCmd();
@@ -281,6 +285,87 @@ uint16_t CordioHCIDriver::write(uint8_t type, uint16_t len, uint8_t *pData)
 
 void CordioHCIDriver::on_host_stack_inactivity()
 {
+}
+void CordioHCIDriver::handle_test_end(bool success, uint16_t packets) {
+    if (_test_end_handler) {
+        _test_end_handler(success, packets);
+        _test_end_handler = nullptr;
+    }
+}
+
+ble_error_t CordioHCIDriver::rf_test_start_le_receiver_test(
+    test_end_handler_t test_end_handler, uint8_t channel
+)
+{
+    if (_test_end_handler) {
+        return BLE_ERROR_INVALID_STATE;
+    }
+
+    if (!test_end_handler) {
+        return BLE_ERROR_INVALID_PARAM;
+    }
+
+    _test_end_handler = test_end_handler;
+    uint8_t *buf = hciCmdAlloc(HCI_OPCODE_LE_RECEIVER_TEST, HCI_LEN_LE_RECEIVER_TEST);
+
+    if (buf) {
+        uint8_t* p = buf + HCI_CMD_HDR_LEN;
+        UINT8_TO_BSTREAM(p, channel);
+        hciCmdSend(buf);
+
+        return BLE_ERROR_NONE;
+    }
+
+    return BLE_ERROR_NO_MEM;
+}
+
+ble_error_t CordioHCIDriver::rf_test_start_le_transmitter_test(
+    test_end_handler_t test_end_handler, uint8_t channel, uint8_t length, uint8_t type
+)
+{
+    if (_test_end_handler) {
+        return BLE_ERROR_INVALID_STATE;
+    }
+
+    if (!test_end_handler) {
+        return BLE_ERROR_INVALID_PARAM;
+    }
+
+    _test_end_handler = test_end_handler;
+    uint8_t *buf = hciCmdAlloc(HCI_OPCODE_LE_TRANSMITTER_TEST, HCI_LEN_LE_TRANSMITTER_TEST);
+
+    if (buf) {
+        uint8_t* p = buf + HCI_CMD_HDR_LEN;
+        UINT8_TO_BSTREAM(p, channel);
+        UINT8_TO_BSTREAM(p, length);
+        UINT8_TO_BSTREAM(p, type);
+        hciCmdSend(buf);
+
+        return BLE_ERROR_NONE;
+    }
+
+    return BLE_ERROR_NO_MEM;
+}
+
+ble_error_t CordioHCIDriver::rf_test_end()
+{
+    if (!_test_end_handler) {
+        return BLE_ERROR_INVALID_STATE;
+    }
+
+    uint8_t *buf = hciCmdAlloc(HCI_OPCODE_LE_TEST_END, HCI_LEN_LE_TEST_END);
+
+    if (buf) {
+        hciCmdSend(buf);
+
+        return BLE_ERROR_NONE;
+    }
+
+    return BLE_ERROR_NO_MEM;
+}
+
+ble_error_t CordioHCIDriver::set_tx_power(int8_t level_db) {
+    return BLE_ERROR_NOT_IMPLEMENTED;
 }
 
 } // namespace cordio

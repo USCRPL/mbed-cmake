@@ -1,5 +1,6 @@
 /* ESP8266Interface Example
  * Copyright (c) 2015 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,37 +18,45 @@
 #ifndef ESP8266_H
 #define ESP8266_H
 
-#if DEVICE_SERIAL && DEVICE_INTERRUPTIN && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_PRESENT)
+#if DEVICE_SERIAL && DEVICE_INTERRUPTIN && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_API_PRESENT)
 #include <stdint.h>
+#include <ctime>
 
-#include "drivers/UARTSerial.h"
+#include "drivers/BufferedSerial.h"
 #include "features/netsocket/nsapi_types.h"
 #include "features/netsocket/WiFiAccessPoint.h"
 #include "PinNames.h"
 #include "platform/ATCmdParser.h"
 #include "platform/Callback.h"
+#include "platform/mbed_chrono.h"
 #include "platform/mbed_error.h"
-#include "rtos/ConditionVariable.h"
 #include "rtos/Mutex.h"
+#include "rtos/ThisThread.h"
+#include "features/netsocket/SocketAddress.h"
 
 // Various timeouts for different ESP8266 operations
+// (some of these can't use literal form as they're needed for defaults in this header, where
+// we shouldn't add a using directive for them. Defines only used in the C++ file can use literals).
 #ifndef ESP8266_CONNECT_TIMEOUT
-#define ESP8266_CONNECT_TIMEOUT 15000
+#define ESP8266_CONNECT_TIMEOUT 15s
 #endif
 #ifndef ESP8266_SEND_TIMEOUT
-#define ESP8266_SEND_TIMEOUT    2000
+#define ESP8266_SEND_TIMEOUT    2s
 #endif
 #ifndef ESP8266_RECV_TIMEOUT
-#define ESP8266_RECV_TIMEOUT    2000
+#define ESP8266_RECV_TIMEOUT    std::chrono::seconds(2)
 #endif
 #ifndef ESP8266_MISC_TIMEOUT
-#define ESP8266_MISC_TIMEOUT    2000
+#define ESP8266_MISC_TIMEOUT    std::chrono::seconds(2)
+#endif
+#ifndef ESP8266_DNS_TIMEOUT
+#define ESP8266_DNS_TIMEOUT     15s
 #endif
 
-#define ESP8266_SCAN_TIME_MIN 0     // [ms]
-#define ESP8266_SCAN_TIME_MAX 1500  // [ms]
-#define ESP8266_SCAN_TIME_MIN_DEFAULT 120 // [ms]
-#define ESP8266_SCAN_TIME_MAX_DEFAULT 360 // [ms]
+#define ESP8266_SCAN_TIME_MIN 0ms
+#define ESP8266_SCAN_TIME_MAX 1500ms
+#define ESP8266_SCAN_TIME_MIN_DEFAULT 120ms
+#define ESP8266_SCAN_TIME_MAX_DEFAULT 360ms
 
 // Firmware version
 #define ESP8266_SDK_VERSION 2000000
@@ -60,6 +69,15 @@
 
 #define FW_AT_LEAST_VERSION(MAJOR,MINOR,PATCH,NUSED/*Not used*/,REF) \
     (((MAJOR)*1000000+(MINOR)*10000+(PATCH)*100) >= REF ? true : false)
+
+struct esp8266_socket {
+    int id;
+    nsapi_protocol_t proto;
+    bool connected;
+    bool bound;
+    SocketAddress addr;
+    int keepalive; // TCP
+};
 
 /** ESP8266Interface class.
     This is an interface to a ESP8266 radio.
@@ -165,11 +183,30 @@ public:
     bool disconnect(void);
 
     /**
+    * Enable or disable Remote IP and Port printing with +IPD
+    *
+    * @param enable, 1 on, 0 off
+    * @return true only if ESP8266 is disconnected successfully
+    */
+    bool ip_info_print(int enable);
+
+    /**
     * Get the IP address of ESP8266
     *
     * @return null-teriminated IP address or null if no IP address is assigned
     */
     const char *ip_addr(void);
+
+    /**
+     * Set static IP address, gateway and netmask
+     *
+     * @param ip IP address to set
+     * @param gateway (optional) gateway to set
+     * @param netmask (optional) netmask to set
+     *
+     * @return true if operation was successful and flase otherwise
+     */
+    bool set_ip_addr(const char *ip, const char *gateway, const char *netmask);
 
     /**
     * Get the MAC address of ESP8266
@@ -214,7 +251,9 @@ public:
      * @return       Number of entries in @a res, or if @a count was 0 number of available networks, negative on error
      *               see @a nsapi_error
      */
-    int scan(WiFiAccessPoint *res, unsigned limit, scan_mode mode, unsigned t_max, unsigned t_min);
+    int scan(WiFiAccessPoint *res, unsigned limit, scan_mode mode,
+             std::chrono::duration<unsigned, std::milli> t_max,
+             std::chrono::duration<unsigned, std::milli> t_min);
 
     /**Perform a dns query
     *
@@ -233,9 +272,10 @@ public:
     * @param addr the IP address of the destination
     * @param port the port on the destination
     * @param local_port UDP socket's local port, zero means any
+    * @param udp_mode UDP socket's mode, zero means can't change remote, 1 can change once, 2 can change multiple times
     * @return NSAPI_ERROR_OK in success, negative error code in failure
     */
-    nsapi_error_t open_udp(int id, const char *addr, int port, int local_port = 0);
+    nsapi_error_t open_udp(int id, const char *addr, int port, int local_port = 0, int udp_mode = 0);
 
     /**
     * Open a socketed connection
@@ -255,10 +295,10 @@ public:
     *
     * @param id id of socket to send to
     * @param data data to be sent
-    * @param amount amount of data to be sent - max 1024
-    * @return NSAPI_ERROR_OK in success, negative error code in failure
+    * @param amount amount of data to be sent - max 2048
+    * @return number of bytes on success, negative error code in failure
     */
-    nsapi_error_t send(int id, const void *data, uint32_t amount);
+    nsapi_size_or_error_t send(int id, const void *data, uint32_t amount);
 
     /**
     * Receives datagram from an open UDP socket
@@ -268,7 +308,7 @@ public:
     * @param amount number of bytes to be received
     * @return the number of bytes received
     */
-    int32_t recv_udp(int id, void *data, uint32_t amount, uint32_t timeout = ESP8266_RECV_TIMEOUT);
+    int32_t recv_udp(struct esp8266_socket *socket, void *data, uint32_t amount, mbed::chrono::milliseconds_u32 timeout = ESP8266_RECV_TIMEOUT);
 
     /**
     * Receives stream data from an open TCP socket
@@ -278,7 +318,7 @@ public:
     * @param amount number of bytes to be received
     * @return the number of bytes received
     */
-    int32_t recv_tcp(int id, void *data, uint32_t amount, uint32_t timeout = ESP8266_RECV_TIMEOUT);
+    int32_t recv_tcp(int id, void *data, uint32_t amount, mbed::chrono::milliseconds_u32 timeout = ESP8266_RECV_TIMEOUT);
 
     /**
     * Closes a socket
@@ -293,7 +333,7 @@ public:
     *
     * @param timeout_ms timeout of the connection
     */
-    void set_timeout(uint32_t timeout_ms = ESP8266_MISC_TIMEOUT);
+    void set_timeout(mbed::chrono::milliseconds_u32 timeout = ESP8266_MISC_TIMEOUT);
 
     /**
     * Checks if data is available
@@ -330,6 +370,47 @@ public:
     * @param func A pointer to a void function, or 0 to set as none
     */
     void attach(mbed::Callback<void()> status_cb);
+
+    /**
+     * Configure SNTP (Simple Network Time Protocol)
+     *
+     * @param enable   true to enable SNTP or false to disable it
+     * @param timezone timezone offset [-11,13] (0 by default)
+     * @param server0  optional parameter indicating the first SNTP server ("cn.ntp.org.cn" by default)
+     * @param server1  optional parameter indicating the second SNTP server ("ntp.sjtu.edu.cn" by default)
+     * @param server2  optional parameter indicating the third SNTP server ("us.pool.ntp.org" by default)
+     *
+     * @retval true if successful, false otherwise
+     */
+    bool set_sntp_config(bool enable, int timezone = 0, const char *server0 = nullptr,
+                         const char *server1 = nullptr, const char *server2 = nullptr);
+
+    /**
+     * Read out the configuration of SNTP (Simple Network Time Protocol)
+     *
+     * @param enable   true if SNTP is enabled
+     * @param timezone timezone offset [-11,13]
+     * @param server0  name of the first SNTP server
+     * @param server1  name of the second SNTP server (optional, nullptr if not set)
+     * @param server2  name of the third SNTP server (optional, nullptr if not set)
+     *
+     * @retval true if successful, false otherwise
+     */
+    bool get_sntp_config(bool *enable, int *timezone, char *server0,
+                         char *server1, char *server2);
+
+    /**
+     * Read out SNTP time from ESP8266.
+     *
+     * @param t std::tm structure to be filled in
+     * @retval true on success, false otherwise
+     *
+     * @note ESP8266 must be connected and needs a couple of seconds
+     * before returning correct time. It may return 1 Jan 1970 if it is not ready.
+     *
+     * @note esp8266.sntp-enable must be set to true in mbed_app.json file.
+     */
+    bool get_sntp_time(std::tm *t);
 
     template <typename T, typename M>
     void attach(T *obj, M method)
@@ -389,7 +470,7 @@ public:
      * @param timeout AT parser receive timeout
      * @param if TRUE, process all OOBs instead of only one
      */
-    void bg_process_oob(uint32_t timeout, bool all);
+    void bg_process_oob(std::chrono::duration<uint32_t, std::milli> timeout, bool all);
 
     /**
      * Flush the serial port input buffers.
@@ -420,15 +501,14 @@ private:
 
     // FW version specific settings and functionalities
     bool _tcp_passive;
-    int32_t _recv_tcp_passive(int id, void *data, uint32_t amount, uint32_t timeout);
+    int32_t _recv_tcp_passive(int id, void *data, uint32_t amount, std::chrono::duration<uint32_t, std::milli> timeout);
     mbed::Callback<void()> _callback;
 
     // UART settings
-    mbed::UARTSerial _serial;
+    mbed::BufferedSerial _serial;
     PinName _serial_rts;
     PinName _serial_cts;
     rtos::Mutex _smutex; // Protect serial port access
-    rtos::Mutex _rmutex; // Reset protection
 
     // AT Command Parser
     mbed::ATCmdParser _parser;
@@ -440,18 +520,21 @@ private:
     struct packet {
         struct packet *next;
         int id;
+        char remote_ip[16];
+        int remote_port;
         uint32_t len; // Remaining length
         uint32_t alloc_len; // Original length
         // data follows
     } *_packets, * *_packets_end;
     void _clear_socket_packets(int id);
+    void _clear_socket_sending(int id);
     int _sock_active_id;
 
     // Memory statistics
     size_t _heap_usage; // (Socket data buffer usage)
 
     // OOB processing
-    void _process_oob(uint32_t timeout, bool all);
+    void _process_oob(std::chrono::duration<uint32_t, std::milli> timeout, bool all);
 
     // OOB message handlers
     void _oob_packet_hdlr();
@@ -470,6 +553,8 @@ private:
     void _oob_tcp_data_hdlr();
     void _oob_ready();
     void _oob_scan_results();
+    void _oob_send_ok_received();
+    void _oob_send_fail_received();
 
     // OOB state variables
     int _connect_error;
@@ -479,8 +564,8 @@ private:
     bool _closed;
     bool _error;
     bool _busy;
-    rtos::ConditionVariable _reset_check;
     bool _reset_done;
+    int _sock_sending_id;
 
     // Modem's address info
     char _ip_buffer[16];
@@ -495,6 +580,7 @@ private:
         char *tcp_data;
         int32_t tcp_data_avbl; // Data waiting on modem
         int32_t tcp_data_rcvd;
+        bool send_fail;     // Received 'SEND FAIL'. Expect user will close the socket.
     };
     struct _sock_info _sock_i[SOCKET_COUNT];
 

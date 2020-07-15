@@ -39,7 +39,7 @@ namespace mbed {
  *
  * Here are some examples:
  * @code
- * UARTSerial serial = UARTSerial(D1, D0);
+ * BufferedSerial serial = BufferedSerial(D1, D0);
  * ATCmdParser at = ATCmdParser(&serial, "\r\n");
  * int value;
  * char buffer[100];
@@ -143,23 +143,6 @@ public:
     }
 
     /**
-     * For backward compatibility.
-     * @deprecated Do not use this function. This function has been replaced with set_timeout for consistency.
-     *
-     * Please use set_timeout(int) API only from now on.
-     * Allows timeout to be changed between commands
-     *
-     * @param timeout ATCmdParser APIs (read/write/send/recv ..etc) throw an
-     *                error if no response is received in `timeout` duration
-     *
-     */
-    MBED_DEPRECATED_SINCE("mbed-os-5.5.0", "Replaced with set_timeout for consistency")
-    void setTimeout(int timeout)
-    {
-        set_timeout(timeout);
-    }
-
-    /**
      * Sets string of characters to use as line delimiters
      *
      * @param output_delimiter String of characters to use as line delimiters
@@ -171,21 +154,6 @@ public:
     }
 
     /**
-     * For backwards compatibility.
-     * @deprecated Do not use this function. This function has been replaced with set_delimiter for consistency.
-     *
-     * Please use set_delimiter(const char *) API only from now on.
-     * Sets string of characters to use as line delimiters
-     *
-     * @param output_delimiter string of characters to use as line delimiters
-     */
-    MBED_DEPRECATED_SINCE("mbed-os-5.5.0", "Replaced with set_delimiter for consistency")
-    void setDelimiter(const char *output_delimiter)
-    {
-        set_delimiter(output_delimiter);
-    }
-
-    /**
      * Allows traces from modem to be turned on or off
      *
      * @param on Set as 1 to turn on traces and 0 to disable traces.
@@ -193,20 +161,6 @@ public:
     void debug_on(uint8_t on)
     {
         _dbg_on = (on) ? 1 : 0;
-    }
-
-    /**
-     * For backward compatibility.
-     * @deprecated Do not use this function. This function has been replaced with debug_on for consistency.
-     *
-     * Allows traces from modem to be turned on or off
-     *
-     * @param on Set as 1 to turn on traces and 0 to disable traces.
-     */
-    MBED_DEPRECATED_SINCE("mbed-os-5.5.0", "Replaced with debug_on for consistency")
-    void debugOn(uint8_t on)
-    {
-        debug_on(on);
     }
 
     /**
@@ -310,6 +264,12 @@ public:
      * @note out-of-band data is only processed during a scanf call
      */
     void oob(const char *prefix, mbed::Callback<void()> func);
+
+    /**
+     * @brief remove_oob Removes oob callback handler
+     * @param prefix Prefix to identify oob to be removed.
+     */
+    void remove_oob(const char *prefix);
 
     /**
      * Flushes the underlying stream

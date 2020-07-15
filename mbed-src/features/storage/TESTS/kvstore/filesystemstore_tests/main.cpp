@@ -15,10 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if !defined(MBED_CONF_RTOS_PRESENT)
-#error [NOT_SUPPORTED] Kvstore API test cases require a RTOS to run
-#else
-
 #include "rtos/Thread.h"
 #include "mbed_trace.h"
 #include "mbed_error.h"
@@ -30,8 +26,8 @@
 #include "utest.h"
 #include <stdlib.h>
 
-#if !defined(TARGET_K64F) && !defined(TARGET_ARM_FM) && !defined(TARGET_MCU_PSOC6)
-#error [NOT_SUPPORTED] Kvstore API tests run only on K64F devices, Fastmodels, and PSoC 6
+#if !SECURESTORE_ENABLED
+#error [NOT_SUPPORTED] SecureStore need to be enabled for this test
 #else
 
 #define FSST_TEST_NUM_OF_THREADS 5
@@ -421,6 +417,7 @@ void test_file_system_store_edge_cases()
     TEST_ASSERT_EQUAL_ERROR_CODE(0, err);
 }
 
+#ifdef MBED_CONF_RTOS_PRESENT
 void test_file_system_store_multi_threads()
 {
     utest_printf("\nTest Multi Threaded FileSystemStore Set Starts..\n");
@@ -494,6 +491,7 @@ void test_file_system_store_multi_threads()
     err = bd->deinit();
     TEST_ASSERT_EQUAL_ERROR_CODE(0, err);
 }
+#endif
 
 utest::v1::status_t greentea_failure_handler(const Case *const source, const failure_t reason)
 {
@@ -511,7 +509,9 @@ utest::v1::status_t test_setup(const size_t number_of_cases)
 Case cases[] = {
     Case("Testing functionality APIs unit test", test_file_system_store_functionality_unit_test, greentea_failure_handler),
     Case("Testing Edge Cases", test_file_system_store_edge_cases, greentea_failure_handler),
+#ifdef MBED_CONF_RTOS_PRESENT
     Case("Testing Multi Threads Set", test_file_system_store_multi_threads, greentea_failure_handler)
+#endif
 };
 
 Specification specification(test_setup, cases);
@@ -524,5 +524,4 @@ int main()
     return !Harness::run(specification);
 }
 
-#endif // !defined(TARGET_K64F) && !defined(TARGET_ARM_FM)
-#endif // !defined(MBED_CONF_RTOS_PRESENT)
+#endif //!SECURESTORE_ENABLED

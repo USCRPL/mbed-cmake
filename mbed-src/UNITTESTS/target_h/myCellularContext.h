@@ -39,15 +39,12 @@ public:
         }
     }
 
-    void set_file_handle(UARTSerial *serial, PinName dcd_pin, bool active_high)
+    nsapi_error_t configure_hup(PinName dcd_pin, bool active_high)
     {
+        return NSAPI_ERROR_OK;
     };
 
     void enable_hup(bool enable)
-    {
-    };
-
-    void set_file_handle(FileHandle *fh)
     {
     };
 
@@ -135,30 +132,14 @@ public:
 
     };
 
-    nsapi_error_t get_netmask(SocketAddress *address)
-    {
-        return NSAPI_ERROR_UNSUPPORTED;
-    }
-
-    const char *get_netmask()
-    {
-        return NULL;
-    };
-
-    nsapi_error_t get_gateway(SocketAddress *address)
-    {
-        return NSAPI_ERROR_UNSUPPORTED;
-    }
-
-    const char *get_gateway()
-    {
-        return NULL;
-    };
-
     bool get_context()
     {
         return true;
     };
+
+    const char* get_nonip_context_type_str() {
+        return "Non-IP";
+    }
 
     bool set_new_context(int cid)
     {

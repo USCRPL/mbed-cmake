@@ -28,11 +28,11 @@ typedef struct ws_neighbor_class_entry {
     uint16_t rsl_in;                                       /*!< RSL EWMA heard from neighbour*/
     uint16_t rsl_out;                                      /*!< RSL EWMA heard by neighbour*/
     uint16_t routing_cost;                                 /*!< ETX to border Router. */
+    uint8_t last_DSN;
     bool candidate_parent: 1;
     bool broadcast_timing_info_stored: 1;
     bool broadcast_shedule_info_stored: 1;
     bool synch_done : 1;
-    bool accelerated_etx_probe : 1;
     bool negative_aro_send : 1;
     bool unicast_data_rx : 1;
 } ws_neighbor_class_entry_t;
@@ -181,5 +181,7 @@ void ws_neighbor_class_rsl_in_calculate(ws_neighbor_class_entry_t *ws_neighbor, 
  *
  */
 void ws_neighbor_class_rsl_out_calculate(ws_neighbor_class_entry_t *ws_neighbor, uint8_t rsl_reported);
+
+bool ws_neighbor_class_neighbor_duplicate_packet_check(ws_neighbor_class_entry_t *ws_neighbor, uint8_t mac_dsn, uint32_t rx_timestamp);
 
 #endif /* WS_NEIGHBOR_CLASS_H_ */

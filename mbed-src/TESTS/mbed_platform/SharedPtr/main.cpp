@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2018 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +66,7 @@ void test_single_sharedptr_lifetime()
  */
 void test_instance_sharing()
 {
-    SharedPtr<TestStruct> s_ptr1(NULL);
+    SharedPtr<TestStruct> s_ptr1(nullptr);
 
     // Sanity-check value of counter
     TEST_ASSERT_EQUAL(0, TestStruct::s_count);
@@ -80,7 +81,7 @@ void test_instance_sharing()
 
     TEST_ASSERT_EQUAL(1, TestStruct::s_count);
 
-    s_ptr1 = NULL;
+    s_ptr1 = nullptr;
 
     // Destroy shared pointer
     TEST_ASSERT_EQUAL(0, TestStruct::s_count);
