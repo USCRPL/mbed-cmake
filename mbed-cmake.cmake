@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.9)
+# mbed-cmake requires CMake >= 3.12 for the new FindPython3 module
+cmake_policy(VERSION 3.12)
 
 message(STATUS [==[ _       _    ____      ______   ___                      ____    _       _         _        _      _   ______  ]==])
 message(STATUS [==[| \     / |  /  _  \   /  ____) /  _ \_                 / ____)  | \     / |       / \      / \    / | /  ____) ]==])
@@ -9,8 +10,7 @@ message(STATUS [==[| | \_/ | |  | |_|   | | |____  | |_/ _/                \ \__
 message(STATUS [==[\_/     \_/  \_____ /  \______) \___ /                   \____)  \_/     \_/  |_/       \_| \_/   \_/  \______) ]==])
 message(STATUS "")
 
-cmake_policy(SET CMP0056 NEW)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 include(Shorthand)
 include(Utils)
@@ -28,17 +28,28 @@ endif()
 # Allowed build types are Debug and Release
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release)
 
+# check configuration files
+# -------------------------------------------------------------
+
+set(MBED_CMAKE_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
+
 # relative to CMakeLists.txt inside mbed-cmake
 if(NOT DEFINED MBED_CMAKE_GENERATED_CONFIG_RELPATH)
 	set(MBED_CMAKE_GENERATED_CONFIG_RELPATH "../mbed-cmake-config")
 endif()
-set(MBED_CMAKE_GENERATED_CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${MBED_CMAKE_GENERATED_CONFIG_RELPATH})
+set(MBED_CMAKE_GENERATED_CONFIG_PATH ${MBED_CMAKE_SOURCE_DIR}/${MBED_CMAKE_GENERATED_CONFIG_RELPATH})
+
+if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
+	message(FATAL_ERROR "MBed config files and headers do not exist!  You need to run mbed-cmake/configure_for_target.py from the top source dir!")
+endif()
+
 
 # load compilers and flags
 # -------------------------------------------------------------
 include(mbed_gcc_arm_toolchain)
 
-project(mbed-cmake LANGUAGES C CXX ASM)
+# search for and load compilers
+enable_language(C CXX ASM)
 
 # Set config-specific flags
 # Note: unlike CMAKE_C_FLAGS etc, we need to set these AFTER the project() call in order to override CMake's default values for these flags.
@@ -55,10 +66,10 @@ set(CMAKE_CXX_EXTENSIONS TRUE)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS TRUE)
 
-# find python
+# find python (used for memap and several upload methods)
 # -------------------------------------------------------------
 
-find_package(Python3_Backported COMPONENTS Interpreter)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 
 # load the MBed CMake functions
@@ -73,26 +84,29 @@ include(MBedExecutable)
 find_package(OpenOCD)
 find_package(JLINK)
 
-include(UploadMethodConfig)
 include(UploadMethods)
 
-
-# recurse to subdirectories
+# add MBed OS source
 # -------------------------------------------------------------
 
 set(MBED_CMAKE_CONFIG_HEADERS_PATH ${MBED_CMAKE_GENERATED_CONFIG_PATH}/config-headers)
-add_subdirectory(mbed-src) #first get MBed standard library
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/mbed-src) #first get MBed standard library
 
 # build report
 # -------------------------------------------------------------
+function(mbed_cmake_print_build_report)
 
-# build type
-message(STATUS ">> Current Build Type: ${CMAKE_BUILD_TYPE}")
+	message(STATUS "---- Completed configuration of ${PROJECT_NAME} ----")
 
-# build flags
-string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UCASE)
-message(STATUS ">> C   Compile Flags (Global): ${CMAKE_C_FLAGS}")
-message(STATUS ">> C   Compile Flags (For ${CMAKE_BUILD_TYPE}): ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE_UCASE}}")
-message(STATUS ">> CXX Compile Flags (Global): ${CMAKE_CXX_FLAGS}")
-message(STATUS ">> CXX Compile Flags (For ${CMAKE_BUILD_TYPE}): ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UCASE}}")
-message(STATUS ">> Linker Flags: ${CMAKE_EXE_LINKER_FLAGS}")
+	# build type
+	message(STATUS ">> Current Build Type: ${CMAKE_BUILD_TYPE}")
+
+	# build flags
+	string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UCASE)
+	message(STATUS ">> C   Compile Flags (Global): ${CMAKE_C_FLAGS}")
+	message(STATUS ">> C   Compile Flags (For ${CMAKE_BUILD_TYPE}): ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE_UCASE}}")
+	message(STATUS ">> CXX Compile Flags (Global): ${CMAKE_CXX_FLAGS}")
+	message(STATUS ">> CXX Compile Flags (For ${CMAKE_BUILD_TYPE}): ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UCASE}}")
+	message(STATUS ">> Linker Flags: ${CMAKE_EXE_LINKER_FLAGS}")
+
+endfunction(mbed_cmake_print_build_report)

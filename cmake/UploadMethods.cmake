@@ -75,7 +75,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL MBED)
                 COMMAND ${CMAKE_COMMAND}
                 -DBIN_FILE=${BIN_FILE}
                 -DMBED_PATH=${MBED_PATH}
-                -P ${CMAKE_SOURCE_DIR}/cmake/install_bin_file.cmake)
+                -P ${MBED_CMAKE_SOURCE_DIR}/cmake/install_bin_file.cmake)
 
         add_dependencies(flash-${TARGET_NAME} ${TARGET_NAME})
 
@@ -241,7 +241,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL NXPPROG)
         else()
             add_custom_target(flash-${TARGET_NAME}
                 COMMENT "Flashing ${TARGET_NAME} through bootloader..."
-                COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/nxpprog.py
+                COMMAND ${Python3_EXECUTABLE} ${MBED_CMAKE_SOURCE_DIR}/scripts/nxpprog.py
                     --control
                     --oscfreq=${NXPPROG_OSCFREQ}
                     --baud=${NXPPROG_BAUD}

@@ -36,7 +36,7 @@ function(add_mbed_executable EXECUTABLE)
 	if(CAN_RUN_MEMAP)
 		add_custom_command(
 			TARGET ${EXECUTABLE} POST_BUILD
-			COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/memap/memap.py -t GCC_ARM ${MAP_FILE}
+			COMMAND ${Python3_EXECUTABLE} ${MBED_CMAKE_SOURCE_DIR}/scripts/memap/memap.py -t GCC_ARM ${MAP_FILE}
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMENT "Displaying memory map for ${EXECUTABLE}")
 	endif()

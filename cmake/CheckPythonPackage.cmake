@@ -29,8 +29,7 @@ function(check_python_package PACKAGENAME OUTPUT_VAR)
     if(NEED_TO_RUN_CHECK)
         set(PY_INTERP_FOR_${OUTPUT_VAR} ${Python3_EXECUTABLE} CACHE INTERNAL "The python interpreter used to run the ${OUTPUT_VAR} check" FORCE)
 
-
-        execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/cmake/python_packagecheck.py ${PACKAGENAME}
+        execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python_packagecheck.py ${PACKAGENAME}
                 RESULT_VARIABLE PACKAGECHECK_RESULT)
 
         test(HAVE_PACKAGE ${PACKAGECHECK_RESULT} EQUAL 0)
