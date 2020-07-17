@@ -8,7 +8,11 @@ message(STATUS [==[|   \ /   |  |     /   |  ____) | |   | |  (______)  |  |    
 message(STATUS [==[| |\ - /| |  |  _   \  | |      | |  _| |             \  \       | |\ - /| |    / _____ \   |  _  \    | |      ]==])
 message(STATUS [==[| | \_/ | |  | |_|   | | |____  | |_/ _/                \ \___   | | \_/ | |   / /     \ \  | |  \ \   | |____  ]==])
 message(STATUS [==[\_/     \_/  \_____ /  \______) \___ /                   \____)  \_/     \_/  |_/       \_| \_/   \_/  \______) ]==])
+
 message(STATUS "")
+
+set(MBED_CMAKE_VERSION 1.2.0)
+message(STATUS "mbed-cmake version ${MBED_CMAKE_VERSION}, running on CMake ${CMAKE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
