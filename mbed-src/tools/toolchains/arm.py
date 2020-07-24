@@ -190,155 +190,155 @@ class ARM(mbedToolchain):
             match = ARM.DEP_PATTERN.match(line)
             if match is not None:
                 # we need to append chroot, because when the .d files are
-                # generated the compiler is chrooted
-                dependencies.append(
-                    (self.CHROOT if self.CHROOT else '') + match.group('file')
-                )
-        return dependencies
+                # generated the compiler is chr
+        with open(sc_fileref.path, "r") as input:ooted
+        dependencies.append(
+            (self.CHROOT if self.CHROOT else '') + match.group('file')
+        )
+    return dependencies
 
-    def parse_output(self, output):
-        msg = None
-        for line in output.splitlines():
-            match = self.DIAGNOSTIC_PATTERN.match(line)
+def parse_output(self, output):
+    msg = None
+    for line in output.splitlines():
+        match = self.DIAGNOSTIC_PATTERN.match(line)
+        if match is not None:
+            if msg is not None:
+                self.notify.cc_info(msg)
+                msg = None
+            msg = {
+                'severity': match.group('severity').lower(),
+                'file': match.group('file'),
+                'line': match.group('line'),
+                'message': match.group('message'),
+                'text': '',
+                'target_name': self.target.name,
+                'toolchain_name': self.name
+            }
+            if match.group('column'):
+                msg['col'] = match.group('column')
+            else:
+                msg['col'] = 0
+        elif msg is not None:
+            # Determine the warning/error column by calculating the '^'
+            # position
+            match = ARM.INDEX_PATTERN.match(line)
             if match is not None:
-                if msg is not None:
-                    self.notify.cc_info(msg)
-                    msg = None
-                msg = {
-                    'severity': match.group('severity').lower(),
-                    'file': match.group('file'),
-                    'line': match.group('line'),
-                    'message': match.group('message'),
-                    'text': '',
-                    'target_name': self.target.name,
-                    'toolchain_name': self.name
-                }
-                if match.group('column'):
-                    msg['col'] = match.group('column')
-                else:
-                    msg['col'] = 0
-            elif msg is not None:
-                # Determine the warning/error column by calculating the '^'
-                # position
-                match = ARM.INDEX_PATTERN.match(line)
-                if match is not None:
-                    msg['col'] = len(match.group('col'))
-                    self.notify.cc_info(msg)
-                    msg = None
-                else:
-                    msg['text'] += line+"\n"
+                msg['col'] = len(match.group('col'))
+                self.notify.cc_info(msg)
+                msg = None
+            else:
+                msg['text'] += line+"\n"
 
-        if msg is not None:
-            self.notify.cc_info(msg)
+    if msg is not None:
+        self.notify.cc_info(msg)
 
-    def get_dep_option(self, object):
-        base, _ = splitext(object)
-        dep_path = base + '.d'
-        return ["--depend", dep_path]
+def get_dep_option(self, object):
+    base, _ = splitext(object)
+    dep_path = base + '.d'
+    return ["--depend", dep_path]
 
-    def get_config_option(self, config_header):
-        return ['--preinclude=' + config_header]
+def get_config_option(self, config_header):
+    return ['--preinclude=' + config_header]
 
-    def get_compile_options(self, defines, includes, for_asm=False):
-        opts = ['-D%s' % d for d in defines]
-        config_header = self.get_config_header()
-        if config_header is not None:
-            opts = opts + self.get_config_option(config_header)
-        if for_asm:
-            return opts
-        if self.RESPONSE_FILES:
-            opts += ['--via', self.get_inc_file(includes)]
-        else:
-            opts += ["-I%s" % i for i in includes if i]
-
+def get_compile_options(self, defines, includes, for_asm=False):
+    opts = ['-D%s' % d for d in defines]
+    config_header = self.get_config_header()
+    if config_header is not None:
+        opts = opts + self.get_config_option(config_header)
+    if for_asm:
         return opts
+    if self.RESPONSE_FILES:
+        opts += ['--via', self.get_inc_file(includes)]
+    else:
+        opts += ["-I%s" % i for i in includes if i]
 
-    def assemble(self, source, object, includes):
-        # Preprocess first, then assemble
-        dir = join(dirname(object), '.temp')
-        mkdir(dir)
-        tempfile = join(dir, basename(object) + '.E.s')
+    return opts
 
-        # Build preprocess assemble command
-        cmd_pre = copy(self.asm)
-        cmd_pre.extend(self.get_compile_options(
-            self.get_symbols(True), includes, True))
-        cmd_pre.extend(["-E", "-o", tempfile, source])
+def assemble(self, source, object, includes):
+    # Preprocess first, then assemble
+    dir = join(dirname(object), '.temp')
+    mkdir(dir)
+    tempfile = join(dir, basename(object) + '.E.s')
 
-        # Build main assemble command
-        cmd = self.asm + ["-o", object, tempfile]
+    # Build preprocess assemble command
+    cmd_pre = copy(self.asm)
+    cmd_pre.extend(self.get_compile_options(
+        self.get_symbols(True), includes, True))
+    cmd_pre.extend(["-E", "-o", tempfile, source])
 
-        # Return command array, don't execute
-        return [cmd_pre, cmd]
+    # Build main assemble command
+    cmd = self.asm + ["-o", object, tempfile]
 
-    def compile(self, cc, source, object, includes):
-        # Build compile command
-        cmd = cc + self.get_compile_options(self.get_symbols(), includes)
+    # Return command array, don't execute
+    return [cmd_pre, cmd]
 
-        cmd.extend(self.get_dep_option(object))
+def compile(self, cc, source, object, includes):
+    # Build compile command
+    cmd = cc + self.get_compile_options(self.get_symbols(), includes)
 
-        cmd.extend(["-o", object, source])
+    cmd.extend(self.get_dep_option(object))
 
-        return [cmd]
+    cmd.extend(["-o", object, source])
 
-    def compile_c(self, source, object, includes):
-        return self.compile(self.cc, source, object, includes)
+    return [cmd]
 
-    def compile_cpp(self, source, object, includes):
-        return self.compile(self.cppc, source, object, includes)
+def compile_c(self, source, object, includes):
+    return self.compile(self.cc, source, object, includes)
 
-    def correct_scatter_shebang(self, sc_fileref, cur_dir_name=None):
-        """Correct the shebang at the top of a scatter file.
+def compile_cpp(self, source, object, includes):
+    return self.compile(self.cppc, source, object, includes)
 
-        The shebang line is the line at the top of the file starting with '#!'. If this line is present
-        then the linker will execute the command on that line on the content of the scatter file prior
-        to consuming the content into the link. Typically the shebang line will contain an instruction
-        to run the C-preprocessor (either 'armcc -E' or 'armclang -E') which allows for macro expansion,
-        inclusion of headers etc. Other options are passed to the preprocessor to specify aspects of the
-        system such as the processor architecture and cpu type.
+def correct_scatter_shebang(self, sc_fileref, cur_dir_name=None):
+    """Correct the shebang at the top of a scatter file.
 
-        The build system (at this point) will have constructed what it considers to be a correct shebang
-        line for this build. If this differs from the line in the scatter file then the scatter file
-        will be rewritten by this function to contain the build-system-generated shebang line. Note
-        that the rewritten file will be placed in the BUILD output directory.
+    The shebang line is the line at the top of the file starting with '#!'. If this line is present
+    then the linker will execute the command on that line on the content of the scatter file prior
+    to consuming the content into the link. Typically the shebang line will contain an instruction
+    to run the C-preprocessor (either 'armcc -E' or 'armclang -E') which allows for macro expansion,
+    inclusion of headers etc. Other options are passed to the preprocessor to specify aspects of the
+    system such as the processor architecture and cpu type.
 
-        Include processing
+    The build system (at this point) will have constructed what it considers to be a correct shebang
+    line for this build. If this differs from the line in the scatter file then the scatter file
+    will be rewritten by this function to contain the build-system-generated shebang line. Note
+    that the rewritten file will be placed in the BUILD output directory.
 
-        If the scatter file runs the preprocessor, and contains #include statements then the pre-processor
-        include path specifies where the #include files are to be found. Typically, #include files
-        are specified with a path relative to the location of the original scatter file. When the
-        preprocessor runs, the system automatically passes the location of the scatter file into the
-        include path through an implicit '-I' option to the preprocessor, and this works fine in the
-        offline build system.
-        Unfortunately this approach does not work in the online build, because the preprocessor
-        command runs in a chroot. The true (non-chroot) path to the file as known by the build system
-        looks something like this:
-            /tmp/chroots/ch-eefd72fb-2bcb-4e99-9043-573d016618bb/extras/mbed-os.lib/...
-        whereas the path known by the preprocessor will be:
-            /extras/mbed-os.lib/...
-        Consequently, the chroot path has to be explicitly passed to the preprocessor through an
-        explicit -I/path/to/chroot/file option in the shebang line.
+    Include processing
 
-        *** THERE IS AN ASSUMPTION THAT THE CHROOT PATH IS THE REAL FILE PATH WITH THE FIRST
-        *** THREE ELEMENTS REMOVED. THIS ONLY HOLDS TRUE UNTIL THE ONLINE BUILD SYSTEM CHANGES
+    If the scatter file runs the preprocessor, and contains #include statements then the pre-processor
+    include path specifies where the #include files are to be found. Typically, #include files
+    are specified with a path relative to the location of the original scatter file. When the
+    preprocessor runs, the system automatically passes the location of the scatter file into the
+    include path through an implicit '-I' option to the preprocessor, and this works fine in the
+    offline build system.
+    Unfortunately this approach does not work in the online build, because the preprocessor
+    command runs in a chroot. The true (non-chroot) path to the file as known by the build system
+    looks something like this:
+        /tmp/chroots/ch-eefd72fb-2bcb-4e99-9043-573d016618bb/extras/mbed-os.lib/...
+    whereas the path known by the preprocessor will be:
+        /extras/mbed-os.lib/...
+    Consequently, the chroot path has to be explicitly passed to the preprocessor through an
+    explicit -I/path/to/chroot/file option in the shebang line.
 
-        If the include path manipulation as described above does change, then any scatter file
-        containing a #include statement is likely to fail on the online compiler.
+    *** THERE IS AN ASSUMPTION THAT THE CHROOT PATH IS THE REAL FILE PATH WITH THE FIRST
+    *** THREE ELEMENTS REMOVED. THIS ONLY HOLDS TRUE UNTIL THE ONLINE BUILD SYSTEM CHANGES
 
-        Positional arguments:
-        sc_fileref -- FileRef object of the scatter file
+    If the include path manipulation as described above does change, then any scatter file
+    containing a #include statement is likely to fail on the online compiler.
 
-        Keyword arguments:
-        cur_dir_name -- the name (not path) of the directory containing the
-                        scatter file
+    Positional arguments:
+    sc_fileref -- FileRef object of the scatter file
 
-        Return:
-        The FileRef of the correct scatter file
+    Keyword arguments:
+    cur_dir_name -- the name (not path) of the directory containing the
+                    scatter file
 
-        Side Effects:
-        This method MAY write a new scatter file to disk
-        """
-        with open(sc_fileref.path, "r") as input:
+    Return:
+    The FileRef of the correct scatter file
+
+    Side Effects:
+    This method MAY write a new scatter file to disk
+    """
             lines = input.readlines()
 
             # If the existing scatter file has no shebang line, or the line that it does have

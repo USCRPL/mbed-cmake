@@ -27,23 +27,20 @@ foreach(OPTION ${OLD_MCU_COMPILE_OPTIONS})
 
         list(APPEND MCU_COMPILE_OPTIONS ${OPTION})
 
+        set(ARMCLANG_TARGET_OPTION ${OPTION})
+
     elseif("${OPTION}" MATCHES "-mcpu=(.*)")
 
         # parse out CPU name and set CMAKE_SYSTEM_PROCESSOR to it to prevent CMake error
         set(CMAKE_SYSTEM_PROCESSOR ${CMAKE_MATCH_1})
+        set(ARMCLANG_CPU_OPTION ${OPTION}) # used for the preprocessor command
+
     else()
 
         # no special handling for this arg
         list(APPEND MCU_COMPILE_OPTIONS ${OPTION})
     endif()
 endforeach()
-
-#set(OLD_MCU_LINK_OPTIONS ${MCU_LINK_OPTIONS})
-#set(MCU_LINK_OPTIONS "")
-#foreach(OPTION ${OLD_MCU_LINK_OPTIONS})
-#    # mbed-studio provides armlink flags directly, but cmake links using armclang as the driver.
-#    list(APPEND MCU_LINK_OPTIONS -Wl,${OPTION})
-#endforeach()
 
 # convert list to space-separated for CMAKE_C_FLAGS etc.
 list_to_space_separated(CHIP_FLAGS ${MCU_COMPILE_OPTIONS})
@@ -74,8 +71,8 @@ foreach(BUILD_TYPE ${CMAKE_CONFIGURATION_TYPES})
 endforeach()
 
 #note: these initialize the cache variables on first configure
-set(CMAKE_C_FLAGS_INIT "${CHIP_FLAGS}")
-set(CMAKE_CXX_FLAGS_INIT "${CHIP_FLAGS}")
-set(CMAKE_ASM_FLAGS_INIT "${CHIP_FLAGS}")
+set(CMAKE_C_FLAGS_INIT "${CHIP_FLAGS} ")
+set(CMAKE_CXX_FLAGS_INIT "${CHIP_FLAGS} ")
+set(CMAKE_ASM_FLAGS_INIT "${CHIP_FLAGS} -x assembler -masm=auto -Wno-unused-command-line-argument ")
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT "${CHIP_LINKER_FLAGS}")
