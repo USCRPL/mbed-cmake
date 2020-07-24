@@ -85,7 +85,7 @@ def build_cmake_path_list(list_name:str, paths:list):
     return build_cmake_list(list_name, converted_paths)
 
 def write_cmake_config(cmake_config_path:str, mcu_compile_flags:list, mcu_link_flags:list,
-    linker_script:str, include_dirs:list, source_files:list, target_name:str, profile_flags:list,
+    linker_script:str, include_dirs:list, source_files:list, target_name:str, toolchain_name:str, profile_flags:list,
     profile_link_flags:list, profile_names:list):
 
     """ Write the configuration file for CMake using info extracted from the Python scripts"""
@@ -100,7 +100,10 @@ def write_cmake_config(cmake_config_path:str, mcu_compile_flags:list, mcu_link_f
 """)
 
     cmake_config.write(build_cmake_list("MBED_TARGET_NAME", [target_name]))
-    cmake_config.write(build_cmake_list("MCU_COMPILE_OPTIONS", mcu_compile_flags)) # note: CMake convention is that variables called "FLAGS" are strings while variables called "OPTIONS" are lists.
+    cmake_config.write(build_cmake_list("MBED_TOOLCHAIN_NAME", [toolchain_name]))
+
+    # note: CMake convention is that variables called "FLAGS" are strings while variables called "OPTIONS" are lists.
+    cmake_config.write(build_cmake_list("MCU_COMPILE_OPTIONS", mcu_compile_flags))
     cmake_config.write(build_cmake_list("MCU_LINK_OPTIONS", mcu_link_flags))
     cmake_config.write(build_cmake_path_list("MBED_LINKER_SCRIPT", [linker_script]))
     cmake_config.write(build_cmake_path_list("MBED_INCLUDE_DIRS", include_dirs))
@@ -151,10 +154,13 @@ parser.add_argument('-l', '--list-config', action="store_true", help="List all t
 parser.add_argument('-c', '--print-config', action="store_true", help="Print all the config options that MBed OS supports for your target, with descriptions")
 parser.add_argument('-p', '--generated-path', default=GENERATED_DEFAULT_PATH,
                     help="The relative path to the directory which will store the generated files")
+parser.add_argument('-t', '--toolchain', default="GCC_ARM",
+                    choices=["ARMC6", "GCC_ARM"],
+                    help="Toolchain that you will be compiling with.")
 args = parser.parse_args()
 
 target_name=args.target
-toolchain_name="GCC_ARM" # Someday this can be made configurable, but for now we support GCC only.
+toolchain_name=args.toolchain
 get_config=args.list_config or args.print_config
 verbose_config=args.print_config
 generated_rpath = args.generated_path
@@ -261,6 +267,7 @@ write_cmake_config(cmake_config_path,
     include_dirs = inc_paths,
     source_files = sources,
     target_name = target_name,
+    toolchain_name=toolchain_name,
     profile_flags = profile_flags,
     profile_link_flags = profile_link_flags,
     profile_names = profile_cmake_names)

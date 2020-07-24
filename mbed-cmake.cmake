@@ -50,7 +50,23 @@ endif()
 
 # load compilers and flags
 # -------------------------------------------------------------
-include(mbed_gcc_arm_toolchain)
+
+# read flags from generated configuration file
+include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
+
+# load toolchain
+if("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
+
+	if(${CMAKE_VERSION} VERSION_LESS 3.15.0)
+		message(FATAL_ERROR "CMake >= 3.15.0 is required for Arm Compiler support")
+	endif()
+
+	include(ArmClangToolchain)
+elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "GCC_ARM")
+	include(GCCArmToolchain)
+else()
+	message(FATAL_ERROR "Unknown toolchain \"${MBED_TOOLCHAIN_NAME}\"")
+endif()
 
 # search for and load compilers
 enable_language(C CXX ASM)
