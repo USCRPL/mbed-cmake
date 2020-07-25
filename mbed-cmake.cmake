@@ -11,7 +11,7 @@ message(STATUS [==[\_/     \_/  \_____ /  \______) \___ /                   \___
 
 message(STATUS "")
 
-set(MBED_CMAKE_VERSION 1.2.0)
+set(MBED_CMAKE_VERSION 1.3.0)
 message(STATUS "mbed-cmake version ${MBED_CMAKE_VERSION}, running on CMake ${CMAKE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
@@ -43,6 +43,10 @@ if(NOT DEFINED MBED_CMAKE_GENERATED_CONFIG_RELPATH)
 endif()
 set(MBED_CMAKE_GENERATED_CONFIG_PATH ${MBED_CMAKE_SOURCE_DIR}/${MBED_CMAKE_GENERATED_CONFIG_RELPATH})
 
+if(NOT DEFINED MBED_CMAKE_CONFIG_HEADERS_PATH)
+	set(MBED_CMAKE_CONFIG_HEADERS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config-headers)
+endif()
+
 if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
 	message(FATAL_ERROR "MBed config files and headers do not exist!  You need to run mbed-cmake/configure_for_target.py from the top source dir!")
 endif()
@@ -50,7 +54,23 @@ endif()
 
 # load compilers and flags
 # -------------------------------------------------------------
-include(mbed_gcc_arm_toolchain)
+
+# read flags from generated configuration file
+include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
+
+# load toolchain
+if("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
+
+	if(${CMAKE_VERSION} VERSION_LESS 3.15.0)
+		message(FATAL_ERROR "CMake >= 3.15.0 is required for Arm Compiler support")
+	endif()
+
+	include(ArmClangToolchain)
+elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "GCC_ARM")
+	include(GCCArmToolchain)
+else()
+	message(FATAL_ERROR "Unknown toolchain \"${MBED_TOOLCHAIN_NAME}\"")
+endif()
 
 # search for and load compilers
 enable_language(C CXX ASM)

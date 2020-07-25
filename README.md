@@ -12,7 +12,7 @@ MBed-cmake is a build system template that lets you use the descriptive power of
 
 MBed-cmake was designed to optimize the common case of embedded development: where a program and an environment are configured once for a specific processor, and then left in that configuration forever.  Normally, MBed OS's build system forces you to reconfigure things like the target, the toolchain, and the ignore files each time a project is set up, as MBed OS and all of its dependencies are downloaded by the build system on your computer at build time.  In contrast, MBed-cmake allows you to check the entire OS and configuration into version control.  This makes builds easy, repeatable, and dependable as there are no external dependencies.
 
-Ordinarily, MBed OS can't be built easily using CMake.  The source files to build vary by processor and are generated automatically according to a complex set of rules, and additional flags and compile definitions are scattered in JSON files all around MBes OS's source tree.  
+Ordinarily, MBed OS can't be built easily using CMake.  The source files to build vary by processor and are generated automatically according to a complex set of rules, and additional flags and compile definitions are scattered in JSON files all around MBed OS's source tree.  
 
 A stopgap solution is to use MBed's "export" functionality to create a Makefile or CMake build system and then develop that into a full build system.  However, this has major disadvantages: MBed itself is exported as a compiled lib, so you can't debug it or view its source code as easily.  Even worse, you're stuck using a generated build system, so if you need to switch to a different processor you'll have to re-export a new build system and make all of your modifications again.
 
@@ -62,8 +62,8 @@ This repository includes MBed OS 6.1.0 stable.
 You should be able to use a different version of MBed by simply replacing the `mbed-src` folder, just be sure to copy CMakeLists.txt into the new mbed-src folder.  Note that unignore rules in the .mbedignore is currently an mbed-cmake extension and this functionality will be lost if you replace mbed-src.  We submitted a PR to upstream though!
 
 ## Limitations
-- Currently MBed-cmake does not support toolchains other than GCC-ARM.  However this could be added without any major redesign if it was a desirable feature.
+- Currently MBed-cmake only supports the GNU Arm Embedded (`-t GCC_ARM`) and ARMClang (`-t ARMC6`) toolchains.  
 - The full range of MBed CLI's upload methods are not supported yet.
-- LTO is not currently supported though we plan to add this in the future.
+- LTO cannot be supported for GCC_ARM due to [a gcc bug](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83967)
 
 MBed-cmake was designed for use with a single processor target per project, and this is the most convenient way to use it.  However, you can also create a project that builds for multiple processors as long as you're OK with a few extra steps each time you switch processors (see [the instructions](https://github.com/USCRPL/mbed-cmake/wiki/Project-Configuration)).

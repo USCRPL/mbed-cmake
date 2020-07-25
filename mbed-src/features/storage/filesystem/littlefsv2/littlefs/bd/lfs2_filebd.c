@@ -6,8 +6,7 @@
  */
 #include "bd/lfs2_filebd.h"
 
-#include <fcntl.h>
-#include <unistd.h>
+#include <mbed_retarget.h>
 #include <errno.h>
 
 int lfs2_filebd_createcfg(const struct lfs2_config *cfg, const char *path,
