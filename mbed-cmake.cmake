@@ -43,6 +43,10 @@ if(NOT DEFINED MBED_CMAKE_GENERATED_CONFIG_RELPATH)
 endif()
 set(MBED_CMAKE_GENERATED_CONFIG_PATH ${MBED_CMAKE_SOURCE_DIR}/${MBED_CMAKE_GENERATED_CONFIG_RELPATH})
 
+if(NOT DEFINED MBED_CMAKE_CONFIG_HEADERS_PATH)
+	set(MBED_CMAKE_CONFIG_HEADERS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config-headers)
+endif()
+
 if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
 	message(FATAL_ERROR "MBed config files and headers do not exist!  You need to run mbed-cmake/configure_for_target.py from the top source dir!")
 endif()

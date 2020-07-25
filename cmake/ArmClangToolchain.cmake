@@ -45,8 +45,6 @@ endforeach()
 # convert list to space-separated for CMAKE_C_FLAGS etc.
 list_to_space_separated(CHIP_FLAGS ${MCU_COMPILE_OPTIONS})
 
-printvar(MCU_COMPILE_OPTIONS)
-
 set(CHIP_LINKER_FLAGS "")
 
 # certain flags will only work if linking with MBed OS, not for regular executables, so we need to strip those out so CMake can configure
