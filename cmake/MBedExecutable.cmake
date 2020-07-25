@@ -40,21 +40,25 @@ endif()
 
 #custom function to add a mbed executable and generate mbed source files
 function(add_mbed_executable EXECUTABLE)
-	
+
 	add_executable(${EXECUTABLE} ${ARGN})
 
 	target_link_libraries(${EXECUTABLE} mbed-os)
-	
+
 	set(BIN_FILE ${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE}.bin)
-	set(MAP_FILE ${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE}.map)
+
 
 	if("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
-		# add link options to generate memory map
-		target_link_libraries(${EXECUTABLE} --info=totals --map --list=\"-Map=${MAP_FILE}\")
+		# the ArmClang CMake platform files automatically generate a memory map
+		target_link_libraries(${EXECUTABLE} --info=totals --map)
+		set(MAP_FILE ${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE}${CMAKE_EXECUTABLE_SUFFIX}.map)
 
 		set(OBJCOPY_COMMAND ${OBJCOPY_EXECUTABLE} --bin -o ${BIN_FILE} $<TARGET_FILE:${EXECUTABLE}>)
 
 	elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "GCC_ARM")
+
+		set(MAP_FILE ${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE}.map)
+
 		# add link options to generate memory map
 		target_link_libraries(${EXECUTABLE} -Wl,\"-Map=${MAP_FILE}\",--cref)
 
