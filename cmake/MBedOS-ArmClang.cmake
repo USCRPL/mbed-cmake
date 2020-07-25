@@ -2,7 +2,6 @@
 
 project(mbed-os)
 
-# add command to preprocess linker script
 get_filename_component(LINKER_SCRIPT_FILENAME "${MBED_LINKER_SCRIPT}" NAME_WE)
 get_filename_component(LINKER_SCRIPT_DIR ${MBED_LINKER_SCRIPT} DIRECTORY)
 get_filename_component(LINKER_SCRIPT_EXT ${MBED_LINKER_SCRIPT} LAST_EXT)
@@ -75,12 +74,11 @@ endforeach()
 # deluge of crash reports through my terminal.
 # Soooo... let's NOT do that.
 
-# build the asm objects
 add_library(mbed-os-obj OBJECT ${ASM_SOURCE_FILES} ${MBED_SOURCE_FILES})
 target_compile_options(mbed-os-obj PUBLIC ${MBED_COMPILE_OPTIONS})
 target_include_directories(mbed-os-obj PUBLIC ${MBED_INCLUDE_DIRS})
 
-# create final library target (wraps actual library target in -Wl,--whole-archive [which is needed for weak symbols to work])
+# create final library target (interface which contains objects, link options, and compile flags)
 add_library(mbed-os INTERFACE)
 target_link_libraries(mbed-os INTERFACE
 	--scatter ${PREPROCESSED_LINKER_SCRIPT}
