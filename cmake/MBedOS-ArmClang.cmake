@@ -69,21 +69,22 @@ foreach(SOURCE_FILE ${OLD_MBED_SOURCE_FILES})
 	endif()
 endforeach()
 
-
-# create the static library for the rest of the source files
-add_library(mbed-os-static STATIC ${MBED_SOURCE_FILES})
-target_compile_options(mbed-os-static PUBLIC ${MBED_COMPILE_OPTIONS})
-target_include_directories(mbed-os-static PUBLIC ${MBED_INCLUDE_DIRS})
+# Let's just say that Arm Compiler is not a big fan of .a libraries, at least when they contain things like
+# weak symbols and code that calls ASM.
+# I tried using a static library at first, and that just sent things into a massive bootloop that poured a
+# deluge of crash reports through my terminal.
+# Soooo... let's NOT do that.
 
 # build the asm objects
-add_library(mbed-os-asm-obj OBJECT ${ASM_SOURCE_FILES})
-target_compile_options(mbed-os-asm-obj PUBLIC ${MBED_COMPILE_OPTIONS})
-target_include_directories(mbed-os-asm-obj PUBLIC ${MBED_INCLUDE_DIRS})
+add_library(mbed-os-obj OBJECT ${ASM_SOURCE_FILES} ${MBED_SOURCE_FILES})
+target_compile_options(mbed-os-obj PUBLIC ${MBED_COMPILE_OPTIONS})
+target_include_directories(mbed-os-obj PUBLIC ${MBED_INCLUDE_DIRS})
 
 # create final library target (wraps actual library target in -Wl,--whole-archive [which is needed for weak symbols to work])
 add_library(mbed-os INTERFACE)
 target_link_libraries(mbed-os INTERFACE
-	mbed-os-static
 	--scatter ${PREPROCESSED_LINKER_SCRIPT}
 	${MBED_LINK_OPTIONS})
-target_sources(mbed-os INTERFACE $<TARGET_OBJECTS:mbed-os-asm-obj>)
+target_sources(mbed-os INTERFACE $<TARGET_OBJECTS:mbed-os-obj>)
+target_compile_options(mbed-os INTERFACE ${MBED_COMPILE_OPTIONS})
+target_include_directories(mbed-os INTERFACE ${MBED_INCLUDE_DIRS})

@@ -11,6 +11,14 @@ if(NOT (HAVE_INTELHEX AND HAVE_PRETTYTABLE))
 	set(CAN_RUN_MEMAP FALSE)
 endif()
 
+# Why doesn't memap use the same toolchain names as the rest of the MBed build system?
+# Don't ask me!
+if("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
+	set(MEMAP_TOOLCHAIN_NAME "ARM_STD")
+else()
+	set(MEMAP_TOOLCHAIN_NAME ${MBED_TOOLCHAIN_NAME})
+endif()
+
 # figure out objcopy command
 get_filename_component(TOOLCHAIN_BIN_DIR ${CMAKE_C_COMPILER} DIRECTORY)
 
@@ -44,25 +52,29 @@ function(add_mbed_executable EXECUTABLE)
 		# add link options to generate memory map
 		target_link_libraries(${EXECUTABLE} --info=totals --map --list=\"-Map=${MAP_FILE}\")
 
+		set(OBJCOPY_COMMAND ${OBJCOPY_EXECUTABLE} --bin -o ${BIN_FILE} $<TARGET_FILE:${EXECUTABLE}>)
+
 	elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "GCC_ARM")
 		# add link options to generate memory map
 		target_link_libraries(${EXECUTABLE} -Wl,\"-Map=${MAP_FILE}\",--cref)
+
+		set(OBJCOPY_COMMAND ${OBJCOPY_EXECUTABLE} -O binary $<TARGET_FILE:${EXECUTABLE}> ${BIN_FILE})
 
 	endif()
 
 	# generate .bin firmware file
 	add_custom_command(
 		TARGET ${EXECUTABLE} POST_BUILD
-		COMMAND arm-none-eabi-objcopy -O binary $<TARGET_FILE:${EXECUTABLE}> ${BIN_FILE}
+		COMMAND ${OBJCOPY_COMMAND}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMENT "Objcopying ${EXECUTABLE} to mbed firmware ${BIN_FILE}")
 
-	set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${BIN_FILE} ${EXECUTABLE}.map)
+	set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${BIN_FILE} ${MAP_FILE})
 
 	if(CAN_RUN_MEMAP)
 		add_custom_command(
 			TARGET ${EXECUTABLE} POST_BUILD
-			COMMAND ${Python3_EXECUTABLE} ${MBED_CMAKE_SOURCE_DIR}/scripts/memap/memap.py -t ${MBED_TOOLCHAIN_NAME}
+			COMMAND ${Python3_EXECUTABLE} ${MBED_CMAKE_SOURCE_DIR}/mbed-src/tools/memap.py -t ${MEMAP_TOOLCHAIN_NAME} ${MAP_FILE}
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMENT "Displaying memory map for ${EXECUTABLE}")
 	endif()
