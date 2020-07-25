@@ -63,6 +63,7 @@ You should be able to use a different version of MBed by simply replacing the `m
 
 ## Limitations
 - Currently MBed-cmake only supports the GNU Arm Embedded (`-t GCC_ARM`) and ARMClang (`-t ARMC6`) toolchains.  
+- CLion does not work with ARMClang -- the IDE is not able to scan compiler options so the project doesn't load.  It seems to be a CLion bug.
 - The full range of MBed CLI's upload methods are not supported yet.
 - LTO cannot be supported for GCC_ARM due to [a gcc bug](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83967)
 
