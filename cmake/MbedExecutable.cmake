@@ -46,14 +46,15 @@ function(add_mbed_executable EXECUTABLE)
 	target_link_libraries(${EXECUTABLE} mbed-os)
 
 	set(BIN_FILE ${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE}.bin)
-
+	set(HEX_FILE ${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE}.hex)
 
 	if("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
 		# the ArmClang CMake platform files automatically generate a memory map
 		target_link_libraries(${EXECUTABLE} --info=totals --map)
 		set(MAP_FILE ${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE}${CMAKE_EXECUTABLE_SUFFIX}.map)
 
-		set(OBJCOPY_COMMAND ${OBJCOPY_EXECUTABLE} --bin -o ${BIN_FILE} $<TARGET_FILE:${EXECUTABLE}>)
+		set(OBJCOPY_ELF_TO_BIN_COMMAND ${OBJCOPY_EXECUTABLE} --bin -o ${BIN_FILE} $<TARGET_FILE:${EXECUTABLE}>)
+		set(OBJCOPY_ELF_TO_HEX_COMMAND ${OBJCOPY_EXECUTABLE} --i32 -o ${HEX_FILE} $<TARGET_FILE:${EXECUTABLE}>)
 
 	elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "GCC_ARM")
 
@@ -62,18 +63,26 @@ function(add_mbed_executable EXECUTABLE)
 		# add link options to generate memory map
 		target_link_libraries(${EXECUTABLE} -Wl,\"-Map=${MAP_FILE}\",--cref)
 
-		set(OBJCOPY_COMMAND ${OBJCOPY_EXECUTABLE} -O binary $<TARGET_FILE:${EXECUTABLE}> ${BIN_FILE})
+		set(OBJCOPY_ELF_TO_BIN_COMMAND ${OBJCOPY_EXECUTABLE} -O binary $<TARGET_FILE:${EXECUTABLE}> ${BIN_FILE})
+		set(OBJCOPY_ELF_TO_HEX_COMMAND ${OBJCOPY_EXECUTABLE} -O ihex   $<TARGET_FILE:${EXECUTABLE}> ${HEX_FILE})
 
 	endif()
 
 	# generate .bin firmware file
 	add_custom_command(
 		TARGET ${EXECUTABLE} POST_BUILD
-		COMMAND ${OBJCOPY_COMMAND}
+		COMMAND ${OBJCOPY_ELF_TO_BIN_COMMAND}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMENT "Objcopying ${EXECUTABLE} to mbed firmware ${BIN_FILE}")
 
-	set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${BIN_FILE} ${MAP_FILE})
+	# generate .hex firmware file
+	add_custom_command(
+		TARGET ${EXECUTABLE} POST_BUILD
+		COMMAND OBJCOPY_ELF_TO_HEX_COMMAND
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+		COMMENT "Objcopying ${EXECUTABLE} to mbed firmware ${HEX_FILE}")
+
+	set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${BIN_FILE} ${MAP_FILE} ${HEX_FILE})
 
 	if(CAN_RUN_MEMAP)
 		add_custom_command(
@@ -87,7 +96,6 @@ function(add_mbed_executable EXECUTABLE)
 	gen_upload_target(${EXECUTABLE} ${BIN_FILE})
 
 endfunction(add_mbed_executable)
-
 
 # When in not unit testing mode, we want buildfiles to still process OK.
 # However, unit tests can't build for the MBed itself.
