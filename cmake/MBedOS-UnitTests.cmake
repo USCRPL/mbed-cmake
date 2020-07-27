@@ -52,9 +52,6 @@ set(unittest-includes-base
 	"UNITTESTS/../features/storage/blockdevice"
 	)
 
-# find all stub source files
-#file(GLOB MBED_STUBS_SOURCES "UNITTESTS/stubs/*.c" "UNITTESTS/stubs/*.cpp")
-
 # create final library target which refers to MBed OS stubs
 add_library(mbed-os INTERFACE)
 target_compile_options(mbed-os INTERFACE -include ${MBED_CMAKE_SOURCE_DIR}/mbed-conf-unittests.h)

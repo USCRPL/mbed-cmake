@@ -14,3 +14,12 @@ function(add_mbed_executable EXECUTABLE)
 endfunction(add_mbed_executable)
 
  
+# Convenience function to add an executable containing GTest unit tests.
+# CTest will be used to run the tests.
+# When unit test mode is disabled, this becomes a no-op.
+function(add_mbed_unit_test EXECUTABLE)
+	add_executable(${EXECUTABLE} ${ARGN})
+	target_link_libraries(${EXECUTABLE} mbed-os GMock::Main)
+
+	gtest_discover_tests(${EXECUTABLE})
+endfunction(add_mbed_unit_test)

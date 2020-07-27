@@ -103,11 +103,25 @@ set(CMAKE_C_EXTENSIONS TRUE)
 
 find_package(Python3 COMPONENTS Interpreter)
 
+# Configure unit tests
+# -------------------------------------------------------------
+
+if(MBED_UNITTESTS)
+	# Build internal GTest.
+	# We use an internal GTest because hardly any platform has a complete package available
+	# for it for some reason.
+	add_subdirectory(${MBED_CMAKE_SOURCE_DIR}/gtest-external-project)
+
+	include(GoogleTest)
+
+	enable_testing()
+endif()
+
 # load the MBed CMake functions
 # -------------------------------------------------------------
 
 if(MBED_UNITTESTS)
-	include(MockMBedExecutable)
+	include(UnitTestMBedExecutable)
 else()
 	include(MBedExecutable)
 endif()
@@ -123,16 +137,6 @@ if(NOT MBED_UNITTESTS)
 	include(UploadMethods)
 endif()
 
-# Configure unit tests
-# -------------------------------------------------------------
-
-if(MBED_UNITTESTS)
-
-	# Build internal GTest.
-	# We use an internal GTest because hardly any platform has a complete package available
-	# for it for some reason.
-	add_subdirectory(${MBED_CMAKE_SOURCE_DIR}/gtest-external-project)
-endif()
 
 # add MBed OS source
 # -------------------------------------------------------------
