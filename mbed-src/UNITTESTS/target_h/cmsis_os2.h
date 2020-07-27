@@ -39,18 +39,6 @@ typedef struct {
     uint32_t                   cb_size;   ///< size of provided memory for control block
 } osSemaphoreAttr_t;
 
-/// Status code values returned by CMSIS-RTOS functions.
-typedef enum {
-    osOK                      =  0,         ///< Operation completed successfully.
-    osError                   = -1,         ///< Unspecified RTOS error: run-time error but no other error message fits.
-    osErrorTimeout            = -2,         ///< Operation not completed within the timeout period.
-    osErrorResource           = -3,         ///< Resource not available.
-    osErrorParameter          = -4,         ///< Parameter error.
-    osErrorNoMemory           = -5,         ///< System is out of memory: it was impossible to allocate or reserve memory for the operation.
-    osErrorISR                = -6,         ///< Not allowed in ISR context: the function cannot be called from interrupt service routines.
-    osStatusReserved          = 0x7FFFFFFF  ///< Prevents enum down-size compiler optimization.
-} osStatus_t;
-
 //Thread
 typedef enum {
     osPriorityNormal        = 24       ///< Priority: normal

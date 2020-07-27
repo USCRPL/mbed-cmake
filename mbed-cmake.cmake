@@ -16,6 +16,7 @@ message(STATUS "mbed-cmake version ${MBED_CMAKE_VERSION}, running on CMake ${CMA
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
+include(CheckTypeSize)
 include(Shorthand)
 include(Utils)
 include(CheckPythonPackage)
@@ -51,6 +52,9 @@ if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
 	message(FATAL_ERROR "MBed config files and headers do not exist!  You need to run mbed-cmake/configure_for_target.py from the top source dir!")
 endif()
 
+# unit test config
+# -------------------------------------------------------------
+option(MBED_UNITTESTS "If true, compile for the local system and run unit tests" FALSE)
 
 # load compilers and flags
 # -------------------------------------------------------------
@@ -59,7 +63,9 @@ endif()
 include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
 
 # load toolchain
-if("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
+if(MBED_UNITTESTS)
+	message(STATUS "Unit tests enabled, not loading mbed-cmake toolchain file")
+elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
 
 	if(${CMAKE_VERSION} VERSION_LESS 3.15.0)
 		message(FATAL_ERROR "CMake >= 3.15.0 is required for Arm Compiler support")
@@ -75,14 +81,16 @@ endif()
 # search for and load compilers
 enable_language(C CXX ASM)
 
-# Set config-specific flags
-# Note: unlike CMAKE_C_FLAGS etc, we need to set these AFTER the project() call in order to override CMake's default values for these flags.
-# CMAKE_C_FLAGS_INIT etc need to be set BEFORE the project() call so that it's used when CMake scans compiler properties.
-foreach(BUILD_TYPE RELWITHDEBINFO DEBUG RELEASE)
-	list_to_space_separated(CMAKE_C_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
-	list_to_space_separated(CMAKE_CXX_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
-	list_to_space_separated(CMAKE_ASM_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
-endforeach()
+if(NOT MBED_UNITTESTS)
+	# Set config-specific flags
+	# Note: unlike CMAKE_C_FLAGS etc, we need to set these AFTER the project() call in order to override CMake's default values for these flags.
+	# CMAKE_C_FLAGS_INIT etc need to be set BEFORE the project() call so that it's used when CMake scans compiler properties.
+	foreach(BUILD_TYPE RELWITHDEBINFO DEBUG RELEASE)
+		list_to_space_separated(CMAKE_C_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
+		list_to_space_separated(CMAKE_CXX_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
+		list_to_space_separated(CMAKE_ASM_FLAGS_${BUILD_TYPE} ${MCU_COMPILE_OPTIONS_${BUILD_TYPE}})
+	endforeach()
+endif()
 
 # Set language standard
 set(CMAKE_CXX_STANDARD 14)
@@ -95,20 +103,36 @@ set(CMAKE_C_EXTENSIONS TRUE)
 
 find_package(Python3 COMPONENTS Interpreter)
 
-
 # load the MBed CMake functions
 # -------------------------------------------------------------
 
-include(MBedExecutable)
+if(MBED_UNITTESTS)
+	include(MockMBedExecutable)
+else()
+	include(MBedExecutable)
+endif()
 
 # Configure upload methods
 # -------------------------------------------------------------
 
-# find upload tools
-find_package(OpenOCD)
-find_package(JLINK)
+if(NOT MBED_UNITTESTS)
+	# find upload tools
+	find_package(OpenOCD)
+	find_package(JLINK)
 
-include(UploadMethods)
+	include(UploadMethods)
+endif()
+
+# Configure unit tests
+# -------------------------------------------------------------
+
+if(MBED_UNITTESTS)
+
+	# Build internal GTest.
+	# We use an internal GTest because hardly any platform has a complete package available
+	# for it for some reason.
+	add_subdirectory(${MBED_CMAKE_SOURCE_DIR}/gtest-external-project)
+endif()
 
 # add MBed OS source
 # -------------------------------------------------------------
