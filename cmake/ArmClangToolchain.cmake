@@ -14,7 +14,7 @@ set(OLD_MCU_COMPILE_OPTIONS ${MCU_COMPILE_OPTIONS})
 set(MCU_COMPILE_OPTIONS "")
 foreach(OPTION ${OLD_MCU_COMPILE_OPTIONS})
 
-    # remove some MBed flags that shouldn't be in build commands (CMake auto adds these)
+    # remove some Mbed flags that shouldn't be in build commands (CMake auto adds these)
     if(("${OPTION}" STREQUAL "-c") OR
         ("${OPTION}" STREQUAL "-MMD"))
         # don't add
@@ -47,7 +47,7 @@ list_to_space_separated(CHIP_FLAGS ${MCU_COMPILE_OPTIONS})
 
 set(CHIP_LINKER_FLAGS "")
 
-# certain flags will only work if linking with MBed OS, not for regular executables, so we need to strip those out so CMake can configure
+# certain flags will only work if linking with Mbed OS, not for regular executables, so we need to strip those out so CMake can configure
 set(MBED_LINK_OPTIONS "")
 
 foreach(FLAG ${MCU_LINK_OPTIONS})

@@ -6,7 +6,7 @@
 # Start with NONE upload method which does not allow any uploading
 set(SUPPORTED_UPLOAD_METHODS NONE)
 
-# MBed is always supported
+# Mbed is always supported
 list(APPEND SUPPORTED_UPLOAD_METHODS MBED)
 
 # JLINK requires the J-link package
