@@ -19,7 +19,7 @@ endfunction(add_mbed_executable)
 # When unit test mode is disabled, this becomes a no-op.
 function(add_mbed_unit_test EXECUTABLE)
 	add_executable(${EXECUTABLE} ${ARGN})
-	target_link_libraries(${EXECUTABLE} mbed-os GMock::Main)
+	target_link_libraries(${EXECUTABLE} GMock::Main)
 
 	gtest_discover_tests(${EXECUTABLE})
 endfunction(add_mbed_unit_test)
