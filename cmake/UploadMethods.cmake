@@ -141,6 +141,13 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
 
     set(GENERATE_GDBINIT TRUE)
 
+    set(PYOCD_PROBE_ARGS "")
+    if(DEFINED PYOCD_PROBE_UID)
+        if(NOT "${PYOCD_PROBE_UID}" STREQUAL "")
+            set(PYOCD_PROBE_ARGS --probe ${PYOCD_PROBE_UID})
+        endif()
+    endif()
+
     function(gen_upload_target TARGET_NAME BIN_FILE)
 
         add_custom_target(flash-${TARGET_NAME}
@@ -151,6 +158,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
             -v
             --no-wait
             -t ${PYOCD_TARGET_NAME}
+            ${PYOCD_PROBE_ARGS}
             ${BIN_FILE})
 
 
@@ -178,6 +186,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
         -v
         --no-wait
         -t ${PYOCD_TARGET_NAME}
+        ${PYOCD_PROBE_ARGS}
         -f ${PYOCD_JTAG_SPEED}
         -p ${GDB_PORT}
         --persist
