@@ -39,7 +39,7 @@ target_include_directories(mbed-os-static PUBLIC ${MBED_INCLUDE_DIRS})
 # make sure linker script gets built before anything trying to use mbed-os
 add_dependencies(mbed-os-static mbed-linker-script)
 
-# disable some annoying warnings during the MBed build
+# disable some annoying warnings during the Mbed build
 target_compile_options(mbed-os-static PRIVATE
 	$<$<COMPILE_LANGUAGE:CXX>:-Wno-reorder>
 	-Wno-unused-function

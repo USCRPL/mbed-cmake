@@ -11,7 +11,7 @@ if(NOT (HAVE_INTELHEX AND HAVE_PRETTYTABLE))
 	set(CAN_RUN_MEMAP FALSE)
 endif()
 
-# Why doesn't memap use the same toolchain names as the rest of the MBed build system?
+# Why doesn't memap use the same toolchain names as the rest of the Mbed build system?
 # Don't ask me!
 if("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
 	set(MEMAP_TOOLCHAIN_NAME "ARM_STD")

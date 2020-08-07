@@ -1,11 +1,11 @@
 
 # include correct mbed-cmake buildfile based on toolchain
 if(MBED_UNITTESTS)
-	include(MBedOS-UnitTests)
+	include(MbedOS-UnitTests)
 elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "ARMC6")
-	include(MBedOS-ArmClang)
+	include(MbedOS-ArmClang)
 elseif("${MBED_TOOLCHAIN_NAME}" STREQUAL "GCC_ARM")
-	include(MBedOS-GCCArm)
+	include(MbedOS-GCCArm)
 endif()
 
 
