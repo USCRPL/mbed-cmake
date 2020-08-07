@@ -3,7 +3,7 @@
 
 # arguments:
 # BIN_FILE     bin file to install
-# MBED_PATH    path to MBed virtual thumb drive on the computer
+# MBED_PATH    path to Mbed virtual thumb drive on the computer
 
 if(NOT (IS_DIRECTORY "${MBED_PATH}" AND EXISTS "${MBED_PATH}"))
 	message(FATAL_ERROR "No mbed detected at MBED_PATH \"${MBED_PATH}\" \

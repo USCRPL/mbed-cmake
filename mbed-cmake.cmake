@@ -24,7 +24,7 @@ include(FindPackageHandleStandardArgs)
 
 # build configuration
 # -------------------------------------------------------------
-# default to RelWithDebInfo to match MBed OS default
+# default to RelWithDebInfo to match Mbed OS default
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
 		"Type of build, options are: Debug, RelWithDebInfo, Release" FORCE)
@@ -48,8 +48,8 @@ if(NOT DEFINED MBED_CMAKE_CONFIG_HEADERS_PATH)
 	set(MBED_CMAKE_CONFIG_HEADERS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config-headers)
 endif()
 
-if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
-	message(FATAL_ERROR "MBed config files and headers do not exist!  You need to run mbed-cmake/configure_for_target.py from the top source dir!")
+if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MbedOSConfig.cmake)
+	message(FATAL_ERROR "Mbed config files and headers do not exist!  You need to run mbed-cmake/configure_for_target.py from the top source dir!")
 endif()
 
 # unit test config
@@ -60,7 +60,7 @@ option(MBED_UNITTESTS "If true, compile for the local system and run unit tests"
 # -------------------------------------------------------------
 
 # read flags from generated configuration file
-include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MBedOSConfig.cmake)
+include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MbedOSConfig.cmake)
 
 # load toolchain
 if(MBED_UNITTESTS)
@@ -117,13 +117,13 @@ if(MBED_UNITTESTS)
 	enable_testing()
 endif()
 
-# load the MBed CMake functions
+# load the Mbed CMake functions
 # -------------------------------------------------------------
 
 if(MBED_UNITTESTS)
-	include(UnitTestMBedExecutable)
+	include(UnitTestMbedExecutable)
 else()
-	include(MBedExecutable)
+	include(MbedExecutable)
 endif()
 
 # Configure upload methods
@@ -137,12 +137,11 @@ if(NOT MBED_UNITTESTS)
 	include(UploadMethods)
 endif()
 
-
-# add MBed OS source
+# add Mbed OS source
 # -------------------------------------------------------------
 
 set(MBED_CMAKE_CONFIG_HEADERS_PATH ${MBED_CMAKE_GENERATED_CONFIG_PATH}/config-headers)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/mbed-src) #first get MBed standard library
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/mbed-src) #first get Mbed standard library
 
 # build report
 # -------------------------------------------------------------
