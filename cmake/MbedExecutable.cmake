@@ -78,7 +78,7 @@ function(add_mbed_executable EXECUTABLE)
 	# generate .hex firmware file
 	add_custom_command(
 		TARGET ${EXECUTABLE} POST_BUILD
-		COMMAND OBJCOPY_ELF_TO_HEX_COMMAND
+		COMMAND ${OBJCOPY_ELF_TO_HEX_COMMAND}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMENT "Objcopying ${EXECUTABLE} to mbed firmware ${HEX_FILE}")
 
