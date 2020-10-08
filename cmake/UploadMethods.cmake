@@ -10,27 +10,43 @@ set(SUPPORTED_UPLOAD_METHODS NONE)
 list(APPEND SUPPORTED_UPLOAD_METHODS MBED)
 
 # JLINK requires the J-link package
-if(JLINK_FOUND)
-    list(APPEND SUPPORTED_UPLOAD_METHODS JLINK)
+if(JLINK_UPLOAD_ENABLED)
+    find_package(JLINK)
+    if(JLINK_FOUND)
+        list(APPEND SUPPORTED_UPLOAD_METHODS JLINK)
+    endif()
 endif()
 
-# NXPPROG requires pyserial
-check_python_package(serial HAVE_PYSERIAL)
-if(HAVE_PYSERIAL)
-    list(APPEND SUPPORTED_UPLOAD_METHODS NXPPROG)
+if(NXPPROG_UPLOAD_ENABLED)
+    # NXPPROG requires pyserial
+    check_python_package(serial HAVE_PYSERIAL)
+    if(HAVE_PYSERIAL)
+        list(APPEND SUPPORTED_UPLOAD_METHODS NXPPROG)
+    endif()
 endif()
 
-# pyOCD requires pyocd
-check_python_package(pyocd HAVE_PYOCD)
-if(HAVE_PYOCD)
-    list(APPEND SUPPORTED_UPLOAD_METHODS PYOCD)
+if(PYOCD_UPLOAD_ENABLED)
+    # pyOCD requires pyocd
+    check_python_package(pyocd HAVE_PYOCD)
+    if(HAVE_PYOCD)
+        list(APPEND SUPPORTED_UPLOAD_METHODS PYOCD)
+    endif()
 endif()
 
-# OPENOCD required openocd
-if(OpenOCD_FOUND)
-    list(APPEND SUPPORTED_UPLOAD_METHODS OPENOCD)
+if(OPENOCD_UPLOAD_ENABLED)
+    # OPENOCD requires openocd
+    find_package(OpenOCD)
+    if(OpenOCD_FOUND)
+        list(APPEND SUPPORTED_UPLOAD_METHODS OPENOCD)
+    endif()
 endif()
 
+if(STM32CUBE_UPLOAD_ENABLED)
+    find_package(STLINKTools COMPONENTS STM32CubeProg OPTIONAL_COMPONENTS STLINK_gdbserver)
+    if(STLINKTools_FOUND)
+        list(APPEND SUPPORTED_UPLOAD_METHODS STM32CUBE)
+    endif()
+endif()
 
 # decide default method based on what can work
 # -------------------------------------------------------------
@@ -199,14 +215,12 @@ elseif("${UPLOAD_METHOD}" STREQUAL "OPENOCD")
 
     function(gen_upload_target TARGET_NAME BIN_FILE)
 
+        # unlike other upload methods, OpenOCD uses the elf file
         add_custom_target(flash-${TARGET_NAME}
             COMMENT "Flashing ${TARGET_NAME} with OpenOCD..."
             COMMAND ${OpenOCD}
             ${OPENOCD_CHIP_CONFIG_COMMANDS}
-            -c init
-            -c "reset init"
-            -c "program ${BIN_FILE} reset exit")
-
+            -c "program $<TARGET_FILE:${EXECUTABLE}> reset exit")
 
         add_dependencies(flash-${TARGET_NAME} ${TARGET_NAME})
 
@@ -229,8 +243,6 @@ elseif("${UPLOAD_METHOD}" STREQUAL "OPENOCD")
         ${OpenOCD}
         ${OPENOCD_CHIP_CONFIG_COMMANDS}
         -c "gdb_port ${GDB_PORT}"
-        -c init
-        -c "reset init"
         )
 
 
@@ -261,6 +273,53 @@ elseif("${UPLOAD_METHOD}" STREQUAL NXPPROG)
         add_dependencies(flash-${TARGET_NAME} ${TARGET_NAME})
 
     endfunction(gen_upload_target)
+
+elseif("${UPLOAD_METHOD}" STREQUAL "STM32CUBE")
+
+    function(gen_upload_target TARGET_NAME BIN_FILE)
+
+        add_custom_target(flash-${TARGET_NAME}
+            COMMENT "Flashing ${TARGET_NAME} with STM32CubeProg..."
+            COMMAND ${STM32CubeProg_PATH}
+
+            ${STM32CUBE_CONNECT_COMMAND}
+            -w "${BIN_FILE}" ${STM32CUBE_WRITE_ADDRESS}
+            -rst)
+
+        add_dependencies(flash-${TARGET_NAME} ${TARGET_NAME})
+
+        if(EXISTS "${STLINK_gdbserver_PATH}")
+            # create debug target
+            add_custom_target(debug-${TARGET_NAME}
+                COMMENT "starting GDB to debug ${TARGET_NAME}..."
+                COMMAND arm-none-eabi-gdb
+                --command=${GDBINIT_PATH}
+                $<TARGET_FILE:${EXECUTABLE}>)
+
+            add_dependencies(debug-${TARGET_NAME} ${TARGET_NAME})
+        endif()
+
+    endfunction(gen_upload_target)
+
+    # also create a target to run GDB server if it was found
+    if(EXISTS "${STLINK_gdbserver_PATH}")
+
+        # The debugger needs to be passed the directory containing STM32CubeProg
+        get_filename_component(CUBE_PROG_DIR ${STM32CubeProg_PATH} DIRECTORY)
+
+        add_custom_target(start-gdbserver
+            COMMENT "Starting ST-LINK GDB server"
+            COMMAND
+            ${STLINK_gdbserver_PATH}
+            ${STM32CUBE_GDBSERVER_ARGS}
+            -cp "${CUBE_PROG_DIR}"
+            --persistent # don't close debugger after GDB disconnects
+            -p ${GDB_PORT})
+
+        set(GENERATE_GDBINIT TRUE)
+    else()
+        message(STATUS "Warning: ST-LINK_gdbserver was not found, debugging not available.")
+    endif()
 
 endif()
 

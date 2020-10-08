@@ -131,9 +131,6 @@ endif()
 
 if(NOT MBED_UNITTESTS)
 	# find upload tools
-	find_package(OpenOCD)
-	find_package(JLINK)
-
 	include(UploadMethods)
 endif()
 
