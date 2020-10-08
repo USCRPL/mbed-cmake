@@ -283,7 +283,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL "STM32CUBE")
             COMMAND ${STM32CubeProg_PATH}
 
             ${STM32CUBE_CONNECT_COMMAND}
-            -w "${BIN_FILE}" ${STM32CUBE_WRITE_ADDRESS}
+            -w "$<TARGET_FILE:${EXECUTABLE}>"
             -rst)
 
         add_dependencies(flash-${TARGET_NAME} ${TARGET_NAME})

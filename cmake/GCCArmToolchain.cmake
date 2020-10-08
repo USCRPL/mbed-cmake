@@ -2,7 +2,6 @@
 
 SET(CMAKE_SYSTEM_NAME Generic)
 SET(CMAKE_SYSTEM_VERSION 1)
-set(CMAKE_EXECUTABLE_SUFFIX elf)
 
 # specify the cross compiler
 set(CMAKE_C_COMPILER arm-none-eabi-gcc)

@@ -81,6 +81,9 @@ endif()
 # search for and load compilers
 enable_language(C CXX ASM)
 
+# set executable suffix (has to be done after enabling languages)
+set(CMAKE_EXECUTABLE_SUFFIX .elf)
+
 if(NOT MBED_UNITTESTS)
 	# Set config-specific flags
 	# Note: unlike CMAKE_C_FLAGS etc, we need to set these AFTER the project() call in order to override CMake's default values for these flags.
