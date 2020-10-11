@@ -9,6 +9,8 @@
 # STLINKTools_FOUND - Whether the requested components were found.
 # STM32CubeProg_PATH - full path to the STM32 command line programmer (STM32_Programmer_CLI).
 # STLINK_gdbserver_PATH - full path to the ST-Link GDB server (ST-LINK_gdbserver).
+# STM32CubeProg_COMMAND - Command to run the STM32 command line programmer.
+# STLINK_gdbserver_COMMAND - Command to run the ST-Link GDB server.
 
 # first try to locate STM32Cube IDE in its default location
 set(STM32CUBE_IDE_LINUX_HINTS "")
@@ -63,6 +65,31 @@ if("${STLINKTools_FIND_COMPONENTS}" MATCHES "STLINK_gdbserver")
 
     if(STLINKTools_FIND_REQUIRED_STLINK_gdbserver)
         list(APPEND STLINKTools_REQUIRED_VARS STLINK_gdbserver_PATH)
+    endif()
+endif()
+
+# Create COMMAND variables
+if(EXISTS "${STM32CubeProg_PATH}")
+    set(STM32CubeProg_COMMAND ${STM32CubeProg_PATH})
+endif()
+
+
+# on Linux and Mac the GDB server needs help to find libSTLinkUSBDriver dll which is in a subfolder
+if(EXISTS "${STLINK_gdbserver_PATH}")
+
+    # find the "bin/native/xxx" directory, where xxx is related to the current OS name
+    get_filename_component(STLINK_gdbserver_DIR ${STLINK_gdbserver_PATH} DIRECTORY)
+    file(GLOB STLINK_NATIVE_DIR LIST_DIRECTORIES TRUE "${STLINK_gdbserver_DIR}/native/*")
+
+    if("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
+        # Linux: set LD_LIBRARY_PATH
+        set(STLINK_gdbserver_COMMAND ${CMAKE_COMMAND} -E env "LD_LIBRARY_PATH=${STLINK_NATIVE_DIR}" ${STLINK_gdbserver_PATH})
+    elseif("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
+        # OS X: set DYLD_FALLBACK_LIBRARY_PATH
+        set(STLINK_gdbserver_COMMAND ${CMAKE_COMMAND} -E env "DYLD_FALLBACK_LIBRARY_PATH=${STLINK_NATIVE_DIR}" ${STLINK_gdbserver_PATH})
+    else()
+        # Windows -- doesn't need help
+        set(STLINK_gdbserver_COMMAND ${STLINK_gdbserver_PATH})
     endif()
 endif()
 

@@ -130,7 +130,8 @@ exit
                 COMMENT "starting GDB to debug ${TARGET_NAME}..."
                 COMMAND arm-none-eabi-gdb
                 --command=${GDBINIT_PATH}
-                $<TARGET_FILE:${EXECUTABLE}>)
+                $<TARGET_FILE:${EXECUTABLE}>
+                USES_TERMINAL)
 
 
         add_dependencies(debug-${TARGET_NAME} ${TARGET_NAME})
@@ -151,7 +152,7 @@ exit
         -LocalhostOnly
         -noIR
         -port ${GDB_PORT}
-        )
+        USES_TERMINAL)
 
 elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
 
@@ -185,7 +186,8 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
             COMMENT "starting GDB to debug ${TARGET_NAME}..."
             COMMAND arm-none-eabi-gdb
             --command=${GDBINIT_PATH}
-            $<TARGET_FILE:${EXECUTABLE}>)
+            $<TARGET_FILE:${EXECUTABLE}>
+            USES_TERMINAL)
 
 
         add_dependencies(debug-${TARGET_NAME} ${TARGET_NAME})
@@ -207,7 +209,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL "PYOCD")
         -p ${GDB_PORT}
         --persist
         --semihosting
-        )
+        USES_TERMINAL)
 
 elseif("${UPLOAD_METHOD}" STREQUAL "OPENOCD")
 
@@ -229,7 +231,8 @@ elseif("${UPLOAD_METHOD}" STREQUAL "OPENOCD")
             COMMENT "starting GDB to debug ${TARGET_NAME}..."
             COMMAND arm-none-eabi-gdb
             --command=${GDBINIT_PATH}
-            $<TARGET_FILE:${EXECUTABLE}>)
+            $<TARGET_FILE:${EXECUTABLE}>
+            USES_TERMINAL)
 
 
         add_dependencies(debug-${TARGET_NAME} ${TARGET_NAME})
@@ -243,7 +246,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL "OPENOCD")
         ${OpenOCD}
         ${OPENOCD_CHIP_CONFIG_COMMANDS}
         -c "gdb_port ${GDB_PORT}"
-        )
+        USES_TERMINAL)
 
 
 
@@ -280,7 +283,7 @@ elseif("${UPLOAD_METHOD}" STREQUAL "STM32CUBE")
 
         add_custom_target(flash-${TARGET_NAME}
             COMMENT "Flashing ${TARGET_NAME} with STM32CubeProg..."
-            COMMAND ${STM32CubeProg_PATH}
+            COMMAND ${STM32CubeProg_COMMAND}
 
             ${STM32CUBE_CONNECT_COMMAND}
             -w "$<TARGET_FILE:${EXECUTABLE}>"
@@ -294,7 +297,8 @@ elseif("${UPLOAD_METHOD}" STREQUAL "STM32CUBE")
                 COMMENT "starting GDB to debug ${TARGET_NAME}..."
                 COMMAND arm-none-eabi-gdb
                 --command=${GDBINIT_PATH}
-                $<TARGET_FILE:${EXECUTABLE}>)
+                $<TARGET_FILE:${EXECUTABLE}>
+                USES_TERMINAL)
 
             add_dependencies(debug-${TARGET_NAME} ${TARGET_NAME})
         endif()
@@ -310,11 +314,12 @@ elseif("${UPLOAD_METHOD}" STREQUAL "STM32CUBE")
         add_custom_target(start-gdbserver
             COMMENT "Starting ST-LINK GDB server"
             COMMAND
-            ${STLINK_gdbserver_PATH}
+            ${STLINK_gdbserver_COMMAND}
             ${STM32CUBE_GDBSERVER_ARGS}
             -cp "${CUBE_PROG_DIR}"
             --persistent # don't close debugger after GDB disconnects
-            -p ${GDB_PORT})
+            -p ${GDB_PORT}
+            USES_TERMINAL)
 
         set(GENERATE_GDBINIT TRUE)
     else()
