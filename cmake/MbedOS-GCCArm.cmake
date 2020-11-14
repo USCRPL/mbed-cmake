@@ -5,7 +5,7 @@ project(mbed-os)
 # add command to preprocess linker script
 get_filename_component(LINKER_SCRIPT_FILENAME "${MBED_LINKER_SCRIPT}" NAME_WE)
 get_filename_component(LINKER_SCRIPT_DIR ${MBED_LINKER_SCRIPT} DIRECTORY)
-get_filename_component(LINKER_SCRIPT_EXT ${MBED_LINKER_SCRIPT} LAST_EXT)
+set(LINKER_SCRIPT_EXT ".ld")
 
 set(PREPROCESSED_LINKER_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/${LINKER_SCRIPT_FILENAME}_preprocessed${LINKER_SCRIPT_EXT})
 
