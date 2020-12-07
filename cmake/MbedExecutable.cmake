@@ -93,7 +93,17 @@ function(add_mbed_executable EXECUTABLE)
 	endif()
 
 	# add upload target
-	gen_upload_target(${EXECUTABLE} ${BIN_FILE})
+	gen_upload_target(${EXECUTABLE} ${BIN_FILE} ${HEX_FILE})
+
+	# add debug target
+	if(UPLOAD_SUPPORTS_DEBUG)
+		add_custom_target(debug-${EXECUTABLE}
+			COMMENT "starting GDB to debug ${EXECUTABLE}..."
+			COMMAND arm-none-eabi-gdb
+			--command=${GDBINIT_PATH}
+			$<TARGET_FILE:${EXECUTABLE}>
+			USES_TERMINAL)
+	endif()
 
 endfunction(add_mbed_executable)
 

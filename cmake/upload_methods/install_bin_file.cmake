@@ -8,8 +8,7 @@
 if(NOT (IS_DIRECTORY "${MBED_PATH}" AND EXISTS "${MBED_PATH}"))
 	message(FATAL_ERROR "No mbed detected at MBED_PATH \"${MBED_PATH}\" \
 Did you set MBED_PATH in CMake?
-Did you try turning it on and off again?
-Is it plugged in?")
+Hello, this is IT!  Have you tried turning it on and off again?  Is it plugged in?")
 	return()
 endif()
 
