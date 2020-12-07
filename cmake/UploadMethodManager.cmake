@@ -13,6 +13,10 @@ if(NOT "${UPLOAD_${UPLOAD_METHOD}_FOUND}")
 	message(FATAL_ERROR "The upload method ${UPLOAD_METHOD} does not have the dependencies needed to run on this machine.")
 endif()
 
+if(NOT "${${UPLOAD_METHOD}_UPLOAD_ENABLED}")
+	message(FATAL_ERROR "The upload method ${UPLOAD_METHOD} is not enabled in the config code for this target -- set ${UPLOAD_METHOD}_UPLOAD_ENABLED to TRUE to enable it.")
+endif()
+
 message(STATUS "Board upload method set to ${UPLOAD_METHOD}")
 
 # ----------------------------------------------
