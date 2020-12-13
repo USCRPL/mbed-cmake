@@ -29,7 +29,7 @@ void hal_sleep(void) {
 
 #if (DEVICE_SEMIHOST == 1)
     // ensure debug is disconnected
-    //mbed_interface_disconnect();
+    mbed_interface_disconnect();
 #endif
 
     // PCON[PD] set to sleep
