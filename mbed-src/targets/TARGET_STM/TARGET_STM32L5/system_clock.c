@@ -30,10 +30,8 @@
 **/
 
 #include "stm32l5xx.h"
-#include "nvic_addr.h"
 #include "mbed_error.h"
 #include "mbed_toolchain.h"
-
 
 // clock source is selected with CLOCK_SOURCE in json config
 #define USE_PLL_HSE_EXTC 0x8 // Use external clock (ST Link MCO - not enabled by default)
@@ -52,9 +50,6 @@ uint8_t SetSysClock_PLL_HSI(void);
 #if ((CLOCK_SOURCE) & USE_PLL_MSI)
 uint8_t SetSysClock_PLL_MSI(void);
 #endif /* ((CLOCK_SOURCE) & USE_PLL_MSI) */
-
-
-
 
 
 /**
@@ -102,7 +97,7 @@ MBED_WEAK void SetSysClock(void)
 /******************************************************************************/
 /*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
-uint8_t SetSysClock_PLL_HSE(uint8_t bypass)
+MBED_WEAK  uint8_t SetSysClock_PLL_HSE(uint8_t bypass)
 {
     return 0; // FAIL // TODO
 }
@@ -139,7 +134,6 @@ uint8_t SetSysClock_PLL_MSI(void)
     __HAL_RCC_RTCAPB_CLK_ENABLE();
 
 #if MBED_CONF_TARGET_LSE_AVAILABLE
-    __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_NONE;
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON;   // External 32.768 kHz clock on OSC_IN/OSC_OUT

@@ -276,7 +276,9 @@ void pwmout_write(pwmout_t *obj, float value)
     } else {
         // If channel already enabled, only update compare value to avoid glitch
         __HAL_TIM_SET_COMPARE(&TimHandle, channel, sConfig.Pulse);
+        return;
     }
+
 #if !defined(PWMOUT_INVERTED_NOT_SUPPORTED)
     if (obj->inverted) {
         HAL_TIMEx_PWMN_Start(&TimHandle, channel);
@@ -384,6 +386,11 @@ void pwmout_period_us(pwmout_t *obj, int us)
     __HAL_TIM_ENABLE(&TimHandle);
 }
 
+int pwmout_read_period_us(pwmout_t *obj)
+{
+    return obj->period;
+}
+
 void pwmout_pulsewidth(pwmout_t *obj, float seconds)
 {
     pwmout_pulsewidth_us(obj, seconds * 1000000.0f);
@@ -398,6 +405,12 @@ void pwmout_pulsewidth_us(pwmout_t *obj, int us)
 {
     float value = (float)us / (float)obj->period;
     pwmout_write(obj, value);
+}
+
+int pwmout_read_pulsewidth_us(pwmout_t *obj)
+{
+    float pwm_duty_cycle = pwmout_read(obj);
+    return (int)(pwm_duty_cycle * (float)obj->period);
 }
 
 const PinMap *pwmout_pinmap()

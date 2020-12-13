@@ -19,7 +19,6 @@
 
 #include "mbed_printf_implementation.h"
 
-
 #include <limits.h>
 
 

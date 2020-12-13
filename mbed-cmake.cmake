@@ -11,10 +11,10 @@ message(STATUS [==[\_/     \_/  \_____ /  \______) \___ /                   \___
 
 message(STATUS "")
 
-set(MBED_CMAKE_VERSION 1.4.2)
+set(MBED_CMAKE_VERSION 1.5.0)
 message(STATUS "mbed-cmake version ${MBED_CMAKE_VERSION}, running on CMake ${CMAKE_VERSION}")
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake ${CMAKE_CURRENT_LIST_DIR}/cmake/upload_methods)
 
 include(CheckTypeSize)
 include(Shorthand)
@@ -134,7 +134,7 @@ endif()
 
 if(NOT MBED_UNITTESTS)
 	# find upload tools
-	include(UploadMethods)
+	include(UploadMethodManager)
 endif()
 
 # add Mbed OS source

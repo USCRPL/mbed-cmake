@@ -1,13 +1,17 @@
 
 # Ignore all extra features (cellular, encryption, storage) by default
-components/*
+connectivity/*
+storage/*
 features/*
 
+# Ignore device ksy library since it depends on encryption
+drivers/device_key/*
+
 # Unignore block device library since it's a common utility (and is needed for USB)
-!features/storage/blockdevice/*
+!storage/blockdevice/*
 
 # Uncomment to disable RTOS
-# rtos/source/TARGET_CORTEX/*
+# cmsis
 
 # Uncomment to disable USB 
-# drivers/source/usb/*
+drivers/usb/*

@@ -65,15 +65,16 @@ This table summarizes the STM32Cube versions currently used in Mbed OS master br
 | F1          |    1.8.0     | https://github.com/STMicroelectronics/STM32CubeF1 |
 | F2          |    1.6.0     | https://github.com/STMicroelectronics/STM32CubeF2 |
 | F3          |    1.9.0     | https://github.com/STMicroelectronics/STM32CubeF3 |
-| F4          |    1.19.0    | https://github.com/STMicroelectronics/STM32CubeF4 |
+| F4          |    1.25.0    | https://github.com/STMicroelectronics/STM32CubeF4 |
 | F7          |    1.16.0    | https://github.com/STMicroelectronics/STM32CubeF7 |
 | G0          |    1.3.0     | https://github.com/STMicroelectronics/STM32CubeG0 |
-| H7          |    1.7.0     | https://github.com/STMicroelectronics/STM32CubeH7 |
-| L0          |    1.10.0    | https://github.com/STMicroelectronics/STM32CubeL0 |
+| G4          |    1.1.0     | https://github.com/STMicroelectronics/STM32CubeG4 |
+| H7          |    1.8.0     | https://github.com/STMicroelectronics/STM32CubeH7 |
+| L0          |    1.11.3    | https://github.com/STMicroelectronics/STM32CubeL0 |
 | L1          |    1.8.1     | https://github.com/STMicroelectronics/STM32CubeL1 |
-| L4          |    1.11.0    | https://github.com/STMicroelectronics/STM32CubeL4 |
-| L5          |    1.1.0     | https://github.com/STMicroelectronics/STM32CubeL5 |
-| WB          |    1.4.0     | https://github.com/STMicroelectronics/STM32CubeWB |
+| L4          |    1.16.0    | https://github.com/STMicroelectronics/STM32CubeL4 |
+| L5          |    1.3.0     | https://github.com/STMicroelectronics/STM32CubeL5 |
+| WB          |    1.8.0     | https://github.com/STMicroelectronics/STM32CubeWB |
 
 In Mbed OS repository, we try to minimize the difference between "official" and copied files.
 
@@ -155,19 +156,21 @@ Copy paste, and update!
 
 It is recommended to use a python script to generate those files
 
-https://github.com/ARMmbed/mbed-os/blob/master/tools/targets/STM32_gen_PeripheralPins.py
+https://github.com/ARMmbed/mbed-os/blob/master/targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py
 
 STM32CubeMX has to be installed first. Path has to be specified in the `cube_path.json` file.
 
 ```
-$ python tools/targets/STM32_gen_PeripheralPins.py -h
+$ python targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py -h
 
-Script version 1.9
-usage: STM32_gen_PeripheralPins.py [-h] [-l | -b | -m xml | -t HW | -c CUSTOM]
+Script version 1.17
+usage: STM32_gen_PeripheralPins.py [-h] (-l | -b | -m xml | -t HW | -c CUSTOM)
 
 Script will generate PeripheralPins.c thanks to the xml files description available in
 STM32CubeMX directory defined in 'cube_path.json':
         C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX
+
+More information in targets/TARGET_STM/README.md
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -181,26 +184,33 @@ optional arguments:
                         specify a custom board .ioc file description to use (use double quotes).
 
 Once generated, you have to check and comment pins that can not be used (specific HW, internal ADC channels, remove PWM using us ticker timer, ...)
+
 ```
 
 How to generate files for a custom boards based on a STM32F427 MCU:
 ```
-$ python tools/targets/STM32_gen_PeripheralPins.py -l | grep F427
+$ python targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py -l | grep F427
 STM32F427A(G-I)Hx.xml
 STM32F427I(G-I)Hx.xml
 STM32F427I(G-I)Tx.xml
 STM32F427V(G-I)Tx.xml
 STM32F427Z(G-I)Tx.xml
 
-$ python tools/targets/STM32_gen_PeripheralPins.py -m "STM32F427V(G-I)Tx.xml"
+$ python targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py -m "STM32F427V(G-I)Tx.xml"
 
-Script version 1.9
-CubeMX DB version DB.5.0.60
+Script version 1.17
+CubeMX DB version DB.6.0.0
 
- * Output directory: C:\github\mbed\STM32F427V(G-I)Tx
- * Generating PeripheralPins.c and PinNames.h with 'STM32F427V(G-I)Tx.xml'
+ * Output directory: targets_custom\TARGET_STM\TARGET_STM32F4\TARGET_STM32F427xG\TARGET_STM32F427VGT
+ * Generating PeripheralPins.c and PinNames.h with 'C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\STM32F427V(G-I)Tx.xml'
  * GPIO file: C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\IP\GPIO-STM32F427_gpio_v1_0_Modes.xml
- * I/O pins found: 82 connected: 0
+ * I/O pins found: 135 connected: 0
+
+ * Output directory: targets_custom\TARGET_STM\TARGET_STM32F4\TARGET_STM32F427xI\TARGET_STM32F427VIT
+ * Generating PeripheralPins.c and PinNames.h with 'C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\STM32F427V(G-I)Tx.xml'
+ * GPIO file: C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\IP\GPIO-STM32F427_gpio_v1_0_Modes.xml
+ * I/O pins found: 135 connected: 0
+
 ```
 
 ### Use of custom_targets.json
@@ -211,10 +221,10 @@ Example with a board based on STM32F103C8 (like BluePill):
 - MCU_STM32F103x8 generic configuration is already available in targets.json file
 
 ```
-$ python tools/targets/STM32_gen_PeripheralPins.py -m "STM32F103C(8-B)Tx.xml"
-// PeripheralPins.c and PinNames.h template files are created in STM32H745ZITx directory
+$ python targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py -m "STM32F103C(8-B)Tx.xml"
+// PeripheralPins.c and PinNames.h template files are created in targets_custom/TARGET_STM/TARGET_STM32F1/TARGET_STM32F103x8/TARGET_STM32F103C8T directory
 
-$ mv STM32F103C\(8-B\)Tx/ TARGET_BLUEPILL_F103C8
+$ mv TARGET_STM32F103C8T TARGET_BLUEPILL_F103C8
 // Edit PeripheralPins.c and PinNames.h to match your board configuration
 
 // Create a custom_targets.json with:
@@ -239,10 +249,10 @@ Example with a board based on STM32H745ZI
 - MCU_STM32H745I_CM4 and MCU_STM32H745I_CM7 generic configuration is already available in targets.json file
 
 ```
-$ python tools/targets/STM32_gen_PeripheralPins.py -m "STM32H745ZITx.xml"
-// PeripheralPins.c and PinNames.h template files are created in STM32H745ZITx directory
+$ python targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py -m "STM32H745ZITx.xml"
+// PeripheralPins.c and PinNames.h template files are created in targets_custom/TARGET_STM/TARGET_STM32H7/TARGET_STM32H745xI/TARGET_STM32H745ZIT directory
 
-$ mv STM32H745ZITx TARGET_H745ZI_BOARD
+$ mv TARGET_STM32H745ZIT TARGET_H745ZI_BOARD
 // Edit PeripheralPins.c and PinNames.h to match your board configuration
 
 // Create a custom_targets.json with:
@@ -269,6 +279,42 @@ $ mv STM32H745ZITx TARGET_H745ZI_BOARD
 
 ## ST specific implementation
 
+### Pin configuration
+
+It can be useful to have a look on files that describes pin configuration for your board:
+- targets/TARGET_STM/TARGET_STM32**XX**/TARGET_STM32**XXXXX**/TARGET_**XXXXX**/PeripheralPins.c
+- targets/TARGET_STM/TARGET_STM32**XX**/TARGET_STM32**XXXXX**/TARGET_**XXXXX**/PinNames.h
+
+#### Alternate feature
+
+You can easily see the alternate functions for each pin.
+
+Ex:
+```
+    {PC_10,      UART_3,  STM_PIN_DATA(STM_MODE_AF_PP, GPIO_PULLUP, GPIO_AF7_USART3)},
+    {PC_10_ALT0, UART_4,  STM_PIN_DATA(STM_MODE_AF_PP, GPIO_PULLUP, GPIO_AF5_UART4)},
+```
+- If your application is using PC_10 pin for UART, drivers will configure UART3 instance.
+- If your application is using PC_10_ALT0 pin for UART, drivers will configure UART4 instance.
+
+The same alternate choice feature is also used for PWM, ADC, SPI, etc...
+
+#### Conflict pins
+
+Sometimes there are some conflicts in pin use.
+
+Ex:
+```
+    {PA_5,       SPI_1, STM_PIN_DATA(STM_MODE_AF_PP, GPIO_NOPULL, GPIO_AF5_SPI1)}, // Connected to LD2 [green led]
+```
+==> You can use PA_5 pin as SPI, **only** if your application is not using LED...
+
+Sometimes, pin is explicitly removed by default to avoid issues (but you can uncomment the line for your custom board)
+```
+//  {PB_4,       UART_2,  STM_PIN_DATA(STM_MODE_AF_PP, GPIO_PULLUP, GPIO_AF7_USART2)}, // Connected to same instance as STDIO 
+```
+
+
 ### WiFi configuration
 
 https://github.com/ARMmbed/wifi-ism43362
@@ -292,7 +338,7 @@ Depending on your PHY, you will have to customize several configuration values:
 - Duplex mask information in the PHY status register
 
 Check the default values in:
-https://github.com/ARMmbed/mbed-os/blob/master/features/netsocket/emac-drivers/TARGET_STM/mbed_lib.json
+https://github.com/ARMmbed/mbed-os/blob/master/connectivity/drivers/emac/TARGET_STM/mbed_lib.json
 
 Option is also to define your own `HAL_ETH_MspInit` function,
 you then have to add **USE_USER_DEFINED_HAL_ETH_MSPINIT** macro.
@@ -302,6 +348,8 @@ you then have to add **USE_USER_DEFINED_HAL_ETH_MSPINIT** macro.
 ## Mbed OS Wiki pages
 
 https://os.mbed.com/teams/ST/wiki/
+
+https://os.mbed.com/teams/ST/wiki/STDIO
 
 https://os.mbed.com/teams/ST/wiki/How-to-enable-flash-dual-bank
 
