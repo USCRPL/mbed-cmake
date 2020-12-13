@@ -1,5 +1,6 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +29,7 @@ void hal_sleep(void) {
 
 #if (DEVICE_SEMIHOST == 1)
     // ensure debug is disconnected
-    mbed_interface_disconnect();
+    //mbed_interface_disconnect();
 #endif
 
     // PCON[PD] set to sleep

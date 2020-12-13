@@ -40,7 +40,7 @@ I2C::I2C(PinName sda, PinName scl) :
     // The init function also set the frequency to 100000
     _sda = sda;
     _scl = scl;
-    recover(sda, scl);
+    //recover(sda, scl);
     i2c_init(&_i2c, _sda, _scl);
     // Used to avoid unnecessary frequency updates
     _owner = this;
