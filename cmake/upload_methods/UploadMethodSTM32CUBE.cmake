@@ -34,7 +34,7 @@ function(gen_upload_target TARGET_NAME BIN_FILE HEX_FILE)
 		COMMAND ${STM32CubeProg_COMMAND}
 		${STM32CUBE_CONNECT_COMMAND}
 		${STM32CUBE_UPLOAD_PROBE_ARGS} # probe arg must be immediately after -c command as it gets appended to -c
-		-w "$<TARGET_FILE:${EXECUTABLE}>"
+		-w "$<TARGET_FILE:${TARGET_NAME}>"
 		-rst)
 
 	add_dependencies(flash-${TARGET_NAME} ${TARGET_NAME})

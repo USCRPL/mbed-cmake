@@ -16,7 +16,7 @@ function(gen_upload_target TARGET_NAME BIN_FILE)
 		COMMENT "Flashing ${TARGET_NAME} with OpenOCD..."
 		COMMAND ${OpenOCD}
 		${OPENOCD_CHIP_CONFIG_COMMANDS}
-		-c "program $<TARGET_FILE:${EXECUTABLE}> reset exit")
+		-c "program $<TARGET_FILE:${TARGET_NAME}> reset exit")
 
 	add_dependencies(flash-${TARGET_NAME} ${TARGET_NAME})
 endfunction(gen_upload_target)
