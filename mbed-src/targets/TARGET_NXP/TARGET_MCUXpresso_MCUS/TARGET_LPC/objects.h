@@ -20,7 +20,6 @@
 #include "PortNames.h"
 #include "PeripheralNames.h"
 #include "PinNames.h"
-#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,30 +51,22 @@ struct analogin_s {
 struct i2c_s {
     uint32_t instance;
     uint8_t next_repeated_start;
-    uint8_t issue_start;
 };
 
 struct spi_s {
     uint32_t instance;
     uint8_t bits;
-    uint8_t ssel_num;
 };
 
-#if DEVICE_FLASH && !defined(TARGET_FLASH_CMSIS_ALGO)
+#if defined(DEVICE_FLASH)
 struct flash_s {
     uint8_t dummy;
 };
 #endif
 
-#if DEVICE_TRNG
+#if defined(DEVICE_TRNG)
 struct trng_s {
     uint8_t dummy;
-};
-#endif
-
-#if DEVICE_QSPI
-struct qspi_s {
-    uint32_t instance;
 };
 #endif
 

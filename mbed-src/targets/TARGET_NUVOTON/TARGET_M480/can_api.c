@@ -59,26 +59,22 @@ void can_init_freq(can_t *obj, PinName rd, PinName td, int hz)
     MBED_ASSERT(modinit != NULL);
     MBED_ASSERT(modinit->modname == (int) obj->can);
 
-    obj->pin_rd = rd;
-    obj->pin_td = td;
-
-    pinmap_pinout(td, PinMap_CAN_TD);
-    pinmap_pinout(rd, PinMap_CAN_RD);
-
-    // Enable IP clock
-    CLK_EnableModuleClock(modinit->clkidx);
-
     // Reset this module
     SYS_ResetModule(modinit->rsetidx);
 
     NVIC_DisableIRQ(CAN0_IRQn);
-    NVIC_DisableIRQ(CAN1_IRQn);    
+    NVIC_DisableIRQ(CAN1_IRQn);
+
+    // Enable IP clock
+    CLK_EnableModuleClock(modinit->clkidx);
 
     if(obj->can == CAN_1) {
         obj->index = 1;
     } else
         obj->index = 0;
 
+    pinmap_pinout(td, PinMap_CAN_TD);
+    pinmap_pinout(rd, PinMap_CAN_RD);
 #if 0
     /* TBD: For M487 mbed Board Transmitter Setting (RS Pin) */
     GPIO_SetMode(PA, BIT2| BIT3, GPIO_MODE_OUTPUT);
@@ -107,12 +103,6 @@ void can_free(can_t *obj)
     SYS_ResetModule(modinit->rsetidx);
 
     CLK_DisableModuleClock(modinit->clkidx);
-
-    /* Free up pins */
-    gpio_set(obj->pin_rd);
-    gpio_set(obj->pin_td);
-    obj->pin_rd = NC;
-    obj->pin_td = NC;
 }
 
 int can_frequency(can_t *obj, int hz)
@@ -360,16 +350,6 @@ unsigned char can_tderror(can_t *obj)
 void can_monitor(can_t *obj, int silent)
 {
     CAN_EnterTestMode((CAN_T *)NU_MODBASE(obj->can), CAN_TEST_SILENT_Msk);
-}
-
-const PinMap *can_rd_pinmap()
-{
-    return PinMap_CAN_TD;
-}
-
-const PinMap *can_td_pinmap()
-{
-    return PinMap_CAN_RD;
 }
 
 #endif // DEVICE_CAN

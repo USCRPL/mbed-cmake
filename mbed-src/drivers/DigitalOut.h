@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +18,10 @@
 
 #include "platform/platform.h"
 #include "hal/gpio_api.h"
+#include "platform/mbed_critical.h"
 
 namespace mbed {
-/**
- * \defgroup drivers_DigitalOut DigitalOut class
- * \ingroup drivers-public-api-gpio
- * @{
- */
+/** \addtogroup drivers */
 
 /** A digital output, used for setting the state of a pin
  *
@@ -45,6 +41,7 @@ namespace mbed {
  *     }
  * }
  * @endcode
+ * @ingroup drivers
  */
 class DigitalOut {
 
@@ -107,11 +104,6 @@ public:
 
     /** A shorthand for write()
      * \sa DigitalOut::write()
-     * @code
-     *      DigitalIn  button(BUTTON1);
-     *      DigitalOut led(LED1);
-     *      led = button;   // Equivalent to led.write(button.read())
-     * @endcode
      */
     DigitalOut &operator= (int value)
     {
@@ -120,19 +112,19 @@ public:
         return *this;
     }
 
-    /** A shorthand for write() using the assignment operator which copies the
-     * state from the DigitalOut argument.
+    /** A shorthand for write()
      * \sa DigitalOut::write()
      */
-    DigitalOut &operator= (DigitalOut &rhs);
+    DigitalOut &operator= (DigitalOut &rhs)
+    {
+        core_util_critical_section_enter();
+        write(rhs.read());
+        core_util_critical_section_exit();
+        return *this;
+    }
 
     /** A shorthand for read()
      * \sa DigitalOut::read()
-     * @code
-     *      DigitalIn  button(BUTTON1);
-     *      DigitalOut led(LED1);
-     *      led = button;   // Equivalent to led.write(button.read())
-     * @endcode
      */
     operator int()
     {
@@ -141,12 +133,8 @@ public:
     }
 
 protected:
-#if !defined(DOXYGEN_ONLY)
     gpio_t gpio;
-#endif //!defined(DOXYGEN_ONLY)
 };
-
-/** @}*/
 
 } // namespace mbed
 

@@ -75,8 +75,6 @@ void CLK_PowerDown(void)
     SCB->SCR = SCB_SCR_SLEEPDEEP_Msk;
     CLK->PWRCTL |= (CLK_PWRCTL_PDEN_Msk | CLK_PWRCTL_PDWKDLY_Msk );
     __WFI();
-    __DSB();
-    __ISB();
 }
 
 /**
@@ -94,8 +92,6 @@ void CLK_Idle(void)
 
     /* Chip enter idle mode after CPU run WFI instruction */
     __WFI();
-    __DSB();
-    __ISB();
 }
 
 

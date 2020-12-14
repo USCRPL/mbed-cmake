@@ -34,6 +34,13 @@
 ; #define vPortSVCHandler SVC_Handler
 ; #define xPortPendSVHandler PendSV_Handler
 ; #define xPortSysTickHandler SysTick_Handler
+; *------- <<< Use Configuration Wizard in Context Menu to Modify Stack Size and Heap Size. >>> ----
+
+; <h> Stack Configuration
+;   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
+; </h>
+
+__initial_sp    EQU     0x20040000  ; Top of RAM
 
                 PRESERVE8
                 THUMB
@@ -44,12 +51,11 @@
                 EXPORT  __Vectors
                 EXPORT  __Vectors_End
                 EXPORT  __Vectors_Size
-                EXPORT  __isr_vector
-                IMPORT  |Image$$ARM_LIB_STACK$$ZI$$Limit|
+                                EXPORT  __isr_vector
 
                 ; Core Level - CM4                  ; Most names are to help the FreeRTOS port.
 __isr_vector
-__Vectors       DCD     |Image$$ARM_LIB_STACK$$ZI$$Limit| ; Top of Stack
+__Vectors       DCD     __initial_sp                ; Top of Stack
                 DCD     Reset_Handler               ; Reset Handler
                 DCD     NMI_Handler                 ; NMI Handler
                 DCD     HardFault_Handler           ; Hard Fault Handler

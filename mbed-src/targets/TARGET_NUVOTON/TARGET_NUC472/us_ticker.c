@@ -38,13 +38,6 @@ static void tmr0_vec(void);
 
 static const struct nu_modinit_s timer0_modinit = {TIMER_0, TMR0_MODULE, CLK_CLKSEL1_TMR0SEL_PCLK, 0, TMR0_RST, TMR0_IRQn, (void *) tmr0_vec};
 
-/* Externalize this function for hal_deepsleep() to get around unknown error
- * with power-down. */
-const struct nu_modinit_s *nu_us_ticker_modinit(void)
-{
-    return &timer0_modinit;
-}
-
 #define TIMER_MODINIT      timer0_modinit
 
 /* Track ticker status */
@@ -59,18 +52,20 @@ void us_ticker_init(void)
         /* By HAL spec, ticker_init allows the ticker to keep counting and disables the
          * ticker interrupt. */
         us_ticker_disable_interrupt();
+        us_ticker_clear_interrupt();
+        NVIC_ClearPendingIRQ(TIMER_MODINIT.irq_n);
         return;
     }
     ticker_inited = 1;
+
+    // Reset IP
+    SYS_ResetModule(TIMER_MODINIT.rsetidx);
 
     // Select IP clock source
     CLK_SetModuleClock(TIMER_MODINIT.clkidx, TIMER_MODINIT.clksrc, TIMER_MODINIT.clkdiv);
 
     // Enable IP clock
     CLK_EnableModuleClock(TIMER_MODINIT.clkidx);
-
-    // Reset IP
-    SYS_ResetModule(TIMER_MODINIT.rsetidx);
 
     TIMER_T *timer_base = (TIMER_T *) NU_MODBASE(TIMER_MODINIT.modname);
 
@@ -97,7 +92,16 @@ void us_ticker_init(void)
 
 void us_ticker_free(void)
 {
+    TIMER_T *timer_base = (TIMER_T *) NU_MODBASE(TIMER_MODINIT.modname);
+
+    /* Stop counting */
+    TIMER_Stop(timer_base);
+
+    /* Wait for timer to stop counting and unset active flag */
+    while((timer_base->CTL & TIMER_CTL_ACTSTS_Msk));
+
     /* Disable interrupt */
+    TIMER_DisableInt(timer_base);
     NVIC_DisableIRQ(TIMER_MODINIT.irq_n);
 
     /* Disable IP clock */
@@ -119,10 +123,6 @@ uint32_t us_ticker_read()
 
 void us_ticker_set_interrupt(timestamp_t timestamp)
 {
-    /* Clear any previously pending interrupts */
-    us_ticker_clear_interrupt();
-    NVIC_ClearPendingIRQ(TIMER_MODINIT.irq_n);
-
     /* In continuous mode, counter will be reset to zero with the following sequence: 
      * 1. Stop counting
      * 2. Configure new CMP value

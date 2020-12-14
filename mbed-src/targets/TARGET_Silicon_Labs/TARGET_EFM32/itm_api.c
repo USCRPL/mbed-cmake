@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#if DEVICE_ITM
+#if defined(DEVICE_ITM)
 
 #include "hal/itm_api.h"
 #include "cmsis.h"

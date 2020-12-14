@@ -15,7 +15,6 @@
  */
 #include <stddef.h>
 #include "us_ticker_api.h"
-#include "us_ticker_defines.h"
 #include "PeripheralNames.h"
 #include "fsl_pit.h"
 #include "fsl_clock_config.h"
@@ -71,7 +70,6 @@ void us_ticker_init(void)
     PIT_StopTimer(PIT, kPIT_Chnl_2);
     PIT_SetTimerPeriod(PIT, kPIT_Chnl_2, busClock / 1000000 - 1);
     PIT_SetTimerChainMode(PIT, kPIT_Chnl_3, true);
-    PIT_ClearStatusFlags(PIT, kPIT_Chnl_3, PIT_TFLG_TIF_MASK);
     NVIC_SetVector(PIT3_IRQn, (uint32_t) pit_isr);
     NVIC_EnableIRQ(PIT3_IRQn);
     PIT_DisableInterrupts(PIT, kPIT_Chnl_3, kPIT_TimerInterruptEnable);
@@ -83,9 +81,9 @@ void us_ticker_init(void)
  *
  * @return The current timer's counter value in ticks
  */
-uint32_t (us_ticker_read)()
+uint32_t us_ticker_read()
 {
-    return us_ticker_read();
+    return ~(PIT_GetCurrentTimerCount(PIT, kPIT_Chnl_1));
 }
 
 /** Disable us ticker interrupt
@@ -137,17 +135,4 @@ void us_ticker_set_interrupt(timestamp_t timestamp)
 void us_ticker_fire_interrupt(void)
 {
     NVIC_SetPendingIRQ(PIT3_IRQn);
-}
-
-void us_ticker_free(void)
-{
-    PIT_StartTimer(PIT, kPIT_Chnl_3);
-    PIT_StartTimer(PIT, kPIT_Chnl_2);
-    PIT_StartTimer(PIT, kPIT_Chnl_1);
-    PIT_StartTimer(PIT, kPIT_Chnl_0);
-
-    PIT_DisableInterrupts(PIT, kPIT_Chnl_3, kPIT_TimerInterruptEnable);
-    NVIC_DisableIRQ(PIT3_IRQn);
-
-    us_ticker_inited = false;
 }

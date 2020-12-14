@@ -1,7 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
- * Copyright (c) 2017 STMicroelectronics
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,9 +137,8 @@ int32_t flash_erase_sector(flash_t *obj, uint32_t address)
         return -1;
     }
 
-    /* Clear error programming flags */
-    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS);
-
+    /* Clear OPTVERR bit set on virgin samples */
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPTVERR);
     /* Get the 1st page to erase */
     FirstPage = GetPage(address);
     /* MBED HAL erases 1 page  / sector at a time */
@@ -196,9 +193,6 @@ int32_t flash_program_page(flash_t *obj, uint32_t address,
     if (flash_unlock() != HAL_OK) {
         return -1;
     }
-
-    /* Clear error programming flags */
-    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS);
 
     /* Program the user Flash area word by word */
     StartAddress = address;
@@ -284,13 +278,6 @@ uint32_t flash_get_start_address(const flash_t *obj)
 uint32_t flash_get_size(const flash_t *obj)
 {
     return FLASH_SIZE;
-}
-
-uint8_t flash_get_erase_value(const flash_t *obj)
-{
-    (void)obj;
-
-    return 0xFF;
 }
 
 #endif

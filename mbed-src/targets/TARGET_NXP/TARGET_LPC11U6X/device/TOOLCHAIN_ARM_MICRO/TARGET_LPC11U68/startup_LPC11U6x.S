@@ -22,6 +22,29 @@
 ; *
 ; ******************************************************************************/
 
+; *------- <<< Use Configuration Wizard in Context Menu >>> ------------------
+
+; <h> Stack Configuration
+;   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
+; </h>
+
+                AREA    STACK, NOINIT, READWRITE, ALIGN=3
+                EXPORT  __initial_sp
+
+__initial_sp        EQU     0x10008000  ; Top of RAM from LPC1U68
+
+
+; <h> Heap Configuration
+;   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
+; </h>
+
+Heap_Size       EQU     0x00000000
+
+                AREA    HEAP, NOINIT, READWRITE, ALIGN=3
+__heap_base
+Heap_Mem        SPACE   Heap_Size
+__heap_limit
+
 
                 PRESERVE8
                 THUMB
@@ -31,9 +54,8 @@
 
                 AREA    RESET, DATA, READONLY
                 EXPORT  __Vectors
-                IMPORT  |Image$$ARM_LIB_STACK$$ZI$$Limit|
 
-__Vectors       DCD     |Image$$ARM_LIB_STACK$$ZI$$Limit| ; Top of Stack
+__Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     Reset_Handler             ; Reset Handler
                 DCD     NMI_Handler               ; NMI Handler
                 DCD     HardFault_Handler         ; Hard Fault Handler
@@ -212,5 +234,11 @@ USBWAKEUP_IRQHandler
 
                 ALIGN
 
+
+; User Initial Stack & Heap
+
+                EXPORT  __initial_sp
+                EXPORT  __heap_base
+                EXPORT  __heap_limit
 
                 END

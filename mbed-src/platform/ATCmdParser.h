@@ -1,5 +1,4 @@
-/* Copyright (c) 2017-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+/* Copyright (c) 2017 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +20,13 @@
 #ifndef MBED_ATCMDPARSER_H
 #define MBED_ATCMDPARSER_H
 
+#include "mbed.h"
 #include <cstdarg>
-#include "platform/Callback.h"
-#include "platform/NonCopyable.h"
-#include "platform/FileHandle.h"
+#include "Callback.h"
 
 namespace mbed {
-/** \addtogroup platform-public-api Platform */
+
+/** \addtogroup platform */
 /** @{*/
 /**
  * \defgroup platform_ATCmdParser ATCmdParser class
@@ -66,7 +65,6 @@ private:
     // Parsing information
     const char *_output_delimiter;
     int _output_delim_size;
-    int _oob_cb_count;
     char _in_prev;
     bool _dbg_on;
     bool _aborted;
@@ -79,38 +77,20 @@ private:
     };
     oob *_oobs;
 
-    /**
-     * Receive an AT response
-     *
-     * Receives a formatted response using scanf style formatting
-     * @see scanf
-     *
-     * Responses are parsed line at a time.
-     * If multiline is set to false parse only one line otherwise parse multiline response
-     * Any received data that does not match the response is ignored until
-     * a timeout occurs.
-     *
-     * @param response scanf-like format string of response to expect
-     * @param ... all scanf-like arguments to extract from response
-     * @param multiline determinate if parse one or multiple lines.
-     * @return number of bytes read or -1 on failure
-     */
-    int vrecvscanf(const char *response, std::va_list args, bool multiline);
-
 public:
 
     /**
      * Constructor
      *
-     * @param fh A FileHandle to the digital interface, used for AT commands
-     * @param output_delimiter End of command-line termination
-     * @param buffer_size Size of internal buffer for transaction
-     * @param timeout Timeout of the connection
-     * @param debug Turns on/off debug output for AT commands
+     * @param fh A FileHandle to a digital interface to use for AT commands
+     * @param output_delimiter end of command line termination
+     * @param buffer_size size of internal buffer for transaction
+     * @param timeout timeout of the connection
+     * @param debug turns on/off debug output for AT commands
      */
     ATCmdParser(FileHandle *fh, const char *output_delimiter = "\r",
                 int buffer_size = 256, int timeout = 8000, bool debug = false)
-        : _fh(fh), _buffer_size(buffer_size), _oob_cb_count(0), _in_prev(0), _aborted(false), _oobs(NULL)
+        : _fh(fh), _buffer_size(buffer_size), _in_prev(0), _oobs(NULL)
     {
         _buffer = new char[buffer_size];
         set_timeout(timeout);
@@ -134,8 +114,7 @@ public:
     /**
      * Allows timeout to be changed between commands
      *
-     * @param timeout ATCmdParser APIs (read/write/send/recv ..etc) throw an
-     *                error if no response is received in `timeout` duration
+     * @param timeout timeout of the connection
      */
     void set_timeout(int timeout)
     {
@@ -143,15 +122,13 @@ public:
     }
 
     /**
-     * For backward compatibility.
+     * For backwards compatibility.
      * @deprecated Do not use this function. This function has been replaced with set_timeout for consistency.
      *
      * Please use set_timeout(int) API only from now on.
      * Allows timeout to be changed between commands
      *
-     * @param timeout ATCmdParser APIs (read/write/send/recv ..etc) throw an
-     *                error if no response is received in `timeout` duration
-     *
+     * @param timeout timeout of the connection
      */
     MBED_DEPRECATED_SINCE("mbed-os-5.5.0", "Replaced with set_timeout for consistency")
     void setTimeout(int timeout)
@@ -162,7 +139,7 @@ public:
     /**
      * Sets string of characters to use as line delimiters
      *
-     * @param output_delimiter String of characters to use as line delimiters
+     * @param output_delimiter string of characters to use as line delimiters
      */
     void set_delimiter(const char *output_delimiter)
     {
@@ -188,7 +165,7 @@ public:
     /**
      * Allows traces from modem to be turned on or off
      *
-     * @param on Set as 1 to turn on traces and 0 to disable traces.
+     * @param on set as 1 to turn on traces and vice versa.
      */
     void debug_on(uint8_t on)
     {
@@ -196,12 +173,12 @@ public:
     }
 
     /**
-     * For backward compatibility.
+     * For backwards compatibility.
      * @deprecated Do not use this function. This function has been replaced with debug_on for consistency.
      *
      * Allows traces from modem to be turned on or off
      *
-     * @param on Set as 1 to turn on traces and 0 to disable traces.
+     * @param on set as 1 to turn on traces and vice versa.
      */
     MBED_DEPRECATED_SINCE("mbed-os-5.5.0", "Replaced with debug_on for consistency")
     void debugOn(uint8_t on)
@@ -222,7 +199,7 @@ public:
      */
     bool send(const char *command, ...) MBED_PRINTF_METHOD(1, 2);
 
-    bool vsend(const char *command, std::va_list args);
+    bool vsend(const char *command, va_list args);
 
     /**
      * Receive an AT response
@@ -240,7 +217,7 @@ public:
      */
     bool recv(const char *response, ...) MBED_SCANF_METHOD(1, 2);
 
-    bool vrecv(const char *response, std::va_list args);
+    bool vrecv(const char *response, va_list args);
 
     /**
      * Write a single byte to the underlying stream
@@ -260,8 +237,8 @@ public:
     /**
      * Write an array of bytes to the underlying stream
      *
-     * @param data The array of bytes to write
-     * @param size Number of bytes to write
+     * @param data the array of bytes to write
+     * @param size number of bytes to write
      * @return number of bytes written or -1 on failure
      */
     int write(const char *data, int size);
@@ -269,8 +246,8 @@ public:
     /**
      * Read an array of bytes from the underlying stream
      *
-     * @param data The buffer for filling the read bytes
-     * @param size Number of bytes to read
+     * @param data the destination for the read bytes
+     * @param size number of bytes to read
      * @return number of bytes read or -1 on failure
      */
     int read(char *data, int size);
@@ -279,34 +256,31 @@ public:
      * Direct printf to underlying stream
      * @see printf
      *
-     * @param format Format string to pass to printf
-     * @param ... Variable arguments to printf
+     * @param format format string to pass to printf
+     * @param ... arguments to printf
      * @return number of bytes written or -1 on failure
      */
     int printf(const char *format, ...) MBED_PRINTF_METHOD(1, 2);
 
-    int vprintf(const char *format, std::va_list args);
+    int vprintf(const char *format, va_list args);
 
     /**
      * Direct scanf on underlying stream
-     * This function does not itself match whitespace in its format string, so \n is not significant to it.
-     * It should be used only when certain string is needed or format ends with certain character, otherwise
-     * it will fill the output with one character.
      * @see scanf
      *
-     * @param format Format string to pass to scanf
-     * @param ... Variable arguments to scanf
+     * @param format format string to pass to scanf
+     * @param ... arguments to scanf
      * @return number of bytes read or -1 on failure
      */
     int scanf(const char *format, ...) MBED_SCANF_METHOD(1, 2);
 
-    int vscanf(const char *format, std::va_list args);
+    int vscanf(const char *format, va_list args);
 
     /**
      * Attach a callback for out-of-band data
      *
-     * @param prefix String on when to initiate callback
-     * @param func Callback to call when string is read
+     * @param prefix string on when to initiate callback
+     * @param func callback to call when string is read
      * @note out-of-band data is only processed during a scanf call
      */
     void oob(const char *prefix, mbed::Callback<void()> func);
@@ -319,7 +293,7 @@ public:
     /**
      * Abort current recv
      *
-     * Can be called from out-of-band handler to interrupt the current
+     * Can be called from oob handler to interrupt the current
      * recv operation.
      */
     void abort();
@@ -330,7 +304,7 @@ public:
     * Process out-of-band data in the receive buffer. This function
     * returns immediately if there is no data to process.
     *
-    * @return true if out-of-band data processed, false otherwise
+    * @return true if oob data processed, false otherwise
     */
     bool process_oob(void);
 };

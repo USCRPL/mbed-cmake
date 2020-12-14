@@ -28,7 +28,6 @@
 #include "fsl_usart.h"
 #include "PeripheralPins.h"
 #include "clock_config.h"
-#include "gpio_api.h"
 
 static uint32_t serial_irq_ids[FSL_FEATURE_SOC_USART_COUNT] = {0};
 static uart_irq_handler irq_handler;
@@ -38,15 +37,11 @@ static USART_Type *const uart_addrs[] = USART_BASE_PTRS;
 int stdio_uart_inited = 0;
 serial_t stdio_uart;
 
-#if STATIC_PINMAP_READY
-#define SERIAL_INIT_DIRECT serial_init_direct
-void serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
-#else
-#define SERIAL_INIT_DIRECT _serial_init_direct
-static void _serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
-#endif
+void serial_init(serial_t *obj, PinName tx, PinName rx)
 {
-    obj->index = (uint32_t)pinmap->peripheral;
+    uint32_t uart_tx = pinmap_peripheral(tx, PinMap_UART_TX);
+    uint32_t uart_rx = pinmap_peripheral(rx, PinMap_UART_RX);
+    obj->index = pinmap_merge(uart_tx, uart_rx);
     MBED_ASSERT((int)obj->index != NC);
 
     usart_config_t config;
@@ -84,13 +79,13 @@ static void _serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
             CLOCK_AttachClk(kFRO12M_to_FLEXCOMM7);
             RESET_PeripheralReset(kFC7_RST_SHIFT_RSTn);
             break;
-#if (FSL_FEATURE_SOC_USART_COUNT > 8U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 8U)
         case 8:
             CLOCK_AttachClk(kFRO12M_to_FLEXCOMM8);
             RESET_PeripheralReset(kFC8_RST_SHIFT_RSTn);
             break;
 #endif
-#if (FSL_FEATURE_SOC_USART_COUNT > 9U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 9U)
         case 9:
             CLOCK_AttachClk(kFRO12M_to_FLEXCOMM9);
             RESET_PeripheralReset(kFC9_RST_SHIFT_RSTn);
@@ -105,35 +100,20 @@ static void _serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
 
     USART_Init(uart_addrs[obj->index], &config, 12000000);
 
-    pin_function(pinmap->tx_pin, pinmap->tx_function);
-    pin_function(pinmap->rx_pin, pinmap->rx_function);
+    pinmap_pinout(tx, PinMap_UART_TX);
+    pinmap_pinout(rx, PinMap_UART_RX);
 
-    if (pinmap->tx_pin != NC) {
-        pin_mode(pinmap->tx_pin, PullUp);
+    if (tx != NC) {
+        pin_mode(tx, PullUp);
     }
-    if (pinmap->rx_pin != NC) {
-        pin_mode(pinmap->rx_pin, PullUp);
+    if (rx != NC) {
+        pin_mode(rx, PullUp);
     }
 
     if (obj->index == STDIO_UART) {
         stdio_uart_inited = 1;
         memcpy(&stdio_uart, obj, sizeof(serial_t));
     }
-}
-
-void serial_init(serial_t *obj, PinName tx, PinName rx)
-{
-    uint32_t uart_tx = pinmap_peripheral(tx, PinMap_UART_TX);
-    uint32_t uart_rx = pinmap_peripheral(rx, PinMap_UART_RX);
-
-    int peripheral = (int)pinmap_merge(uart_tx, uart_rx);
-
-    int tx_function = (int)pinmap_find_function(tx, PinMap_UART_TX);
-    int rx_function = (int)pinmap_find_function(rx, PinMap_UART_RX);
-
-    const serial_pinmap_t explicit_uart_pinmap = {peripheral, tx, tx_function, rx, rx_function, false};
-
-    SERIAL_INIT_DIRECT(obj, &explicit_uart_pinmap);
 }
 
 void serial_free(serial_t *obj)
@@ -186,13 +166,13 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
 /******************************************************************************
  * INTERRUPTS HANDLING
  ******************************************************************************/
-static inline void uart_irq(uint32_t transmit_empty, uint32_t receive_not_empty, uint32_t index)
+static inline void uart_irq(uint32_t transmit_empty, uint32_t receive_full, uint32_t index)
 {
     if (serial_irq_ids[index] != 0) {
         if (transmit_empty)
             irq_handler(serial_irq_ids[index], TxIrq);
 
-        if (receive_not_empty)
+        if (receive_full)
             irq_handler(serial_irq_ids[index], RxIrq);
     }
 }
@@ -200,64 +180,64 @@ static inline void uart_irq(uint32_t transmit_empty, uint32_t receive_not_empty,
 void uart0_irq()
 {
     uint32_t status_flags = USART0->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 0);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 0);
 }
 
 void uart1_irq()
 {
     uint32_t status_flags = USART1->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 1);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 1);
 }
 
 void uart2_irq()
 {
     uint32_t status_flags = USART2->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 2);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 2);
 }
 
 void uart3_irq()
 {
     uint32_t status_flags = USART3->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 3);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 3);
 }
 
 void uart4_irq()
 {
     uint32_t status_flags = USART4->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 4);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 4);
 }
 
 void uart5_irq()
 {
     uint32_t status_flags = USART5->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 5);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 5);
 }
 
 void uart6_irq()
 {
     uint32_t status_flags = USART6->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 6);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 6);
 }
 
 void uart7_irq()
 {
     uint32_t status_flags = USART7->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 7);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 7);
 }
 
-#if (FSL_FEATURE_SOC_USART_COUNT > 8U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 8U)
 void uart8_irq()
 {
     uint32_t status_flags = USART8->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 8);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 8);
 }
 #endif
 
-#if (FSL_FEATURE_SOC_USART_COUNT > 9U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 9U)
 void uart9_irq()
 {
     uint32_t status_flags = USART9->FIFOSTAT;
-    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoNotEmptyFlag), 9);
+    uart_irq((status_flags & kUSART_TxFifoEmptyFlag), (status_flags & kUSART_RxFifoFullFlag), 9);
 }
 #endif
 
@@ -297,12 +277,12 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
         case 7:
             vector = (uint32_t)&uart7_irq;
             break;
-#if (FSL_FEATURE_SOC_USART_COUNT > 8U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 8U)
         case 8:
             vector = (uint32_t)&uart8_irq;
             break;
 #endif
-#if (FSL_FEATURE_SOC_USART_COUNT > 9U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 9U)
         case 9:
             vector = (uint32_t)&uart9_irq;
             break;
@@ -399,93 +379,6 @@ void serial_break_set(serial_t *obj)
 void serial_break_clear(serial_t *obj)
 {
     uart_addrs[obj->index]->CTL &= ~USART_CTL_TXBRKEN_MASK;
-}
-
-#if DEVICE_SERIAL_FC
-/*
- * Only hardware flow control is implemented in this API.
- */
-#if STATIC_PINMAP_READY
-#define SERIAL_SET_FC_DIRECT serial_set_flow_control_direct
-void serial_set_flow_control_direct(serial_t *obj, FlowControl type, const serial_fc_pinmap_t *pinmap)
-#else
-#define SERIAL_SET_FC_DIRECT _serial_set_flow_control_direct
-static void _serial_set_flow_control_direct(serial_t *obj, FlowControl type, const serial_fc_pinmap_t *pinmap)
-#endif
-{
-    gpio_t gpio;
-
-    switch(type) {
-        case FlowControlRTS:
-            pin_function(pinmap->rx_flow_pin, pinmap->rx_flow_function);
-            pin_mode(pinmap->rx_flow_pin, PullNone);
-            uart_addrs[obj->index]->CFG &= ~USART_CFG_CTSEN_MASK;
-            break;
-
-        case FlowControlCTS:
-            /* Do not use RTS, configure pin to GPIO input */
-            if (pinmap->rx_flow_pin != NC) {
-                gpio_init(&gpio, pinmap->rx_flow_pin);
-                gpio_dir(&gpio, PIN_INPUT);
-            }
-
-            pin_function(pinmap->tx_flow_pin, pinmap->tx_flow_function);
-            pin_mode(pinmap->tx_flow_pin, PullNone);
-            uart_addrs[obj->index]->CFG |= USART_CFG_CTSEN_MASK;
-            break;
-
-        case FlowControlRTSCTS:
-            pin_function(pinmap->rx_flow_pin, pinmap->rx_flow_function);
-            pin_mode(pinmap->rx_flow_pin, PullNone);
-            pin_function(pinmap->tx_flow_pin, pinmap->tx_flow_function);
-            pin_mode(pinmap->tx_flow_pin, PullNone);
-            uart_addrs[obj->index]->CFG |= USART_CFG_CTSEN_MASK;
-            break;
-
-        case FlowControlNone:
-            /* Do not use RTS, configure pin to GPIO input */
-            if (pinmap->rx_flow_pin != NC) {
-                gpio_init(&gpio, pinmap->rx_flow_pin);
-                gpio_dir(&gpio, PIN_INPUT);
-            }
-
-            uart_addrs[obj->index]->CFG &= ~USART_CFG_CTSEN_MASK;
-            break;
-
-        default:
-            break;
-    }
-}
-
-void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, PinName txflow)
-{
-    int tx_flow_function = (int)pinmap_find_function(txflow, PinMap_UART_CTS);
-    int rx_flow_function = (int)pinmap_find_function(rxflow, PinMap_UART_RTS);
-
-    const serial_fc_pinmap_t explicit_uart_fc_pinmap = {0, txflow, tx_flow_function, rxflow, rx_flow_function};
-
-    SERIAL_SET_FC_DIRECT(obj, type, &explicit_uart_fc_pinmap);
-}
-
-#endif
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
 }
 
 #endif

@@ -22,8 +22,6 @@
  * Reference: "K66 Sub-Family Reference Manual, Rev. 2", chapter 38
  */
 
-#if DEVICE_TRNG
-
 #include <stdlib.h>
 #include "cmsis.h"
 #include "fsl_common.h"
@@ -50,14 +48,13 @@ void trng_free(trng_t *obj)
  */
 static void trng_get_byte(unsigned char *byte)
 {
-    *byte = 0;
     size_t bit;
 
     /* 34.5 Steps 3-4-5: poll SR and read from OR when ready */
     for( bit = 0; bit < 8; bit++ )
     {
-        while((RNG->SR & RNG_SR_OREG_LVL_MASK) == 0 );
-        *byte |= (RNG->OR & 1) << bit;
+        while( ( RNG->SR & RNG_SR_OREG_LVL_MASK ) == 0 );
+        *byte |= ( RNG->OR & 1 ) << bit;
     }
 }
 
@@ -65,6 +62,7 @@ int trng_get_bytes(trng_t *obj, uint8_t *output, size_t length, size_t *output_l
 {
     (void)obj;
     size_t i;
+    int ret;
 
     /* Set "Interrupt Mask", "High Assurance" and "Go",
      * unset "Clear interrupt" and "Sleep" */
@@ -83,5 +81,3 @@ int trng_get_bytes(trng_t *obj, uint8_t *output, size_t length, size_t *output_l
 
     return 0;
 }
-
-#endif

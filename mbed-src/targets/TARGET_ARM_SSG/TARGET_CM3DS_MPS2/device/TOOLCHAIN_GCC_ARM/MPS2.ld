@@ -25,10 +25,6 @@
 #include "../memory_zones.h"
 #include "../cmsis_nvic.h"
 
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
 MEMORY
 {
   VECTORS (rx)          : ORIGIN = FLASH_START,       LENGTH = FLASH_SIZE
@@ -65,7 +61,7 @@ MEMORY
 ENTRY(Reset_Handler)
 
 HEAP_SIZE  = 0x4000;
-STACK_SIZE = MBED_BOOT_STACK_SIZE;
+STACK_SIZE = 0x1000;
 
 /* Size of the vector table in SRAM */
 M_VECTOR_RAM_SIZE = NVIC_VECTORS_SIZE;
@@ -76,12 +72,12 @@ SECTIONS
     {
         __vector_table = .;
         KEEP(*(.vector_table))
-         . = ALIGN(8);
+         . = ALIGN(4);
     } > VECTORS
 
     .text :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         *(.text*)
 
         KEEP(*(.init))
@@ -120,30 +116,30 @@ SECTIONS
 
     .interrupts_ram :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __VECTOR_RAM__ = .;
         __interrupts_ram_start__ = .;   /* Create a global symbol at data start */
         . += M_VECTOR_RAM_SIZE;
-        . = ALIGN(8);
+        . = ALIGN(4);
         __interrupts_ram_end__ = .;     /* Define a global symbol at data end */
     } > RAM
 
     .data :
     {
         PROVIDE(__etext = LOADADDR(.data));
-        . = ALIGN(8);
+        . = ALIGN(4);
         __data_start__ = .;
         *(vtable)
         *(.data)
         *(.data*)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* preinit data */
         PROVIDE (__preinit_array_start = .);
         KEEP(*(.preinit_array))
         PROVIDE (__preinit_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* init data */
         PROVIDE (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
@@ -151,14 +147,14 @@ SECTIONS
         PROVIDE (__init_array_end = .);
 
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* finit data */
         PROVIDE (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
         KEEP(*(.fini_array))
         PROVIDE (__fini_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* All data end */
         __data_end__ = .;
 
@@ -176,13 +172,13 @@ SECTIONS
 
     .bss :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __START_BSS = .;
         __bss_start__ = .;
         *(.bss)
         *(.bss*)
         *(COMMON)
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_end__ = .;
         __END_BSS = .;
 

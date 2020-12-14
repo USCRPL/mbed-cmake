@@ -37,10 +37,6 @@ HAL_Pwm_Disable_8195a(
     HAL_PWM_ADAPTER *pPwmAdapt
 );
 
-extern void
-HAL_Pwm_Dinit_8195a(
-    HAL_PWM_ADAPTER *pPwmAdapt
-);
 
 #ifdef CONFIG_CHIP_E_CUT
 extern _LONG_CALL_ void

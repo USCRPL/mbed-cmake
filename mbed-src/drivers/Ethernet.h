@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,24 +19,12 @@
 #include "platform/platform.h"
 #include "platform/NonCopyable.h"
 
-#if DEVICE_ETHERNET || defined(DOXYGEN_ONLY)
+#if defined (DEVICE_ETHERNET) || defined(DOXYGEN_ONLY)
 
 namespace mbed {
-
-/** \addtogroup drivers-public-api */
-/** @{*/
-
-/**
- * \defgroup drivers_Ethernet Ethernet class
- * @{
- */
+/** \addtogroup drivers */
 
 /** An ethernet interface, to use with the ethernet pins.
- *
- * @deprecated
- * EthInterface is now the preferred way to get an Ethernet object.
- * Alternatively, use NetworkInterface to get an instance of an appropriate network
- * interface (WiFi or Ethernet).
  *
  * @note Synchronization level: Not protected
  *
@@ -66,28 +53,18 @@ namespace mbed {
  *     }
  * }
  * @endcode
+ * @ingroup drivers
  */
-class
-    MBED_DEPRECATED(
-        "EthInterface is now the preferred way to get an Ethernet object. "
-        "Alternatively, use NetworkInterface to get an instance of an appropriate network "
-        "interface (WiFi or Ethernet)."
-    ) Ethernet : private NonCopyable<Ethernet> {
+class Ethernet : private NonCopyable<Ethernet> {
 
 public:
 
-    /**
-     * @deprecated
-     * Initialize the ethernet interface.
+    /** Initialise the ethernet interface.
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     Ethernet();
 
-    /**
-     * @deprecated
-     * Powers the hardware down.
+    /** Powers the hardware down.
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     virtual ~Ethernet();
 
     enum Mode {
@@ -98,9 +75,7 @@ public:
         FullDuplex100
     };
 
-    /**
-     * @deprecated
-     *  Writes into an outgoing ethernet packet.
+    /** Writes into an outgoing ethernet packet.
      *
      *  It will append size bytes of data to the previously written bytes.
      *
@@ -110,12 +85,9 @@ public:
      *  @returns
      *   The number of written bytes.
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     int write(const char *data, int size);
 
-    /**
-     * @deprecated
-     *  Send an outgoing ethernet packet.
+    /** Send an outgoing ethernet packet.
      *
      *  After filling in the data in an ethernet packet it must be send.
      *  Send will provide a new packet to write to.
@@ -124,12 +96,9 @@ public:
      *    0 if the sending was failed,
      *    or the size of the packet successfully sent.
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     int send();
 
-    /**
-     * @deprecated
-     *  Receives an arrived ethernet packet.
+    /** Receives an arrived ethernet packet.
      *
      *  Receiving an ethernet packet will drop the last received ethernet packet
      *  and make a new ethernet packet ready to read.
@@ -139,12 +108,9 @@ public:
      *    0 if no ethernet packet is arrived,
      *    or the size of the arrived packet.
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     int receive();
 
-    /**
-     * @deprecated
-     *  Read from an received ethernet packet.
+    /** Read from an received ethernet packet.
      *
      *  After receive returned a number bigger than 0 it is
      *  possible to read bytes from this packet.
@@ -157,21 +123,15 @@ public:
      *  Each time read will start reading after the last read byte before.
      *
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     int read(char *data, int size);
 
-    /**
-     * @deprecated
-     *  Gives the ethernet address of the mbed.
+    /** Gives the ethernet address of the mbed.
      *
      *  @param mac Must be a pointer to a 6 byte char array to copy the ethernet address in.
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     void address(char *mac);
 
-    /**
-     * @deprecated
-     *  Returns if an ethernet link is present or not. It takes a while after Ethernet initialization to show up.
+    /** Returns if an ethernet link is present or not. It takes a while after Ethernet initialization to show up.
      *
      *  @returns
      *   0 if no ethernet link is present,
@@ -194,12 +154,9 @@ public:
      * }
      * @endcode
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     int link();
 
-    /**
-     * @deprecated
-     *  Sets the speed and duplex parameters of an ethernet link
+    /** Sets the speed and duplex parameters of an ethernet link
      *
      * - AutoNegotiate      Auto negotiate speed and duplex
      * - HalfDuplex10       10 Mbit, half duplex
@@ -209,12 +166,8 @@ public:
      *
      *  @param mode the speed and duplex mode to set the link to:
      */
-    MBED_DEPRECATED("The class has been deprecated and will be removed in the future.")
     void set_link(Mode mode);
 };
-
-/** @}*/
-/** @}*/
 
 } // namespace mbed
 

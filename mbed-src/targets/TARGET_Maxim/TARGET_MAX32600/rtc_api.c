@@ -74,7 +74,7 @@ void rtc_init(void)
     MXC_PWRSEQ->reg0 |= MXC_F_PWRSEQ_REG0_PWR_RTCEN_RUN;
 
     // Prepare interrupt handlers
-#if DEVICE_LPTICKER
+#ifdef DEVICE_LPTICKER
     NVIC_SetVector(RTC0_IRQn, (uint32_t)lp_ticker_irq_handler);
     NVIC_EnableIRQ(RTC0_IRQn);
 #endif
@@ -254,9 +254,4 @@ void lp_ticker_clear_interrupt(void)
 uint32_t lp_ticker_read(void)
 {
     return rtc_read64();
-}
-
-void lp_ticker_free(void)
-{
-
 }

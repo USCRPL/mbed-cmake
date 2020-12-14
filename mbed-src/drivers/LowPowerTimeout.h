@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2015 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,36 +18,30 @@
 
 #include "platform/platform.h"
 
-#if DEVICE_LPTICKER || defined(DOXYGEN_ONLY)
+#if defined (DEVICE_LPTICKER) || defined(DOXYGEN_ONLY)
 
 #include "hal/lp_ticker_api.h"
 #include "drivers/LowPowerTicker.h"
 #include "platform/NonCopyable.h"
 
 namespace mbed {
-/**
- * \defgroup drivers_LowPowerTimeout LowPowerTimeout class
- * \ingroup drivers-public-api-ticker
- * @{
- */
+/** \addtogroup drivers */
 
 /** Low Power Timout
  *
  * @note Synchronization level: Interrupt safe
+ * @ingroup drivers
  */
 class LowPowerTimeout : public LowPowerTicker, private NonCopyable<LowPowerTimeout> {
-#if !defined(DOXYGEN_ONLY)
+
 private:
     virtual void handler(void)
     {
         _function.call();
     }
-#endif
 };
 
-/** @}*/
-
-} // namespace mbed
+}
 
 #endif
 

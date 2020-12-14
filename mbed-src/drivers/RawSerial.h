@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,23 +18,14 @@
 
 #include "platform/platform.h"
 
-#if DEVICE_SERIAL || defined(DOXYGEN_ONLY)
+#if defined (DEVICE_SERIAL) || defined(DOXYGEN_ONLY)
 
-#include "platform/mbed_toolchain.h"
 #include "drivers/SerialBase.h"
+#include "hal/serial_api.h"
 #include "platform/NonCopyable.h"
-#include <cstdarg>
 
 namespace mbed {
-/** \defgroup drivers-public-api-uart UART
- * \ingroup drivers-public-api
- */
-
-/**
- * \defgroup drivers_RawSerial RawSerial class
- * \ingroup drivers-public-api-uart
- * @{
- */
+/** \addtogroup drivers */
 
 /** A serial port (UART) for communication with other serial devices
  * This is a variation of the Serial class that doesn't use streams,
@@ -58,6 +48,7 @@ namespace mbed {
  *     pc.putc('A');
  * }
  * @endcode
+ * @ingroup drivers
  */
 class RawSerial: public SerialBase, private NonCopyable<RawSerial> {
 
@@ -95,10 +86,8 @@ public:
      */
     int puts(const char *str);
 
-    int printf(const char *format, ...) MBED_PRINTF_METHOD(1, 2);
-    int vprintf(const char *format, std::va_list arg);
+    int printf(const char *format, ...);
 
-#if !(DOXYGEN_ONLY)
 protected:
 
     /* Acquire exclusive access to this serial port
@@ -108,10 +97,7 @@ protected:
     /* Release exclusive access to this serial port
      */
     virtual void unlock(void);
-#endif
 };
-
-/** @}*/
 
 } // namespace mbed
 

@@ -47,19 +47,26 @@ extern uint32_t serial_irq_ids[];
 HAL_StatusTypeDef init_uart(serial_t *obj);
 int8_t get_uart_index(UARTName uart_name);
 
-#if STATIC_PINMAP_READY
-#define SERIAL_INIT_DIRECT serial_init_direct
-void serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
-#else
-#define SERIAL_INIT_DIRECT _serial_init_direct
-static void _serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
-#endif
+void serial_init(serial_t *obj, PinName tx, PinName rx)
 {
     struct serial_s *obj_s = SERIAL_S(obj);
+    uint8_t stdio_config = 0;
+
+    // Determine the UART to use (UART_1, UART_2, ...)
+    UARTName uart_tx = (UARTName)pinmap_peripheral(tx, PinMap_UART_TX);
+    UARTName uart_rx = (UARTName)pinmap_peripheral(rx, PinMap_UART_RX);
 
     // Get the peripheral name (UART_1, UART_2, ...) from the pin and assign it to the object
-    obj_s->uart = (UARTName)pinmap->peripheral;
+    obj_s->uart = (UARTName)pinmap_merge(uart_tx, uart_rx);
     MBED_ASSERT(obj_s->uart != (UARTName)NC);
+
+    if ((tx == STDIO_UART_TX) || (rx == STDIO_UART_RX)) {
+        stdio_config = 1;
+    } else {
+        if (uart_tx == pinmap_peripheral(STDIO_UART_TX, PinMap_UART_TX)) {
+            error("Error: new serial object is using same UART as STDIO");
+        }
+    }
 
     // Reset and enable clock
 #if defined(USART1_BASE)
@@ -157,19 +164,19 @@ static void _serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
     MBED_ASSERT(obj_s->index >= 0);
 
     // Configure UART pins
-    pin_function(pinmap->tx_pin, pinmap->tx_function);
-    pin_function(pinmap->rx_pin, pinmap->rx_function);
+    pinmap_pinout(tx, PinMap_UART_TX);
+    pinmap_pinout(rx, PinMap_UART_RX);
 
-    if (pinmap->tx_pin != NC) {
-        pin_mode(pinmap->tx_pin, PullUp);
+    if (tx != NC) {
+        pin_mode(tx, PullUp);
     }
-    if (pinmap->rx_pin != NC) {
-        pin_mode(pinmap->rx_pin, PullUp);
+    if (rx != NC) {
+        pin_mode(rx, PullUp);
     }
 
     // Configure UART
     obj_s->baudrate = 9600; // baudrate default value
-    if (pinmap->stdio_config) {
+    if (stdio_config) {
 #if MBED_CONF_PLATFORM_STDIO_BAUD_RATE
         obj_s->baudrate = MBED_CONF_PLATFORM_STDIO_BAUD_RATE; // baudrate takes value from platform/mbed_lib.json
 #endif /* MBED_CONF_PLATFORM_STDIO_BAUD_RATE */
@@ -186,41 +193,16 @@ static void _serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
     obj_s->hw_flow_ctl = UART_HWCONTROL_NONE;
 #endif
 
-    obj_s->pin_tx = pinmap->tx_pin;
-    obj_s->pin_rx = pinmap->rx_pin;
+    obj_s->pin_tx = tx;
+    obj_s->pin_rx = rx;
 
     init_uart(obj); /* init_uart will be called again in serial_baud function, so don't worry if init_uart returns HAL_ERROR */
 
     // For stdio management in platform/mbed_board.c and platform/mbed_retarget.cpp
-    if (pinmap->stdio_config) {
+    if (stdio_config) {
         stdio_uart_inited = 1;
         memcpy(&stdio_uart, obj, sizeof(serial_t));
     }
-}
-
-void serial_init(serial_t *obj, PinName tx, PinName rx)
-{
-    uint32_t uart_tx = pinmap_peripheral(tx, PinMap_UART_TX);
-    uint32_t uart_rx = pinmap_peripheral(rx, PinMap_UART_RX);
-
-    int peripheral = (int)pinmap_merge(uart_tx, uart_rx);
-
-    int tx_function = (int)pinmap_find_function(tx, PinMap_UART_TX);
-    int rx_function = (int)pinmap_find_function(rx, PinMap_UART_RX);
-
-    uint8_t stdio_config = false;
-
-    if ((tx == STDIO_UART_TX) || (rx == STDIO_UART_RX)) {
-        stdio_config = true;
-    } else {
-        if (uart_tx == pinmap_peripheral(STDIO_UART_TX, PinMap_UART_TX)) {
-            error("Error: new serial object is using same UART as STDIO");
-        }
-    }
-
-    const serial_pinmap_t explicit_uart_pinmap = {peripheral, tx, tx_function, rx, rx_function, stdio_config};
-
-    SERIAL_INIT_DIRECT(obj, &explicit_uart_pinmap);
 }
 
 void serial_free(serial_t *obj)
@@ -228,10 +210,6 @@ void serial_free(serial_t *obj)
     struct serial_s *obj_s = SERIAL_S(obj);
 
     // Reset UART and disable clock
-#if defined(DUAL_CORE)
-    while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-    }
-#endif /* DUAL_CORE */
 #if defined(USART1_BASE)
     if (obj_s->uart == UART_1) {
         __HAL_RCC_USART1_FORCE_RESET();
@@ -351,9 +329,6 @@ void serial_free(serial_t *obj)
         __HAL_RCC_LPUART1_CLK_DISABLE();
     }
 #endif
-#if defined(DUAL_CORE)
-    LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
 
     // Configure GPIOs
     pin_function(obj_s->pin_tx, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
@@ -379,28 +354,14 @@ void serial_baud(serial_t *obj, int baudrate)
             if (!__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY)) {
                 RCC_OscInitTypeDef RCC_OscInitStruct = {0};
                 RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
-                RCC_OscInitStruct.LSEState       = RCC_LSE_ON;
+                RCC_OscInitStruct.HSIState       = RCC_LSE_ON;
                 RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_OFF;
-#if defined(DUAL_CORE)
-                while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-                }
-#endif /* DUAL_CORE */
                 HAL_RCC_OscConfig(&RCC_OscInitStruct);
-#if defined(DUAL_CORE)
-                LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
             }
             // Keep it to verify if HAL_RCC_OscConfig didn't exit with a timeout
             if (__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY)) {
-#if defined(DUAL_CORE)
-                while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-                }
-#endif /* DUAL_CORE */
                 PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_LSE;
                 HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-#if defined(DUAL_CORE)
-                LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
                 if (init_uart(obj) == HAL_OK) {
                     return;
                 }
@@ -422,26 +383,12 @@ void serial_baud(serial_t *obj, int baudrate)
             RCC_OscInitStruct.HSIState            = RCC_HSI_ON;
             RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_OFF;
             RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-#if defined(DUAL_CORE)
-            while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-            }
-#endif /* DUAL_CORE */
             HAL_RCC_OscConfig(&RCC_OscInitStruct);
-#if defined(DUAL_CORE)
-            LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
         }
         // Keep it to verify if HAL_RCC_OscConfig didn't exit with a timeout
         if (__HAL_RCC_GET_FLAG(RCC_FLAG_HSIRDY)) {
             PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_HSI;
-#if defined(DUAL_CORE)
-            while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-            }
-#endif /* DUAL_CORE */
             HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-#if defined(DUAL_CORE)
-            LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
             if (init_uart(obj) == HAL_OK) {
                 return;
             }
@@ -449,14 +396,7 @@ void serial_baud(serial_t *obj, int baudrate)
 #endif
         // Last chance using SYSCLK
         PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_SYSCLK;
-#if defined(DUAL_CORE)
-        while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-        }
-#endif /* DUAL_CORE */
         HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-#if defined(DUAL_CORE)
-        LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
     }
 #endif /* LPUART1_BASE */
 
@@ -523,38 +463,6 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
     init_uart(obj);
 }
 
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-#if !DEVICE_SERIAL_FC
-    static const PinMap PinMap_UART_CTS[] = {
-        {NC, NC, 0}
-    };
-#endif
-
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-#if !DEVICE_SERIAL_FC
-    static const PinMap PinMap_UART_RTS[] = {
-        {NC, NC, 0}
-    };
-#endif
-
-    return PinMap_UART_RTS;
-}
-
 /******************************************************************************
  * READ/WRITE
  ******************************************************************************/
@@ -616,18 +524,6 @@ HAL_StatusTypeDef init_uart(serial_t *obj)
     huart->TxXferSize        = 0;
     huart->RxXferCount       = 0;
     huart->RxXferSize        = 0;
-#if defined(UART_ONE_BIT_SAMPLE_DISABLE) // F0/F3/F7/G0/H7/L0/L4/L5/WB
-    huart->Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-#endif
-#if defined(UART_PRESCALER_DIV1) // G0/H7/L4/L5/WB
-    huart->Init.ClockPrescaler = UART_PRESCALER_DIV1;
-#endif
-#if defined(UART_ADVFEATURE_NO_INIT) // F0/F3/F7/G0/H7/L0/L4//5/WB
-    huart->AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-#endif
-#if defined(UART_FIFOMODE_DISABLE) // G0/H7/L4/L5/WB
-    huart->FifoMode = UART_FIFOMODE_DISABLE;
-#endif
 
     if (obj_s->pin_rx == NC) {
         huart->Init.Mode = UART_MODE_TX;
@@ -640,14 +536,10 @@ HAL_StatusTypeDef init_uart(serial_t *obj)
 #if defined(LPUART1_BASE)
     if (huart->Instance == LPUART1) {
         if (obj_s->baudrate <= 9600) {
-#if ((MBED_CONF_TARGET_LPUART_CLOCK_SOURCE) & USE_LPUART_CLK_LSE) && defined(USART_CR3_UCESM)
             HAL_UARTEx_EnableClockStopMode(huart);
-#endif
             HAL_UARTEx_EnableStopMode(huart);
         } else {
-#if defined(USART_CR3_UCESM)
             HAL_UARTEx_DisableClockStopMode(huart);
-#endif
             HAL_UARTEx_DisableStopMode(huart);
         }
     }
@@ -768,12 +660,11 @@ int8_t get_uart_index(UARTName uart_name)
     return -1;
 }
 
-/* Function used to protect deep sleep while a serial transmission is on-going.
-.* Returns 1 if there is at least 1 serial instance with an on-going transfer
- * and 0 otherwise.
-*/
-int serial_is_tx_ongoing(void)
-{
+/*  Function to protect deep sleep while a seral Tx is ongoing on not complete
+ *  yet. Returns 1 if there is at least 1 serial instance with ongoing ransfer
+ *  0 otherwise.
+ */
+int serial_is_tx_ongoing(void) {
     int TxOngoing = 0;
 
 #if defined(USART1_BASE)
@@ -866,14 +757,8 @@ int serial_is_tx_ongoing(void)
     }
 #endif
 
+    /*  If Tx is ongoing, then transfer is */
     return TxOngoing;
-}
-
-#else
-
-int serial_is_tx_ongoing(void)
-{
-    return 0;
 }
 
 #endif /* DEVICE_SERIAL */

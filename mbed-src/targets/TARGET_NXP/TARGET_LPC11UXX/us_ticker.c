@@ -17,8 +17,6 @@
 #include "us_ticker_api.h"
 #include "PeripheralNames.h"
 
-#if DEVICE_USTICKER
-
 #define US_TICKER_TIMER          ((LPC_CTxxBx_Type *)LPC_CT32B1_BASE)
 #define US_TICKER_TIMER_IRQn     TIMER_32_1_IRQn
 
@@ -67,10 +65,3 @@ void us_ticker_disable_interrupt(void) {
 void us_ticker_clear_interrupt(void) {
     US_TICKER_TIMER->IR = 1;
 }
-
-void us_ticker_free(void)
-{
-
-}
-
-#endif // DEVICE_USTICKER

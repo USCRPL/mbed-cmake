@@ -25,6 +25,8 @@
 ;   POSSIBILITY OF SUCH DAMAGE.
 ;   ---------------------------------------------------------------------------*/
 
+__initial_sp	EQU     0x20040000
+
                 PRESERVE8
                 THUMB
 
@@ -34,9 +36,8 @@
                 EXPORT  __Vectors
                 EXPORT  __Vectors_End
                 EXPORT  __Vectors_Size
-                IMPORT  |Image$$ARM_LIB_STACK$$ZI$$Limit|
 
-__Vectors       DCD     |Image$$ARM_LIB_STACK$$ZI$$Limit| ; Top of Stack
+__Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     Reset_Handler
                 DCD     NMI_Handler
                 DCD     HardFault_Handler

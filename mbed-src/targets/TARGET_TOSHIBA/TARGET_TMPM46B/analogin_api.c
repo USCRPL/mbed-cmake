@@ -76,7 +76,7 @@ uint16_t analogin_read_u16(analogin_t *obj)
     // Start ADC conversion
     ADC_Start(TSB_AD);
     // Wait until AD conversion complete
-    while (ADC_GetConvertState(TSB_AD).Bit.NormalComplete != 1) {
+    while(ADC_GetConvertState(TSB_AD).Bit.NormalComplete != 1) {
         // Do nothing
     }
     wait_us(30);
@@ -91,9 +91,4 @@ float analogin_read(analogin_t *obj)
 {
     uint16_t value = analogin_read_u16(obj);
     return (float)(value * (1.0f / (float)ADC_12BIT_RANGE));
-}
-
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
 }

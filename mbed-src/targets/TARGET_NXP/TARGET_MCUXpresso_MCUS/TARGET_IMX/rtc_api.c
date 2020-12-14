@@ -17,26 +17,21 @@
 
 #if DEVICE_RTC
 
-#include "fsl_snvs_lp.h"
-
-static bool rtc_time_set = false;
+#include "fsl_snvs_hp.h"
 
 void rtc_init(void)
 {
-    snvs_lp_srtc_config_t snvsRtcConfig;
+    snvs_hp_rtc_config_t snvsRtcConfig;
 
-    SNVS_LP_SRTC_GetDefaultConfig(&snvsRtcConfig);
-    SNVS_LP_SRTC_Init(SNVS, &snvsRtcConfig);
+    SNVS_HP_RTC_GetDefaultConfig(&snvsRtcConfig);
+    SNVS_HP_RTC_Init(SNVS, &snvsRtcConfig);
 
-    SNVS_LP_SRTC_StartTimer(SNVS);
+    SNVS_HP_RTC_StartTimer(SNVS);
 }
 
 void rtc_free(void)
 {
-#if (!(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && \
-         defined(SNVS_LP_CLOCKS))
-    CLOCK_DisableClock(kCLOCK_SnvsLp0);
-#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
+    SNVS_HP_RTC_Deinit(SNVS);
 }
 
 /*
@@ -45,31 +40,19 @@ void rtc_free(void)
  */
 int rtc_isenabled(void)
 {
-#if (!(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && \
-         defined(SNVS_LP_CLOCKS))
-    CLOCK_EnableClock(kCLOCK_SnvsLp0);
-#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
-
-
-    const bool rtc_init_done = ((SNVS->LPCR & SNVS_LPCR_SRTC_ENV_MASK) >> SNVS_LPCR_SRTC_ENV_SHIFT);
-
-    /* If RTC is not initialized, then disable the clock gate on exit. */
-    if(!rtc_init_done) {
-        rtc_free();
-    }
-
-    return (rtc_init_done & rtc_time_set);
+    return (int)((SNVS->HPCR & SNVS_HPCR_RTC_EN_MASK) >> SNVS_HPCR_RTC_EN_SHIFT);
 }
 
 time_t rtc_read(void)
 {
-    uint32_t seconds = 0;
-    uint32_t tmp = 0;
+    uint64_t seconds = 0;
+    uint64_t tmp = 0;
 
     /* Do consecutive reads until value is correct */
-    do {
+    do
+    {
         seconds = tmp;
-        tmp = (SNVS->LPSRTCMR << 17U) | (SNVS->LPSRTCLR >> 15U);
+        tmp = SNVS->HPRTCLR;
     } while (tmp != seconds);
 
     return (time_t)seconds;
@@ -80,15 +63,11 @@ void rtc_write(time_t t)
     if (t == 0) {
         t = 1;
     }
+    SNVS_HP_RTC_StopTimer(SNVS);
 
-    SNVS_LP_SRTC_StopTimer(SNVS);
+    SNVS->HPRTCLR = (uint32_t)t;
 
-    SNVS->LPSRTCMR = (uint32_t)(t >> 17U);
-    SNVS->LPSRTCLR = (uint32_t)(t << 15U);
-
-    SNVS_LP_SRTC_StartTimer(SNVS);
-
-    rtc_time_set = true;
+    SNVS_HP_RTC_StartTimer(SNVS);
 }
 
 #endif

@@ -193,8 +193,6 @@ void serial_free(serial_t *obj)
             obj->fuart_config.Mode = 0;
             obj->fuart_config.FlowCtrl = 0;
             break;
-        default:
-            break;
     }
 }
 
@@ -216,8 +214,6 @@ void serial_baud(serial_t *obj, int baudrate)
             FUART_Init(obj->FUART,&obj->fuart_config);
             FUART_Enable(obj->FUART);
             break;
-        default:
-            break;
     }
 }
 
@@ -234,27 +230,20 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
         case SERIAL_2:
         case SERIAL_3:
             MBED_ASSERT((data_bits > 6) && (data_bits < 10)); // 0: 7 data bits ... 2: 9 data bits
-            obj->uart_config.DataBits = ((data_bits == 7) ? UART_DATA_BITS_7:
-                                         ((data_bits == 8) ? UART_DATA_BITS_8 : UART_DATA_BITS_9));
-            obj->uart_config.StopBits = ((stop_bits == 1) ? UART_STOP_BITS_1 : UART_STOP_BITS_2);
-            obj->uart_config.Parity = ((parity == ParityOdd) ? UART_ODD_PARITY :
-                                       ((parity == ParityEven) ? UART_EVEN_PARITY : UART_NO_PARITY));
+            obj->uart_config.DataBits = data_bits;
+            obj->uart_config.StopBits = stop_bits;
+            obj->uart_config.Parity = parity;
             UART_Init(obj->UARTx,&obj->uart_config);
             break;
         case SERIAL_4:
         case SERIAL_5:
             FUART_Disable(obj->FUART);
-            MBED_ASSERT((data_bits > 6) && (data_bits < 9)); // 0: 5 data bits ... 2: 8 data bits
-            obj->fuart_config.DataBits = ((data_bits == 7) ? FUART_DATA_BITS_7 : FUART_DATA_BITS_8);
-            obj->fuart_config.StopBits = ((stop_bits == 1) ? FUART_STOP_BITS_1 : FUART_STOP_BITS_2);
-            obj->fuart_config.Parity = ((parity == ParityOdd) ? FUART_ODD_PARITY :
-                                        ((parity == ParityEven) ? FUART_EVEN_PARITY :
-                                         ((parity == ParityForced1) ? FUART_1_PARITY :
-                                          ((parity == ParityForced0) ? FUART_0_PARITY : FUART_NO_PARITY))));
+            MBED_ASSERT((data_bits > 4) && (data_bits < 9)); // 0: 5 data bits ... 2: 8 data bits
+            obj->fuart_config.DataBits = data_bits;
+            obj->fuart_config.StopBits = stop_bits;
+            obj->fuart_config.Parity = parity;
             FUART_Init(obj->FUART,&obj->fuart_config);
             FUART_Enable(obj->FUART);
-            break;
-        default:
             break;
     }
 }
@@ -369,8 +358,6 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
         case SERIAL_5:
             irq_n = INTUART1_IRQn;
             break;
-        default:
-            break;
     }
 
     if ((obj->index == SERIAL_4) || (obj->index == SERIAL_5)) {
@@ -436,8 +423,6 @@ void serial_putc(serial_t *obj, int c)
         case SERIAL_5:
             FUART_SetTxData(obj->FUART,(uint32_t)c);
             break;
-        default:
-            break;
     }
 }
 
@@ -450,7 +435,7 @@ int serial_readable(serial_t *obj)
         case SERIAL_1:
         case SERIAL_2:
         case SERIAL_3:
-            if (UART_GetBufState(obj->UARTx, UART_RX) == DONE) {
+            if(UART_GetBufState(obj->UARTx, UART_RX) == DONE) {
                 ret = 1;
             }
             break;
@@ -459,8 +444,6 @@ int serial_readable(serial_t *obj)
             if (FUART_GetStorageStatus(obj->FUART, FUART_RX) == FUART_STORAGE_FULL) {
                 ret = 1;
             }
-            break;
-        default:
             break;
     }
     return ret;
@@ -475,7 +458,7 @@ int serial_writable(serial_t *obj)
         case SERIAL_1:
         case SERIAL_2:
         case SERIAL_3:
-            if (UART_GetBufState(obj->UARTx, UART_TX) == DONE) {
+            if(UART_GetBufState(obj->UARTx, UART_TX) == DONE) {
                 ret = 1;
             }
             break;
@@ -484,8 +467,6 @@ int serial_writable(serial_t *obj)
             if (FUART_GetStorageStatus(obj->FUART, FUART_TX) == FUART_STORAGE_EMPTY) {
                 ret = 1;
             }
-            break;
-        default:
             break;
     }
     return ret;
@@ -504,8 +485,6 @@ void serial_clear(serial_t *obj)
         case SERIAL_5:
             FUART_GetRxData(obj->FUART);
             break;
-        default:
-            break;
     }
 }
 
@@ -518,20 +497,11 @@ void serial_pinout_tx(PinName tx)
 // Set flow control, Just support CTS
 void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, PinName txflow)
 {
+    UARTName uart_cts = (UARTName)pinmap_peripheral(txflow, PinMap_UART_CTS);
     UARTName uart_rts = (UARTName)pinmap_peripheral(rxflow, PinMap_UART_RTS);
-    UARTName uart_cts;
-
-    // SERIAL_5 & SERIAL_3 have same CTS pin (PA7), only function register is different (4 & 2).
-    // pinmap_peripheral() will always return first match from the map.
-    // But, if SERIAL_5 is used, then pinmap_peripheral() should return SERIAL_5 (function register 2 to be set).
-    if (obj->index == SERIAL_5) {
-        uart_cts = (UARTName)pinmap_peripheral(txflow, &PinMap_UART_CTS[5]);
-    } else {
-        uart_cts = (UARTName)pinmap_peripheral(txflow, PinMap_UART_CTS);
-    }
     UARTName uart_name = (UARTName)pinmap_merge(uart_cts, uart_rts);
 
-    switch (uart_name) {
+    switch (obj->index) {
         case SERIAL_0:
         case SERIAL_1:
         case SERIAL_2:
@@ -559,11 +529,7 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
                 obj->FUART->CR |= FUART_CTS_FLOW_CTRL;
 
                 // Enable the pin for CTS and RTS function
-                if (uart_name == SERIAL_5) {
-                    pinmap_pinout(txflow, &PinMap_UART_CTS[5]);
-                } else {
-                    pinmap_pinout(txflow, PinMap_UART_CTS);
-                }
+                pinmap_pinout(txflow, PinMap_UART_CTS);
             } else if (type == FlowControlRTS) {
                 MBED_ASSERT(uart_rts != (UARTName) NC);
 
@@ -579,19 +545,13 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
                 obj->FUART->CR |= FUART_CTS_FLOW_CTRL | FUART_RTS_FLOW_CTRL;
 
                 // Enable the pin for CTS and RTS function
-                if (uart_name == SERIAL_5) {
-                    pinmap_pinout(txflow, &PinMap_UART_CTS[5]);
-                } else {
-                    pinmap_pinout(txflow, PinMap_UART_CTS);
-                }
+                pinmap_pinout(txflow, PinMap_UART_CTS);
                 pinmap_pinout(rxflow, PinMap_UART_RTS);
             } else {
                 // Disable CTS and RTS hardware flow control
                 obj->FUART->CR &= (uint32_t) 0xFFFF0FFF;
             }
             FUART_Enable(obj->FUART);
-            break;
-        default:
             break;
     }
 }
@@ -610,24 +570,4 @@ void serial_break_clear(serial_t *obj)
     if (obj->index == SERIAL_4 || obj->index == SERIAL_5) {
         FUART_SetSendBreak(obj->FUART, DISABLE);
     }
-}
-
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
 }

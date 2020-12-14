@@ -94,19 +94,15 @@ typedef enum {
 } PinDirection;
 
 typedef enum {
-    /* Input pull mode */
     PullNone = 0,
     PullDown,
     PullUp,
     
-    /* I/O mode */
-    InputOnly,
-    PushPullOutput,
+    PushPull,
     OpenDrain,
-    QuasiBidirectional,
+    Quasi,
     
-    /* Default input pull mode */
-    PullDefault = PullUp
+    PullDefault = PullUp,
 } PinMode;
 
 typedef enum {
@@ -128,13 +124,13 @@ typedef enum {
     A1 = PB_10,
     A2 = PB_9,
     A3 = PB_8,
-    A4 = PB_4,
-    A5 = PB_5,
+    A4 = PB_7,
+    A5 = PB_6,
 
     D0 = PA_8,
     D1 = PA_9,
-    D2 = PB_7,
-    D3 = PB_6,
+    D2 = PB_5,
+    D3 = PB_4,
     D4 = PB_3,
     D5 = PB_2,
     D6 = PC_12,
@@ -165,17 +161,12 @@ typedef enum {
     LED2 = PA_11,
     LED3 = PA_10,  // No real LED. Just for passing ATS.
     LED4 = PA_11,  // No real LED. Just for passing ATS.
-    LED_GREEN = LED1,
+    LED_GREEN = LED2,
     
     // Button naming
     SW2 = PB_0,
     SW3 = PB_1,
-    BUTTON1 = SW2,
-    BUTTON2 = SW3,
-
-    // Force PinName to 32-bit required by NU_PINNAME_BIND(...)
-    FORCE_ENUM_PINNAME_32BIT = 0x7FFFFFFF,
-
+    
 } PinName;
 
 #ifdef __cplusplus

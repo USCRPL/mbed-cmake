@@ -1,31 +1,32 @@
 /***************************************************************************//**
- * @file
+ * @file em_can.c
  * @brief Controller Area Network API
- * @version 5.7.2
+ * @version 5.3.3
  *******************************************************************************
  * # License
- * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2016 Silicon Laboratories, Inc. http://www.silabs.com</b>
  *******************************************************************************
- *
- * SPDX-License-Identifier: Zlib
- *
- * The licensor of this software is Silicon Laboratories Inc.
- *
- * This software is provided 'as-is', without any express or implied
- * warranty. In no event will the authors be held liable for any damages
- * arising from the use of this software.
  *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
+ *    claim that you wrote the original software.
  * 2. Altered source versions must be plainly marked as such, and must not be
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
+ *
+ * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Labs has no
+ * obligation to support this Software. Silicon Labs is providing the
+ * Software "AS IS", with no express or implied warranties of any kind,
+ * including, but not limited to, any implied warranties of merchantability
+ * or fitness for any particular purpose or warranties against infringement
+ * of any proprietary rights of a third party.
+ *
+ * Silicon Labs will not be liable for any consequential, incidental, or
+ * special damages, or any other relief, or for any claim by any third party,
+ * arising from your use of this Software.
  *
  ******************************************************************************/
 
@@ -39,9 +40,9 @@
 
 /** @cond DO_NOT_INCLUDE_WITH_DOXYGEN */
 
-/* Macros to use for the ID field in the CANn_MIRx_ARB register as an 11 bit
- * standard ID. The register field can be used for both an 11 bit standard
- * ID and a 29 bit extended ID. */
+/* Macros to use the ID field in the CANn_MIRx_ARB register as a 11 bit
+ * standard id. The register field can be used for both an 11 bit standard
+ * id and a 29 bit extended id. */
 #define _CAN_MIR_ARB_STD_ID_SHIFT         18
 #define _CAN_MIR_MASK_STD_SHIFT           18
 #define _CAN_MIR_ARB_STD_ID_MASK          0x1FFC0000UL
@@ -70,8 +71,8 @@
  * multi-master serial bus for connecting microcontrollers and devices, also
  * known as nodes, to communicate with each other in applications without a host
  * computer. CAN is a message-based protocol, designed originally for automotive
- * applications, but also used in many other scenarios.
- * The complexity of a node can range from a simple I/O device up to an
+ * applications, but meanwhile used also in many other surroundings.
+ * The complexity of the node can range from a simple I/O device up to an
  * embedded computer with a CAN interface and sophisticated software. The node
  * may also be a gateway allowing a standard computer to communicate over a USB
  * or Ethernet port to the devices on a CAN network. Devices are connected to
@@ -91,10 +92,10 @@
  *   Initialize CAN.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] init
- *   A pointer to the CAN initialization structure.
+ *   Pointer to CAN initialization structure.
  ******************************************************************************/
 void CAN_Init(CAN_TypeDef *can, const CAN_Init_TypeDef *init)
 {
@@ -121,13 +122,13 @@ void CAN_Init(CAN_TypeDef *can, const CAN_Init_TypeDef *init)
  *   Get the CAN module frequency.
  *
  * @details
- *   An internal prescaler of 2 is inside the CAN module.
+ *   There is an internal prescaler of 2 inside the CAN module.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @return
- *   A clock value.
+ *   Clock value
  ******************************************************************************/
 uint32_t CAN_GetClockFrequency(CAN_TypeDef *can)
 {
@@ -152,33 +153,33 @@ uint32_t CAN_GetClockFrequency(CAN_TypeDef *can)
  *   'Message Lost' flag.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] msgNum
- *   A message number of the Message Object, [1 - 32].
+ *   Message number of the Message Object, [1 - 32].
  *
  * @return
- *   True if a message was lost, false otherwise.
+ *   true if a message was lost, false otherwise.
  ******************************************************************************/
 bool CAN_MessageLost(CAN_TypeDef *can, uint8_t interface, uint8_t msgNum)
 {
   CAN_MIR_TypeDef * mir = &can->MIR[interface];
   bool messageLost;
 
-  /* Make sure msgNum is in the correct range. */
+  /* Make sure msgNum is in the correct range */
   EFM_ASSERT((msgNum > 0) && (msgNum <= 32));
 
   CAN_ReadyWait(can, interface);
 
-  /* Set which registers to read from RAM. */
+  /* Set which registers to read from the RAM */
   mir->CMDMASK = CAN_MIR_CMDMASK_WRRD_READ
                  | CAN_MIR_CMDMASK_CONTROL
                  | CAN_MIR_CMDMASK_CLRINTPND;
 
-  /* Send reading request and wait (3 to 6 cpu cycle). */
+  /* Send reading request and wait (3 to 6 cpu cycle) */
   CAN_SendRequest(can, interface, msgNum, true);
 
   messageLost = mir->CTRL & _CAN_MIR_CTRL_MESSAGEOF_MASK;
@@ -186,14 +187,14 @@ bool CAN_MessageLost(CAN_TypeDef *can, uint8_t interface, uint8_t msgNum)
   if (messageLost) {
     mir->CMDMASK = CAN_MIR_CMDMASK_WRRD | CAN_MIR_CMDMASK_CONTROL;
 
-    /* Reset the 'MessageLost' bit. */
+    /* Reset the 'MessageLost' bit */
     mir->CTRL &= ~_CAN_MIR_CTRL_MESSAGEOF_MASK;
 
-    /* Send reading request and wait (3 to 6 cpu cycle). */
+    /* Send reading request and wait (3 to 6 cpu cycle) */
     CAN_SendRequest(can, interface, msgNum, true);
   }
 
-  /* Return the state of the MESSAGEOF bit. */
+  /* Return the state of the MESSAGEOF bit */
   return messageLost;
 }
 
@@ -202,16 +203,16 @@ bool CAN_MessageLost(CAN_TypeDef *can, uint8_t interface, uint8_t msgNum)
  *   Set the ROUTE registers.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] active
- *   A boolean indicating whether or not to activate the ROUTE registers.
+ *   Boolean to activate or not the ROUTE registers.
  *
  * @param[in] pinRxLoc
- *   A location of the RX pin.
+ *   Location of the rx pin.
  *
  * @param[in] pinTxLoc
- *   A location of the TX pin.
+ *   Location of the tx pin.
  ******************************************************************************/
 void CAN_SetRoute(CAN_TypeDef *can,
                   bool active,
@@ -231,34 +232,34 @@ void CAN_SetRoute(CAN_TypeDef *can,
 
 /***************************************************************************//**
  * @brief
- *   Set the bitrate and its parameters.
+ *   Set the bitrate and its parameters
  *
  * @details
- *   Multiple parameters need to be properly configured.
- *   See the reference manual for a detailed description.
+ *   There are multiple parameters which need to be properly configured.
+ *   Please refer to the reference manual for a detailed description.
  *   Careful : the BRP (Baud Rate Prescaler) is calculated by:
  *   'brp = freq / (period * bitrate);'. freq is the frequency of the CAN
- *   device, period the time of transmission of a bit. The result is an uint32_t.
- *   Hence it's truncated, causing an approximation error. This error is non
- *   negligible when the period is high, the bitrate is high, and frequency is low.
+ *   device, period the time of transmission of a bit. The result is an uint32_t
+ *   hence it's truncated, causing an approximation error. This error is non
+ *   negligeable when period is high, bitrate is high and freq is low.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] bitrate
- *   A wanted bitrate on the CAN bus.
+ *   Wanted bitrate on the CAN bus.
  *
  * @param[in] propagationTimeSegment
- *   A value for the Propagation Time Segment.
+ *   Value for the Propagation Time Segment.
  *
  * @param[in] phaseBufferSegment1
- *   A value for the Phase Buffer Segment 1.
+ *   Value for the Phase Buffer Segment 1.
  *
  * @param[in] phaseBufferSegment2
- *   A value for the Phase Buffer Segment 2.
+ *   Value for the Phase Buffer Segment 2.
  *
  * @param[in] synchronisationJumpWidth
- *   A value for the Synchronization Jump Width.
+ *   Value for the Synchronisation Jump Width.
  ******************************************************************************/
 void CAN_SetBitTiming(CAN_TypeDef *can,
                       uint32_t bitrate,
@@ -269,7 +270,7 @@ void CAN_SetBitTiming(CAN_TypeDef *can,
 {
   uint32_t sum, brp, period, freq, brpHigh, brpLow;
 
-  /* Verification that the parameters are in range. */
+  /* Verification that the parameters are within range */
   EFM_ASSERT((propagationTimeSegment <= 8) && (propagationTimeSegment > 0));
   EFM_ASSERT((phaseBufferSegment1 <= 8) && (phaseBufferSegment1 > 0));
   EFM_ASSERT((phaseBufferSegment2 <= 8) && (phaseBufferSegment2 > 0));
@@ -279,29 +280,29 @@ void CAN_SetBitTiming(CAN_TypeDef *can,
              && (synchronisationJumpWidth > 0));
 
   /* propagationTimeSegment is counted as part of phaseBufferSegment1 in the
-     BITTIMING register. */
+     BITTIMING register */
   sum = phaseBufferSegment1 + propagationTimeSegment;
 
-  /* Period is the total length of one CAN bit. 1 is the Sync_seg. */
+  /* period is the total length of one CAN bit. 1 is the Sync_seg */
   period = 1 + sum + phaseBufferSegment2;
   freq = CAN_GetClockFrequency(can);
 
   brp = freq / (period * bitrate);
   EFM_ASSERT(brp != 0);
 
-  /* -1 because the hardware reads 'written value + 1'. */
+  /* -1 because the hardware reads 'written value + 1' */
   brp = brp - 1;
 
-  /* brp is divided between two registers. */
+  /* brp is divided between two registers */
   brpHigh = brp / 64;
   brpLow = brp % 64;
 
-  /* Checking register limit. */
+  /* Checking register limit */
   EFM_ASSERT(brpHigh <= 15);
 
   bool enabled = CAN_IsEnabled(can);
 
-  /* Enable access to the bittiming registers. */
+  /* Enable access to the bittiming registers */
   can->CTRL |= CAN_CTRL_CCE | CAN_CTRL_INIT;
 
   can->BITTIMING = (brpLow << _CAN_BITTIMING_BRP_SHIFT)
@@ -322,12 +323,12 @@ void CAN_SetBitTiming(CAN_TypeDef *can,
  *   Set the CAN operation mode.
  *
  * @details
- *   In initialization mode, the CAN module is deactivated. Reset the messages in all
- *   other modes to be sure that there is no leftover data that
- *   needs to be configured before use.
+ *   In Init mode, the CAN module is deactivated. Reset of the Messages in all
+ *   the other modes to be sure that there are no leftover data and that they
+ *   need to be configured before being of use.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] mode
  *   Mode of operation : Init, Normal, Loopback, SilentLoopback, Silent, Basic.
@@ -384,22 +385,22 @@ void CAN_SetMode(CAN_TypeDef *can, CAN_Mode_TypeDef mode)
 
 /***************************************************************************//**
  * @brief
- *   Set the ID and the filter for a specific Message Object.
+ *   Set the Id and the filter for a specific Message Object.
  *
  * @details
- *   The initialization bit has to be 0 to use this function.
+ *   The Init bit have to be 0 to use this function.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] useMask
- *   A boolean to choose whether or not to use the masks.
+ *   Boolean to choose whether or not to use the masks.
  *
  * @param[in] message
- *   A Message Object.
+ *   Message Object
  *
  * @param[in] wait
  *   If true, wait for the end of the transfer between the MIRx registers and
@@ -412,90 +413,89 @@ void CAN_SetIdAndFilter(CAN_TypeDef *can,
                         const CAN_MessageObject_TypeDef *message,
                         bool wait)
 {
-  /* Make sure msgNum is in the correct range. */
+  /* Make sure msgNum is in the correct range */
   EFM_ASSERT((message->msgNum > 0) && (message->msgNum <= 32));
 
   CAN_MIR_TypeDef * mir = &can->MIR[interface];
   CAN_ReadyWait(can, interface);
 
-  /* Set which registers to read from RAM. */
+  /* Set which registers to read from the RAM */
   mir->CMDMASK = CAN_MIR_CMDMASK_WRRD_READ
                  | CAN_MIR_CMDMASK_ARBACC
                  | CAN_MIR_CMDMASK_CONTROL;
 
-  /* Send reading request and wait (3 to 6 CPU cycle). */
+  /* Send reading request and wait (3 to 6 cpu cycle) */
   CAN_SendRequest(can, interface, message->msgNum, true);
 
-  /* Reset MSGVAL. */
-  mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD_WRITE;
-  mir->ARB &= ~(0x1U << _CAN_MIR_ARB_MSGVAL_SHIFT);
+  /* Reset MSGVAL */
+  mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD;
+  mir->ARB &= ~(0x1 << _CAN_MIR_ARB_MSGVAL_SHIFT);
   CAN_SendRequest(can, interface, message->msgNum, true);
 
-  /* Set which registers to write to RAM. */
+  /* Set which registers to write to the RAM */
   mir->CMDMASK |= CAN_MIR_CMDMASK_MASKACC;
 
-  /* Set UMASK bit. */
+  /* Set UMASK bit */
   BUS_RegBitWrite(&mir->CTRL, _CAN_MIR_CTRL_UMASK_SHIFT, useMask);
 
-  /* Configure the ID. */
+  /* Configure the id */
   if (message->extended) {
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_ID_MASK);
     mir->ARB = (mir->ARB & ~_CAN_MIR_ARB_ID_MASK)
                | (message->id << _CAN_MIR_ARB_ID_SHIFT)
-               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT)
+               | (uint32_t)(0x1 << _CAN_MIR_ARB_MSGVAL_SHIFT)
                | CAN_MIR_ARB_XTD_EXT;
   } else {
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_STD_ID_MAX);
     mir->ARB = (mir->ARB & ~(_CAN_MIR_ARB_ID_MASK | CAN_MIR_ARB_XTD_STD))
-               | (_CAN_MIR_ARB_STD_ID_SHIFT)
-               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT);
+               | (message->id << _CAN_MIR_ARB_STD_ID_SHIFT)
+               | (uint32_t)(0x1 << _CAN_MIR_ARB_MSGVAL_SHIFT);
   }
 
   if (message->extendedMask) {
-    mir->MASK = (message->mask << _CAN_MIR_MASK_MASK_SHIFT)
-                & _CAN_MIR_MASK_MASK_MASK;
+    mir->MASK = (message->mask << _CAN_MIR_MASK_MASK_SHIFT);
   } else {
     mir->MASK = (message->mask << _CAN_MIR_MASK_STD_SHIFT)
                 & _CAN_MIR_ARB_STD_ID_MASK;
   }
 
-  /* Configure the masks. */
+  /* Configure the masks */
   mir->MASK |= (message->extendedMask << _CAN_MIR_MASK_MXTD_SHIFT)
                | (message->directionMask << _CAN_MIR_MASK_MDIR_SHIFT);
 
-  /* Send a writing request. */
+  /* Send writing request */
   CAN_SendRequest(can, interface, message->msgNum, wait);
 }
 
 /***************************************************************************//**
  * @brief
- *   Configure valid, TX/RX, remoteTransfer for a specific Message Object.
+ *   Configure valid, tx/rx, remoteTransfer for a specific Message Object.
  *
  * @details
- *   The initialization bit has to be 0 to use this function.
+ *   The Init bit have to be 0 to use this function.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] msgNum
- *   A message number of this Message Object, [1 - 32].
+ *   Message number of this Message Object, [1 - 32].
  *
  * @param[in] valid
- *   True if the Message Object is valid, false otherwise.
+ *   true if Message Object is valid, false otherwise.
  *
  * @param[in] tx
- *   True if the Message Object is used for transmission, false if used for
+ *   true if Message Object is used for transmission, false if used for
  *   reception.
  *
  * @param[in] remoteTransfer
- *   True if the Message Object is used for remote transmission, false otherwise.
+ *   true if Message Object is used for remote transmission, false otherwise.
  *
  * @param[in] endOfBuffer
- *   True if it is for a single Message Object or the end of a FIFO buffer,
- *   false if the Message Object is part of a FIFO buffer and not the last.
+ *   true if it is for a single Message Object or the end of a fifo buffer,
+ *   false if the Message Object is part of a fifo buffer and not the last.
  *
  * @param[in] wait
  *   If true, wait for the end of the transfer between the MIRx registers and
@@ -513,64 +513,64 @@ void CAN_ConfigureMessageObject(CAN_TypeDef *can,
 {
   CAN_MIR_TypeDef * mir = &can->MIR[interface];
 
-  /* Make sure msgNum is in correct range. */
+  /* Make sure msgNum is in the correct range */
   EFM_ASSERT((msgNum > 0) && (msgNum <= 32));
 
   CAN_ReadyWait(can, interface);
 
-  /* Set which registers to read from RAM. */
+  /* Set which registers to read from the RAM */
   mir->CMDMASK = CAN_MIR_CMDMASK_WRRD_READ
                  | CAN_MIR_CMDMASK_ARBACC
                  | CAN_MIR_CMDMASK_CONTROL;
 
-  /* Send reading request and wait (3 to 6 CPU cycle). */
+  /* Send reading request and wait (3 to 6 cpu cycle) */
   CAN_SendRequest(can, interface, msgNum, true);
 
-  /* Set which registers to write to RAM. */
-  mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD_WRITE;
+  /* Set which registers to write to the RAM */
+  mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD;
 
-  /* Configure a valid message and direction. */
+  /* Configure valid message and direction */
   mir->ARB = (mir->ARB & ~(_CAN_MIR_ARB_DIR_MASK | _CAN_MIR_ARB_MSGVAL_MASK))
              | (valid << _CAN_MIR_ARB_MSGVAL_SHIFT)
              | (tx << _CAN_MIR_ARB_DIR_SHIFT);
 
-  /* Set EOB bit, RX, and TX interrupts. */
+  /* Set eob bit, rx and tx interrupts */
   mir->CTRL = (endOfBuffer << _CAN_MIR_CTRL_EOB_SHIFT)
               | _CAN_MIR_CTRL_TXIE_MASK
               | _CAN_MIR_CTRL_RXIE_MASK
               | (remoteTransfer << _CAN_MIR_CTRL_RMTEN_SHIFT);
 
-  /* Send a writing request. */
+  /* Send writing request */
   CAN_SendRequest(can, interface, msgNum, wait);
 }
 
 /***************************************************************************//**
  * @brief
- *   Send data from the Message Object message.
+ *   Send the data from the Message Object message.
  *
  * @details
- *   If the message is configured as TX and remoteTransfer = 0, calling this function
+ *   If message is configured as tx and remoteTransfer = 0, calling this function
  *   will send the data of this Message Object if its parameters are correct.
- *   If the message is TX and remoteTransfer = 1, this function will set the data of
- *   message to RAM and exit. Data will be automatically sent after
+ *   If message is tx and remoteTransfer = 1, this function will set the data of
+ *   message to the RAM and exit, the data will be automatically sent after
  *   reception of a remote frame.
- *   If the message is RX and remoteTransfer = 1, this function will send a remote
- *   frame to the corresponding ID.
- *   If the message is RX and remoteTransfer = 0, the user shouldn't call this
+ *   If message is rx and remoteTransfer = 1, this function will send a remote
+ *   frame to the corresponding id.
+ *   If message is rx and remoteTransfer = 0, the user shouldn't call this
  *   function. It will also send a remote frame.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] message
- *   A Message Object.
+ *   Message Object
  *
  * @param[in] wait
  *   If true, wait for the end of the transfer between the MIRx registers and
- *   RAM to exit. If false, exit immediately. The transfer can still be
+ *   the RAM to exit. If false, exit immediately, the transfer can still be
  *   in progress.
  ******************************************************************************/
 void CAN_SendMessage(CAN_TypeDef *can,
@@ -580,85 +580,85 @@ void CAN_SendMessage(CAN_TypeDef *can,
 {
   CAN_MIR_TypeDef * mir = &can->MIR[interface];
 
-  /* Make sure msgNum is in correct range. */
+  /* Make sure msgNum is in the correct range */
   EFM_ASSERT((message->msgNum > 0) && (message->msgNum <= 32));
-  /* Make sure dlc is in correct range. */
+  /* Make sure dlc is in the correct range */
   EFM_ASSERT(message->dlc <= _CAN_MIR_CTRL_DLC_MASK);
 
   CAN_ReadyWait(can, interface);
 
-  /* Set LEC to an unused value to be sure it is reset to 0 after sending. */
+  /* Set LEC to unused value to be sure it is reset to 0 after sending */
   BUS_RegMaskedWrite(&can->STATUS, _CAN_STATUS_LEC_MASK, 0x7);
 
-  /* Set which registers to read from RAM. */
+  /* Set which registers to read from the RAM */
   mir->CMDMASK = CAN_MIR_CMDMASK_WRRD_READ
                  | CAN_MIR_CMDMASK_ARBACC
                  | CAN_MIR_CMDMASK_CONTROL;
 
-  /* Send a reading request and wait (3 to 6 CPU cycle). */
+  /* Send reading request and wait (3 to 6 cpu cycle) */
   CAN_SendRequest(can, interface, message->msgNum, true);
 
-  /* Reset MSGVAL. */
-  mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD_WRITE;
-  mir->ARB &= ~(0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT);
+  /* Reset MSGVAL */
+  mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD;
+  mir->ARB &= ~(0x1 << _CAN_MIR_ARB_MSGVAL_SHIFT);
   CAN_SendRequest(can, interface, message->msgNum, true);
 
-  /* Set which registers to write to RAM. */
+  /* Set which registers to write to the RAM */
   mir->CMDMASK |= CAN_MIR_CMDMASK_DATAA
                   | CAN_MIR_CMDMASK_DATAB;
 
-  /* If TX = 1 and remoteTransfer = 1, nothing is sent. */
+  /* If tx = 1 and remoteTransfer = 1, nothing is sent */
   if ( ((mir->CTRL & _CAN_MIR_CTRL_RMTEN_MASK) == 0)
        || ((mir->ARB & _CAN_MIR_ARB_DIR_MASK) == _CAN_MIR_ARB_DIR_RX)) {
     mir->CTRL |= CAN_MIR_CTRL_TXRQST;
-    /* DATAVALID is set only if it is not sending a remote message. */
+    /* DATAVALID is set only if it is not sending a remote message */
     if ((mir->CTRL & _CAN_MIR_CTRL_RMTEN_MASK) == 0) {
       mir->CTRL |= CAN_MIR_CTRL_DATAVALID;
     }
   }
 
-  /* Set the data length code. */
+  /* Set the Data length Code */
   mir->CTRL = (mir->CTRL & ~_CAN_MIR_CTRL_DLC_MASK)
               | message->dlc;
 
-  /* Configure the ID. */
+  /* Configure the id */
   if (message->extended) {
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_ID_MASK);
     mir->ARB = (mir->ARB & ~_CAN_MIR_ARB_ID_MASK)
                | (message->id << _CAN_MIR_ARB_ID_SHIFT)
-               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT)
+               | (uint32_t)(0x1 << _CAN_MIR_ARB_MSGVAL_SHIFT)
                | CAN_MIR_ARB_XTD_EXT;
   } else {
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_STD_ID_MAX);
     mir->ARB = (mir->ARB & ~(_CAN_MIR_ARB_ID_MASK | _CAN_MIR_ARB_XTD_MASK))
-               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT)
+               | (uint32_t)(0x1 << _CAN_MIR_ARB_MSGVAL_SHIFT)
                | (message->id << _CAN_MIR_ARB_STD_ID_SHIFT)
                | CAN_MIR_ARB_XTD_STD;
   }
 
-  /* Set data. */
+  /* Set the data */
   CAN_WriteData(can, interface, message);
 
-  /* Send a writing request. */
+  /* Send writing request */
   CAN_SendRequest(can, interface, message->msgNum, wait);
 }
 
 /***************************************************************************//**
  * @brief
- *   Read data from a Message Object in RAM and store it in a message.
+ *   Read the data from a Message Object in the RAM and store it in message.
  *
  * @details
- *   Read the information from  RAM on this Message Object : data but
+ *   Read all the information from the RAM on this Message Object : the data but
  *   also the configuration of the other registers.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] message
- *   A Message Object.
+ *   Message Object
  ******************************************************************************/
 void CAN_ReadMessage(CAN_TypeDef *can,
                      uint8_t interface,
@@ -668,12 +668,12 @@ void CAN_ReadMessage(CAN_TypeDef *can,
   uint32_t buffer;
   uint32_t i;
 
-  /* Make sure msgNum is in correct range. */
+  /* Make sure msgNum is in the correct range */
   EFM_ASSERT((message->msgNum > 0) && (message->msgNum <= 32));
 
   CAN_ReadyWait(can, interface);
 
-  /* Set which registers to read from RAM. */
+  /* Set which registers to read from the RAM */
   mir->CMDMASK = CAN_MIR_CMDMASK_WRRD_READ
                  | CAN_MIR_CMDMASK_MASKACC
                  | CAN_MIR_CMDMASK_ARBACC
@@ -683,23 +683,16 @@ void CAN_ReadMessage(CAN_TypeDef *can,
                  | CAN_MIR_CMDMASK_DATAA
                  | CAN_MIR_CMDMASK_DATAB;
 
-  /* Send a reading request and wait (3 to 6 cpu cycle). */
+  /* Send reading request and wait (3 to 6 cpu cycle) */
   CAN_SendRequest(can, interface, message->msgNum, true);
 
-  /* Get dlc from the control register. */
+  /* Get dlc from the control register */
   message->dlc = ((mir->CTRL & _CAN_MIR_CTRL_DLC_MASK) >> _CAN_MIR_CTRL_DLC_SHIFT);
 
-  /* Make sure dlc is in correct range. */
+  /* Make sure dlc is in the correct range */
   EFM_ASSERT(message->dlc <= 8);
 
-  /* Get id from the control register */
-  if (message->extended) {
-    message->id = (mir->ARB & _CAN_MIR_ARB_ID_MASK);
-  } else {
-    message->id = ((mir->ARB & _CAN_MIR_ARB_STD_ID_MASK) >> _CAN_MIR_ARB_STD_ID_SHIFT);
-  }
-
-  /* Copy data from the MIR registers to the Message Object message. */
+  /* Copy the data from the MIR registers to the Message Object message */
   buffer = mir->DATAL;
   for (i = 0; i < SL_MIN(message->dlc, 4U); ++i) {
     message->data[i] = buffer & 0xFF;
@@ -716,25 +709,25 @@ void CAN_ReadMessage(CAN_TypeDef *can,
 
 /***************************************************************************//**
  * @brief
- *   Abort sending a message.
+ *   Abort the sending of a message
  *
  * @details
- *   Set the TXRQST of the CTRL register to 0. Doesn't touch data or the
- *   other parameters. The user can call CAN_SendMessage() to send the object
+ *   Set the TXRQST of the CTRL register to 0. Doesn't touch the data ot the
+ *   others parameters. The user can reuse CAN_SendMessage() to send the object
  *   after using CAN_AbortSendMessage().
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] msgNum
- *   A message number of this Message Object, [1 - 32].
+ *   Message number of this Message Object, [1 - 32].
  *
  * @param[in] wait
  *   If true, wait for the end of the transfer between the MIRx registers and
- *   the RAM to exit. If false, exit immediately. The transfer can still be
+ *   the RAM to exit. If false, exit immediately, the transfer can still be
  *   in progress.
  ******************************************************************************/
 void CAN_AbortSendMessage(CAN_TypeDef *can,
@@ -742,36 +735,29 @@ void CAN_AbortSendMessage(CAN_TypeDef *can,
                           uint8_t msgNum,
                           bool wait)
 {
-  /* Make sure msgNum is in correct range. */
+  /* Make sure msgNum is in the correct range */
   EFM_ASSERT((msgNum > 0) && (msgNum <= 32));
 
   CAN_MIR_TypeDef * mir = &can->MIR[interface];
   CAN_ReadyWait(can, interface);
 
-  /* Set which registers to read from RAM. */
-  mir->CMDMASK = CAN_MIR_CMDMASK_WRRD_READ
-                 | CAN_MIR_CMDMASK_CONTROL;
-
-  /* Send a reading request and wait (3 to 6 cpu cycle). */
-  CAN_SendRequest(can, interface, msgNum, true);
-
-  /* Set which registers to write to RAM. */
+  /* Set which registers to write to the RAM */
   mir->CMDMASK = CAN_MIR_CMDMASK_WRRD
-                 | CAN_MIR_CMDMASK_CONTROL;
+                 | CAN_MIR_CMDMASK_ARBACC;
 
-  /* Set TXRQST bit to 0. */
-  mir->CTRL &= ~_CAN_MIR_CTRL_TXRQST_MASK;
+  /* Set TXRQST bit to 0 */
+  mir->ARB &= ~_CAN_MIR_CTRL_TXRQST_MASK;
 
-  /* Send a writing request. */
+  /* Send writing request */
   CAN_SendRequest(can, interface, msgNum, wait);
 }
 
 /***************************************************************************//**
  * @brief
- *   Reset all Message Objects and set their data to 0.
+ *   Reset all the Message Objects and set their data to 0.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
@@ -781,7 +767,7 @@ void CAN_ResetMessages(CAN_TypeDef *can, uint8_t interface)
   CAN_MIR_TypeDef * mir = &can->MIR[interface];
   CAN_ReadyWait(can, interface);
 
-  /* Set which registers to read from RAM. */
+  /* Set which registers to read from the RAM */
   mir->CMDMASK = CAN_MIR_CMDMASK_WRRD
                  | CAN_MIR_CMDMASK_MASKACC
                  | CAN_MIR_CMDMASK_ARBACC
@@ -795,7 +781,7 @@ void CAN_ResetMessages(CAN_TypeDef *can, uint8_t interface)
   mir->DATAL   = 0x00000000;
   mir->DATAH   = 0x00000000;
 
-  /* Write each reset Message Object to RAM. */
+  /* Write each reset Message Object to the RAM */
   for (int i = 1; i <= 32; ++i) {
     CAN_SendRequest(can, interface, i, true);
   }
@@ -803,10 +789,10 @@ void CAN_ResetMessages(CAN_TypeDef *can, uint8_t interface)
 
 /***************************************************************************//**
  * @brief
- *   Set all CAN registers to RESETVALUE. Leave the CAN device disabled.
+ *   Set all the CAN registers to RESETVALUE. Leave the CAN Device disabled.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  ******************************************************************************/
 void CAN_Reset(CAN_TypeDef *can)
 {
@@ -847,61 +833,56 @@ void CAN_Reset(CAN_TypeDef *can)
 
 /***************************************************************************//**
  * @brief
- *   Write data from a message to the MIRx registers.
+ *   Write the data from message to the MIRx registers
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] message
- *   A Message Object.
+ *   Message Object
  ******************************************************************************/
 void CAN_WriteData(CAN_TypeDef *can,
                    uint8_t interface,
                    const CAN_MessageObject_TypeDef *message)
 {
-  uint32_t tmp;
+  CAN_MIR_TypeDef * mir = &can->MIR[interface];
   uint8_t data[8] = { 0 };
   size_t length = SL_MIN(8, message->dlc);
-  CAN_MIR_TypeDef * mir = &can->MIR[interface];
 
   for (size_t i = 0; i < length; i++) {
     data[i] = message->data[i];
   }
 
   CAN_ReadyWait(can, interface);
-
-  tmp = data[0];
-  tmp |= data[1] << 8;
-  tmp |= data[2] << 16;
-  tmp |= data[3] << 24;
-  mir->DATAL = tmp;
-
-  tmp = data[4];
-  tmp |= data[5] << 8;
-  tmp |= data[6] << 16;
-  tmp |= data[7] << 24;
-  mir->DATAH = tmp;
+  mir->DATAL = (data[3] << 24)
+               | (data[2] << 16)
+               | (data[1] << 8)
+               | (data[0] << 0);
+  mir->DATAH = (data[7] << 24)
+               | (data[6] << 16)
+               | (data[5] << 8)
+               | (data[4] << 0);
 }
 
 /***************************************************************************//**
  * @brief
- *   Send a request for writing or reading RAM of the Message Object msgNum.
+ *   Send request for writing or reading the RAM of Message Object msgNum.
  *
  * @param[in] can
- *   A pointer to the CAN peripheral register block.
+ *   Pointer to CAN peripheral register block.
  *
  * @param[in] interface
  *   Indicate which Message Interface Register to use.
  *
  * @param[in] msgNum
- *   A message number of the Message Object, [1 - 32].
+ *   Message number of the Message Object, [1 - 32].
  *
  * @param[in] wait
  *   If true, wait for the end of the transfer between the MIRx registers and
- *   the RAM to exit. If false, exit immediately. The transfer can still be
+ *   the RAM to exit. If false, exit immediately, the transfer can still be
  *   in progress.
  ******************************************************************************/
 void CAN_SendRequest(CAN_TypeDef *can,
@@ -911,13 +892,13 @@ void CAN_SendRequest(CAN_TypeDef *can,
 {
   CAN_MIR_TypeDef * mir = &can->MIR[interface];
 
-  /* Make sure msgNum is in correct range. */
+  /* Make sure msgNum is in the correct range */
   EFM_ASSERT((msgNum > 0) && (msgNum <= 32));
 
-  /* Make sure the MIRx registers aren't busy. */
+  /* Make sure the MIRx registers aren't busy */
   CAN_ReadyWait(can, interface);
 
-  /* Write msgNum to the CMDREQ register. */
+  /* Write msgNum to the CMDREQ register */
   mir->CMDREQ = msgNum << _CAN_MIR_CMDREQ_MSGNUM_SHIFT;
 
   if (wait) {

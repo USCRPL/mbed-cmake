@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,29 +18,26 @@
 
 #include "platform/platform.h"
 
-#if DEVICE_SERIAL || defined(DOXYGEN_ONLY)
+#if defined (DEVICE_SERIAL) || defined(DOXYGEN_ONLY)
 
-#include "platform/Callback.h"
-#include "hal/serial_api.h"
-#include "platform/mbed_toolchain.h"
+#include "Callback.h"
+#include "serial_api.h"
+#include "mbed_toolchain.h"
 #include "platform/NonCopyable.h"
 
 #if DEVICE_SERIAL_ASYNCH
-#include "platform/CThunk.h"
-#include "hal/dma_api.h"
+#include "CThunk.h"
+#include "dma_api.h"
 #endif
 
 namespace mbed {
-/**
- * \defgroup drivers_SerialBase SerialBase class
- * \ingroup drivers-public-api-uart
- * @{
- */
+/** \addtogroup drivers */
 
 /** A base class for serial port implementations
  * Can't be instantiated directly (use Serial or RawSerial)
  *
  * @note Synchronization level: Set by subclass
+ * @ingroup drivers
  */
 class SerialBase : private NonCopyable<SerialBase> {
 
@@ -101,7 +97,7 @@ public:
     /** Attach a function to call whenever a serial interrupt is generated
      *
      *  @param func A pointer to a void function, or 0 to set as none
-     *  @param type Which serial interrupt to attach the member function to (Serial::RxIrq for receive, TxIrq for transmit buffer empty)
+     *  @param type Which serial interrupt to attach the member function to (Seriall::RxIrq for receive, TxIrq for transmit buffer empty)
      */
     void attach(Callback<void()> func, IrqType type = RxIrq);
 
@@ -109,7 +105,7 @@ public:
      *
      *  @param obj pointer to the object to call the member function on
      *  @param method pointer to the member function to be called
-     *  @param type Which serial interrupt to attach the member function to (Serial::RxIrq for receive, TxIrq for transmit buffer empty)
+     *  @param type Which serial interrupt to attach the member function to (Seriall::RxIrq for receive, TxIrq for transmit buffer empty)
      *  @deprecated
      *      The attach function does not support cv-qualifiers. Replaced by
      *      attach(callback(obj, method), type).
@@ -127,7 +123,7 @@ public:
      *
      *  @param obj pointer to the object to call the member function on
      *  @param method pointer to the member function to be called
-     *  @param type Which serial interrupt to attach the member function to (Serial::RxIrq for receive, TxIrq for transmit buffer empty)
+     *  @param type Which serial interrupt to attach the member function to (Seriall::RxIrq for receive, TxIrq for transmit buffer empty)
      *  @deprecated
      *      The attach function does not support cv-qualifiers. Replaced by
      *      attach(callback(obj, method), type).
@@ -142,44 +138,9 @@ public:
     }
 
     /** Generate a break condition on the serial line
-     *  NOTE: Clear break needs to run at least one frame after set_break is called
-     */
-    void set_break();
-
-    /** Clear a break condition on the serial line
-     *  NOTE: Should be run at least one frame after set_break is called
-     */
-    void clear_break();
-
-    /** Generate a break condition on the serial line
      */
     void send_break();
 
-    /** Enable serial input
-     *
-     * If both serial input and serial output are disabled, the
-     * peripheral is freed. If either serial input or serial
-     * output is re-enabled, the peripheral is reinitialized.
-     *
-     * On re-initialization rx interrupts will be enabled if a
-     * rx handler is attached. The rx handler is called once
-     * during re-initialization.
-     */
-    void enable_input(bool enable = true);
-
-    /** Enable serial output
-     *
-     * If both serial input and serial output are disabled, the
-     * peripheral is freed. If either serial input or serial
-     * output is re-enabled, the peripheral is reinitialized.
-     *
-     * On re-initialization tx interrupts will be enabled if a
-     * tx handler is attached. The tx handler is called once
-     * during re-initialization.
-     */
-    void enable_output(bool enable = true);
-
-#if !defined(DOXYGEN_ONLY)
 protected:
 
     /** Acquire exclusive access to this serial port
@@ -189,7 +150,7 @@ protected:
     /** Release exclusive access to this serial port
      */
     virtual void unlock(void);
-#endif
+
 public:
 
 #if DEVICE_SERIAL_FC
@@ -200,98 +161,63 @@ public:
      *  @param flow2 the second flow control pin (CTS for RTSCTS)
      */
     void set_flow_control(Flow type, PinName flow1 = NC, PinName flow2 = NC);
-
-    /** Set the flow control type on the serial port
-     *
-     *  @param type the flow control type (Disabled, RTS, CTS, RTSCTS)
-     *  @param pinmap reference to structure which holds static pinmap
-     */
-    void set_flow_control(Flow type, const serial_fc_pinmap_t &static_pinmap);
 #endif
 
     static void _irq_handler(uint32_t id, SerialIrq irq_type);
 
 #if DEVICE_SERIAL_ASYNCH
 
-    /** Begin asynchronous write using 8bit buffer.
+    /** Begin asynchronous write using 8bit buffer. The completition invokes registered TX event callback
      *
-     *  The write operation ends with any of the enabled events and invokes
-     *  registered callback function (which can be NULL to not receive callback at all).
-     *  Events that are not enabled by event argument are simply ignored.
-     *  Operation has to be ended explicitly by calling abort_write() when
-     *  no events are enabled.
-     *  This function locks the deep sleep until any event has occurred.
+     *  This function locks the deep sleep until any event has occurred
      *
      *  @param buffer   The buffer where received data will be stored
      *  @param length   The buffer length in bytes
      *  @param callback The event callback function
-     *  @param event    The logical OR of TX events that should end operation
-     *  @return Zero if new transaction was started, -1 if transaction is already on-going
+     *  @param event    The logical OR of TX events
      */
     int write(const uint8_t *buffer, int length, const event_callback_t &callback, int event = SERIAL_EVENT_TX_COMPLETE);
 
-    /** Begin asynchronous write using 16bit buffer.
+    /** Begin asynchronous write using 16bit buffer. The completition invokes registered TX event callback
      *
-     *  The write operation ends with any of the enabled events and invokes
-     *  registered callback function (which can be NULL to not receive callback at all).
-     *  Events that are not enabled by event argument are simply ignored.
-     *  Operation has to be ended explicitly by calling abort_write() when
-     *  no events are enabled.
-     *  This function locks the deep sleep until any event has occurred.
+     *  This function locks the deep sleep until any event has occurred
      *
      *  @param buffer   The buffer where received data will be stored
      *  @param length   The buffer length in bytes
      *  @param callback The event callback function
-     *  @param event    The logical OR of TX events that should end operation
-     *  @return Zero if new transaction was started, -1 if transaction is already on-going
+     *  @param event    The logical OR of TX events
      */
     int write(const uint16_t *buffer, int length, const event_callback_t &callback, int event = SERIAL_EVENT_TX_COMPLETE);
 
     /** Abort the on-going write transfer
-     *
-     *  It is safe to call abort_write() when there is no on-going transaction.
      */
     void abort_write();
 
-    /** Begin asynchronous reading using 8bit buffer.
+    /** Begin asynchronous reading using 8bit buffer. The completition invokes registred RX event callback.
      *
-     *  The read operation ends with any of the enabled events and invokes registered
-     *  callback function (which can be NULL to not receive callback at all).
-     *  Events that are not enabled by event argument are simply ignored.
-     *  Operation has to be ended explicitly by calling abort_read() when
-     *  no events are enabled.
-     *  This function locks the deep sleep until any event has occurred.
+     *  This function locks the deep sleep until any event has occurred
      *
      *  @param buffer     The buffer where received data will be stored
      *  @param length     The buffer length in bytes
      *  @param callback   The event callback function
-     *  @param event      The logical OR of RX events that should end operation
+     *  @param event      The logical OR of RX events
      *  @param char_match The matching character
-     *  @return Zero if new transaction was started, -1 if transaction is already on-going
      */
     int read(uint8_t *buffer, int length, const event_callback_t &callback, int event = SERIAL_EVENT_RX_COMPLETE, unsigned char char_match = SERIAL_RESERVED_CHAR_MATCH);
 
-    /** Begin asynchronous reading using 16bit buffer.
+    /** Begin asynchronous reading using 16bit buffer. The completition invokes registred RX event callback.
      *
-     *  The read operation ends with any of the enabled events and invokes registered
-     *  callback function (which can be NULL to not receive callback at all).
-     *  Events that are not enabled by event argument are simply ignored.
-     *  Operation has to be ended explicitly by calling abort_read() when
-     *  no events are enabled.
-     *  This function locks the deep sleep until any event has occurred.
+     *  This function locks the deep sleep until any event has occurred
      *
      *  @param buffer     The buffer where received data will be stored
      *  @param length     The buffer length in bytes
      *  @param callback   The event callback function
-     *  @param event      The logical OR of RX events that should end operation
+     *  @param event      The logical OR of RX events
      *  @param char_match The matching character
-     *  @return Zero if new transaction was started, -1 if transaction is already on-going
      */
     int read(uint16_t *buffer, int length, const event_callback_t &callback, int event = SERIAL_EVENT_RX_COMPLETE, unsigned char char_match = SERIAL_RESERVED_CHAR_MATCH);
 
     /** Abort the on-going read transfer
-     *
-     *  It is safe to call abort_read() when there is no on-going transaction.
      */
     void abort_read();
 
@@ -309,67 +235,32 @@ public:
      */
     int set_dma_usage_rx(DMAUsage usage);
 
-#if !defined(DOXYGEN_ONLY)
 protected:
     void start_read(void *buffer, int buffer_size, char buffer_width, const event_callback_t &callback, int event, unsigned char char_match);
     void start_write(const void *buffer, int buffer_size, char buffer_width, const event_callback_t &callback, int event);
     void interrupt_handler_asynch(void);
 #endif
-#endif
 
-#if !defined(DOXYGEN_ONLY)
 protected:
     SerialBase(PinName tx, PinName rx, int baud);
-    SerialBase(const serial_pinmap_t &static_pinmap, int baud);
     virtual ~SerialBase();
 
     int _base_getc();
-
     int _base_putc(int c);
-
-    /** Initialize serial port
-     */
-    void _init();
-    void _init_direct();
-    /* Pointer to serial init function */
-    void (SerialBase::*_init_func)();
-
-    /** Deinitialize serial port
-     */
-    void _deinit();
 
 #if DEVICE_SERIAL_ASYNCH
     CThunk<SerialBase> _thunk_irq;
-    DMAUsage _tx_usage = DMA_USAGE_NEVER;
-    DMAUsage _rx_usage = DMA_USAGE_NEVER;
+    DMAUsage _tx_usage;
+    DMAUsage _rx_usage;
     event_callback_t _tx_callback;
     event_callback_t _rx_callback;
-    bool _tx_asynch_set = false;
-    bool _rx_asynch_set = false;
 #endif
 
-    serial_t              _serial {};
-    Callback<void()>      _irq[IrqCnt];
-    int                   _baud;
-    bool                  _rx_enabled = true;
-    bool                  _tx_enabled = true;
-    const PinName         _tx_pin;
-    const PinName         _rx_pin;
-    const serial_pinmap_t *_static_pinmap = NULL;
-    void (SerialBase::*_set_flow_control_dp_func)(Flow, PinName, PinName) = NULL;
+    serial_t         _serial;
+    Callback<void()> _irq[IrqCnt];
+    int              _baud;
 
-#if DEVICE_SERIAL_FC
-    Flow                           _flow_type = Disabled;
-    PinName                        _flow1 = NC;
-    PinName                        _flow2 = NC;
-    const serial_fc_pinmap_t       *_static_pinmap_fc = NULL;
-    void (SerialBase::*_set_flow_control_sp_func)(Flow, const serial_fc_pinmap_t &) = NULL;
-#endif
-
-#endif
 };
-
-/** @}*/
 
 } // namespace mbed
 

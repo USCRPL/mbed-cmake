@@ -6,20 +6,36 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef STM32L4xx_LL_COMP_H
-#define STM32L4xx_LL_COMP_H
+#ifndef __STM32L4xx_LL_COMP_H
+#define __STM32L4xx_LL_COMP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +62,7 @@ extern "C" {
   */
 
 /* COMP registers bits positions */
-#define LL_COMP_OUTPUT_LEVEL_BITOFFSET_POS (30UL) /* Value equivalent to POSITION_VAL(COMP_CSR_VALUE) */
+#define LL_COMP_OUTPUT_LEVEL_BITOFFSET_POS (30U) /* Value equivalent to POSITION_VAL(COMP_CSR_VALUE) */
 
 /**
   * @}
@@ -66,32 +82,32 @@ typedef struct
 {
   uint32_t PowerMode;                   /*!< Set comparator operating mode to adjust power and speed.
                                              This parameter can be a value of @ref COMP_LL_EC_POWERMODE
-
+                                             
                                              This feature can be modified afterwards using unitary function @ref LL_COMP_SetPowerMode(). */
 
   uint32_t InputPlus;                   /*!< Set comparator input plus (non-inverting input).
                                              This parameter can be a value of @ref COMP_LL_EC_INPUT_PLUS
-
+                                             
                                              This feature can be modified afterwards using unitary function @ref LL_COMP_SetInputPlus(). */
 
   uint32_t InputMinus;                  /*!< Set comparator input minus (inverting input).
                                              This parameter can be a value of @ref COMP_LL_EC_INPUT_MINUS
-
+                                             
                                              This feature can be modified afterwards using unitary function @ref LL_COMP_SetInputMinus(). */
 
   uint32_t InputHysteresis;             /*!< Set comparator hysteresis mode of the input minus.
                                              This parameter can be a value of @ref COMP_LL_EC_INPUT_HYSTERESIS
-
+                                             
                                              This feature can be modified afterwards using unitary function @ref LL_COMP_SetInputHysteresis(). */
 
   uint32_t OutputPolarity;              /*!< Set comparator output polarity.
                                              This parameter can be a value of @ref COMP_LL_EC_OUTPUT_POLARITY
-
+                                             
                                              This feature can be modified afterwards using unitary function @ref LL_COMP_SetOutputPolarity(). */
 
   uint32_t OutputBlankingSource;        /*!< Set comparator blanking source.
                                              This parameter can be a value of @ref COMP_LL_EC_OUTPUT_BLANKING_SOURCE
-
+                                             
                                              This feature can be modified afterwards using unitary function @ref LL_COMP_SetOutputBlankingSource(). */
 
 } LL_COMP_InitTypeDef;
@@ -109,10 +125,8 @@ typedef struct
 /** @defgroup COMP_LL_EC_COMMON_WINDOWMODE Comparator common modes - Window mode
   * @{
   */
-#if defined(COMP2)
-#define LL_COMP_WINDOWMODE_DISABLE                 (0x00000000UL)          /*!< Window mode disable: Comparators 1 and 2 are independent */
+#define LL_COMP_WINDOWMODE_DISABLE                 (0x00000000U)           /*!< Window mode disable: Comparators 1 and 2 are independent */
 #define LL_COMP_WINDOWMODE_COMP1_INPUT_PLUS_COMMON (COMP_CSR_WINMODE)      /*!< Window mode enable: Comparators instances pair COMP1 and COMP2 have their input plus connected together. The common input is COMP1 input plus (COMP2 input plus is no more accessible). */
-#endif /* COMP2 */
 /**
   * @}
   */
@@ -120,7 +134,7 @@ typedef struct
 /** @defgroup COMP_LL_EC_POWERMODE Comparator modes - Power mode
   * @{
   */
-#define LL_COMP_POWERMODE_HIGHSPEED     (0x00000000UL)                            /*!< COMP power mode to high speed */
+#define LL_COMP_POWERMODE_HIGHSPEED     (0x00000000U)                             /*!< COMP power mode to high speed */
 #define LL_COMP_POWERMODE_MEDIUMSPEED   (COMP_CSR_PWRMODE_0)                      /*!< COMP power mode to medium speed */
 #define LL_COMP_POWERMODE_ULTRALOWPOWER (COMP_CSR_PWRMODE_1 | COMP_CSR_PWRMODE_0) /*!< COMP power mode to ultra-low power */
 /**
@@ -130,7 +144,7 @@ typedef struct
 /** @defgroup COMP_LL_EC_INPUT_PLUS Comparator inputs - Input plus (input non-inverting) selection
   * @{
   */
-#define LL_COMP_INPUT_PLUS_IO1          (0x00000000UL)                          /*!< Comparator input plus connected to IO1 (pin PC5 for COMP1, pin PB4 for COMP2) */
+#define LL_COMP_INPUT_PLUS_IO1          (0x00000000U)                           /*!< Comparator input plus connected to IO1 (pin PC5 for COMP1, pin PB4 for COMP2) */
 #define LL_COMP_INPUT_PLUS_IO2          (COMP_CSR_INPSEL_0)                     /*!< Comparator input plus connected to IO2 (pin PB2 for COMP1, pin PB6 for COMP2) */
 #if defined(COMP_CSR_INPSEL_1)
 #define LL_COMP_INPUT_PLUS_IO3          (COMP_CSR_INPSEL_1)                     /*!< Comparator input plus connected to IO3 (pin PA1 for COMP1, pin PA3 for COMP2) */
@@ -190,7 +204,7 @@ typedef struct
 /** @defgroup COMP_LL_EC_INPUT_HYSTERESIS Comparator input - Hysteresis
   * @{
   */
-#define LL_COMP_HYSTERESIS_NONE         (0x00000000UL)                      /*!< No hysteresis */
+#define LL_COMP_HYSTERESIS_NONE         (0x00000000U)                       /*!< No hysteresis */
 #define LL_COMP_HYSTERESIS_LOW          (                  COMP_CSR_HYST_0) /*!< Hysteresis level low */
 #define LL_COMP_HYSTERESIS_MEDIUM       (COMP_CSR_HYST_1                  ) /*!< Hysteresis level medium */
 #define LL_COMP_HYSTERESIS_HIGH         (COMP_CSR_HYST_1 | COMP_CSR_HYST_0) /*!< Hysteresis level high */
@@ -201,7 +215,7 @@ typedef struct
 /** @defgroup COMP_LL_EC_OUTPUT_POLARITY Comparator output - Output polarity
   * @{
   */
-#define LL_COMP_OUTPUTPOL_NONINVERTED   (0x00000000UL)          /*!< COMP output polarity is not inverted: comparator output is high when the plus (non-inverting) input is at a higher voltage than the minus (inverting) input */
+#define LL_COMP_OUTPUTPOL_NONINVERTED   (0x00000000U)           /*!< COMP output polarity is not inverted: comparator output is high when the plus (non-inverting) input is at a higher voltage than the minus (inverting) input */
 #define LL_COMP_OUTPUTPOL_INVERTED      (COMP_CSR_POLARITY)     /*!< COMP output polarity is inverted: comparator output is low when the plus (non-inverting) input is at a lower voltage than the minus (inverting) input */
 /**
   * @}
@@ -210,7 +224,7 @@ typedef struct
 /** @defgroup COMP_LL_EC_OUTPUT_BLANKING_SOURCE Comparator output - Blanking source
   * @{
   */
-#define LL_COMP_BLANKINGSRC_NONE            (0x00000000UL)          /*!<Comparator output without blanking */
+#define LL_COMP_BLANKINGSRC_NONE            (0x00000000U)           /*!<Comparator output without blanking */
 #define LL_COMP_BLANKINGSRC_TIM1_OC5_COMP1  (COMP_CSR_BLANKING_0)   /*!< Comparator output blanking source TIM1 OC5 (specific to COMP instance: COMP1) */
 #define LL_COMP_BLANKINGSRC_TIM2_OC3_COMP1  (COMP_CSR_BLANKING_1)   /*!< Comparator output blanking source TIM2 OC3 (specific to COMP instance: COMP1) */
 #define LL_COMP_BLANKINGSRC_TIM3_OC3_COMP1  (COMP_CSR_BLANKING_2)   /*!< Comparator output blanking source TIM3 OC3 (specific to COMP instance: COMP1) */
@@ -238,14 +252,14 @@ typedef struct
 /** @defgroup COMP_LL_EC_OUTPUT_LEVEL Comparator output - Output level
   * @{
   */
-#define LL_COMP_OUTPUT_LEVEL_LOW        (0x00000000UL)          /*!< Comparator output level low (if the polarity is not inverted, otherwise to be complemented) */
-#define LL_COMP_OUTPUT_LEVEL_HIGH       (0x00000001UL)          /*!< Comparator output level high (if the polarity is not inverted, otherwise to be complemented) */
+#define LL_COMP_OUTPUT_LEVEL_LOW        (0x00000000U)           /*!< Comparator output level low (if the polarity is not inverted, otherwise to be complemented) */
+#define LL_COMP_OUTPUT_LEVEL_HIGH       (0x00000001U)           /*!< Comparator output level high (if the polarity is not inverted, otherwise to be complemented) */
 /**
   * @}
   */
 
 /** @defgroup COMP_LL_EC_HW_DELAYS  Definitions of COMP hardware constraints delays
-  * @note   Only COMP peripheral HW delays are defined in COMP LL driver driver,
+  * @note   Only COMP IP HW delays are defined in COMP LL driver driver,
   *         not timeout values.
   *         For details on delays values, refer to descriptions in source code
   *         above each literal definition.
@@ -257,7 +271,7 @@ typedef struct
 /* Literal set to maximum value (refer to device datasheet,                   */
 /* parameter "tSTART").                                                       */
 /* Unit: us                                                                   */
-#define LL_COMP_DELAY_STARTUP_US          ( 80UL) /*!< Delay for COMP startup time */
+#define LL_COMP_DELAY_STARTUP_US          ( 80U)  /*!< Delay for COMP startup time */
 
 /* Delay for comparator voltage scaler stabilization time.                    */
 /* Note: Voltage scaler is used when selecting comparator input               */
@@ -265,7 +279,7 @@ typedef struct
 /* Literal set to maximum value (refer to device datasheet,                   */
 /* parameter "tSTART_SCALER").                                                */
 /* Unit: us                                                                   */
-#define LL_COMP_DELAY_VOLTAGE_SCALER_STAB_US ( 200UL) /*!< Delay for COMP voltage scaler stabilization time */
+#define LL_COMP_DELAY_VOLTAGE_SCALER_STAB_US ( 200U)  /*!< Delay for COMP voltage scaler stabilization time */
 
 /**
   * @}
@@ -290,7 +304,7 @@ typedef struct
   * @param  __VALUE__ Value to be written in the register
   * @retval None
   */
-#define LL_COMP_WriteReg(__INSTANCE__, __REG__, __VALUE__) WRITE_REG((__INSTANCE__)->__REG__, (__VALUE__))
+#define LL_COMP_WriteReg(__INSTANCE__, __REG__, __VALUE__) WRITE_REG(__INSTANCE__->__REG__, (__VALUE__))
 
 /**
   * @brief  Read a value in COMP register
@@ -298,7 +312,7 @@ typedef struct
   * @param  __REG__ Register to be read
   * @retval Register value
   */
-#define LL_COMP_ReadReg(__INSTANCE__, __REG__) READ_REG((__INSTANCE__)->__REG__)
+#define LL_COMP_ReadReg(__INSTANCE__, __REG__) READ_REG(__INSTANCE__->__REG__)
 /**
   * @}
   */
@@ -332,7 +346,6 @@ typedef struct
   * @{
   */
 
-#if defined(COMP2)
 /** @defgroup COMP_LL_EF_Configuration_comparator_common Configuration of COMP hierarchical scope: common to several COMP instances
   * @{
   */
@@ -374,7 +387,6 @@ __STATIC_INLINE uint32_t LL_COMP_GetCommonWindowMode(COMP_Common_TypeDef *COMPxy
   * @}
   */
 
-#endif /* COMP2 */
 /** @defgroup COMP_LL_EF_Configuration_comparator_modes Configuration of comparator modes
   * @{
   */
@@ -426,7 +438,7 @@ __STATIC_INLINE uint32_t LL_COMP_GetPowerMode(COMP_TypeDef *COMPx)
   *         voltage scaler bridge only when required
   *         (when selecting comparator input based on VrefInt: VrefInt or
   *         subdivision of VrefInt).
-  *         - For scaler bridge power consumption values,
+  *         - For scaler bridge power consumption values, 
   *           refer to device datasheet, parameter "IDDA(SCALER)".
   *         - Voltage scaler requires a delay for voltage stabilization.
   *           Refer to device datasheet, parameter "tSTART_SCALER".
@@ -450,13 +462,13 @@ __STATIC_INLINE uint32_t LL_COMP_GetPowerMode(COMP_TypeDef *COMPx)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO3 (*)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO4 (*)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO5 (*)
-  *
+  *         
   *         (*) Parameter not available on all devices.
   * @param  InputPlus This parameter can be one of the following values:
   *         @arg @ref LL_COMP_INPUT_PLUS_IO1
   *         @arg @ref LL_COMP_INPUT_PLUS_IO2
   *         @arg @ref LL_COMP_INPUT_PLUS_IO3 (*)
-  *
+  *         
   *         (*) Parameter not available on all devices.
   * @retval None
   */
@@ -484,7 +496,7 @@ __STATIC_INLINE void LL_COMP_ConfigInputs(COMP_TypeDef *COMPx, uint32_t InputMin
   *         @arg @ref LL_COMP_INPUT_PLUS_IO1
   *         @arg @ref LL_COMP_INPUT_PLUS_IO2
   *         @arg @ref LL_COMP_INPUT_PLUS_IO3 (*)
-  *
+  *         
   *         (*) Parameter not available on all devices.
   * @retval None
   */
@@ -504,7 +516,7 @@ __STATIC_INLINE void LL_COMP_SetInputPlus(COMP_TypeDef *COMPx, uint32_t InputPlu
   *         @arg @ref LL_COMP_INPUT_PLUS_IO1
   *         @arg @ref LL_COMP_INPUT_PLUS_IO2
   *         @arg @ref LL_COMP_INPUT_PLUS_IO3 (*)
-  *
+  *         
   *         (*) Parameter not available on all devices.
   */
 __STATIC_INLINE uint32_t LL_COMP_GetInputPlus(COMP_TypeDef *COMPx)
@@ -522,7 +534,7 @@ __STATIC_INLINE uint32_t LL_COMP_GetInputPlus(COMP_TypeDef *COMPx)
   *         voltage scaler bridge only when required
   *         (when selecting comparator input based on VrefInt: VrefInt or
   *         subdivision of VrefInt).
-  *         - For scaler bridge power consumption values,
+  *         - For scaler bridge power consumption values, 
   *           refer to device datasheet, parameter "IDDA(SCALER)".
   *         - Voltage scaler requires a delay for voltage stabilization.
   *           Refer to device datasheet, parameter "tSTART_SCALER".
@@ -545,7 +557,7 @@ __STATIC_INLINE uint32_t LL_COMP_GetInputPlus(COMP_TypeDef *COMPx)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO3 (*)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO4 (*)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO5 (*)
-  *
+  *         
   *         (*) Parameter not available on all devices.
   * @retval None
   */
@@ -579,7 +591,7 @@ __STATIC_INLINE void LL_COMP_SetInputMinus(COMP_TypeDef *COMPx, uint32_t InputMi
   *         @arg @ref LL_COMP_INPUT_MINUS_IO3 (*)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO4 (*)
   *         @arg @ref LL_COMP_INPUT_MINUS_IO5 (*)
-  *
+  *         
   *         (*) Parameter not available on all devices.
   */
 __STATIC_INLINE uint32_t LL_COMP_GetInputMinus(COMP_TypeDef *COMPx)
@@ -673,7 +685,7 @@ __STATIC_INLINE uint32_t LL_COMP_GetOutputPolarity(COMP_TypeDef *COMPx)
   *         @arg @ref LL_COMP_BLANKINGSRC_TIM3_OC4_COMP2  (1)(3)
   *         @arg @ref LL_COMP_BLANKINGSRC_TIM8_OC5_COMP2  (1)(3)
   *         @arg @ref LL_COMP_BLANKINGSRC_TIM15_OC1_COMP2 (1)(3)
-  *
+  *         
   *         (1) Parameter availability depending on timer availability
   *             on the selected device.
   *         (2) On STM32L4, parameter available only on comparator instance: COMP1.
@@ -701,7 +713,7 @@ __STATIC_INLINE void LL_COMP_SetOutputBlankingSource(COMP_TypeDef *COMPx, uint32
   *         @arg @ref LL_COMP_BLANKINGSRC_TIM3_OC4_COMP2  (1)(3)
   *         @arg @ref LL_COMP_BLANKINGSRC_TIM8_OC5_COMP2  (1)(3)
   *         @arg @ref LL_COMP_BLANKINGSRC_TIM15_OC1_COMP2 (1)(3)
-  *
+  *         
   *         (1) Parameter availability depending on timer availability
   *             on the selected device.
   *         (2) On STM32L4, parameter available only on comparator instance: COMP1.
@@ -781,7 +793,7 @@ __STATIC_INLINE void LL_COMP_Disable(COMP_TypeDef *COMPx)
   */
 __STATIC_INLINE uint32_t LL_COMP_IsEnabled(COMP_TypeDef *COMPx)
 {
-  return ((READ_BIT(COMPx->CSR, COMP_CSR_EN) == (COMP_CSR_EN)) ? 1UL : 0UL);
+  return (READ_BIT(COMPx->CSR, COMP_CSR_EN) == (COMP_CSR_EN));
 }
 
 /**
@@ -808,7 +820,7 @@ __STATIC_INLINE void LL_COMP_Lock(COMP_TypeDef *COMPx)
   */
 __STATIC_INLINE uint32_t LL_COMP_IsLocked(COMP_TypeDef *COMPx)
 {
-  return ((READ_BIT(COMPx->CSR, COMP_CSR_LOCK) == (COMP_CSR_LOCK)) ? 1UL : 0UL);
+  return (READ_BIT(COMPx->CSR, COMP_CSR_LOCK) == (COMP_CSR_LOCK));
 }
 
 /**
@@ -863,10 +875,6 @@ void        LL_COMP_StructInit(LL_COMP_InitTypeDef *COMP_InitStruct);
   * @}
   */
 
-/**
-  * @}
-  */
-
 #endif /* COMP1 || COMP2 */
 
 /**
@@ -877,6 +885,6 @@ void        LL_COMP_StructInit(LL_COMP_InitTypeDef *COMP_InitStruct);
 }
 #endif
 
-#endif /* STM32L4xx_LL_COMP_H */
+#endif /* __STM32L4xx_LL_COMP_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

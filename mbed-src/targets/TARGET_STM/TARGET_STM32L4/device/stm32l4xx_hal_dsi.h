@@ -6,23 +6,39 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef STM32L4xx_HAL_DSI_H
-#define STM32L4xx_HAL_DSI_H
+#ifndef __STM32L4xx_HAL_DSI_H
+#define __STM32L4xx_HAL_DSI_H
 
 #ifdef __cplusplus
-extern "C" {
+ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
@@ -54,7 +70,7 @@ typedef struct
   uint32_t NumberOfLanes;                /*!< Number of lanes
                                               This parameter can be any value of @ref DSI_Number_Of_Lanes            */
 
-} DSI_InitTypeDef;
+}DSI_InitTypeDef;
 
 /**
   * @brief  DSI PLL Clock structure definition
@@ -70,7 +86,7 @@ typedef struct
   uint32_t PLLODF;                       /*!< PLL Output Division Factor
                                               This parameter can be any value of @ref DSI_PLL_ODF */
 
-} DSI_PLLInitTypeDef;
+}DSI_PLLInitTypeDef;
 
 /**
   * @brief  DSI Video mode configuration
@@ -148,7 +164,7 @@ typedef struct
   uint32_t FrameBTAAcknowledgeEnable;    /*!< Frame bus-turn-around acknowledge enable
                                               This parameter can be any value of @ref DSI_FBTA_acknowledge       */
 
-} DSI_VidCfgTypeDef;
+}DSI_VidCfgTypeDef;
 
 /**
   * @brief  DSI Adapted command mode configuration
@@ -187,7 +203,7 @@ typedef struct
   uint32_t TEAcknowledgeRequest;         /*!< Tearing Effect Acknowledge Request Enable
                                               This parameter can be any value of @ref DSI_TE_AcknowledgeRequest */
 
-} DSI_CmdCfgTypeDef;
+}DSI_CmdCfgTypeDef;
 
 /**
   * @brief  DSI command transmission mode configuration
@@ -233,7 +249,7 @@ typedef struct
   uint32_t AcknowledgeRequest;           /*!< Acknowledge Request Enable
                                               This parameter can be any value of @ref DSI_AcknowledgeRequest     */
 
-} DSI_LPCmdTypeDef;
+}DSI_LPCmdTypeDef;
 
 /**
   * @brief  DSI PHY Timings definition
@@ -257,7 +273,7 @@ typedef struct
   uint32_t StopWaitTime;                 /*!< The minimum wait period to request a High-Speed transmission after the
                                               Stop state                                                             */
 
-} DSI_PHY_TimerTypeDef;
+}DSI_PHY_TimerTypeDef;
 
 /**
   * @brief  DSI HOST Timeouts definition
@@ -283,7 +299,7 @@ typedef struct
 
   uint32_t BTATimeout;                   /*!< BTA time-out                                             */
 
-} DSI_HOST_TimeoutTypeDef;
+}DSI_HOST_TimeoutTypeDef;
 
 /**
   * @brief  DSI States Structure definition
@@ -295,16 +311,12 @@ typedef enum
   HAL_DSI_STATE_ERROR   = 0x02U,
   HAL_DSI_STATE_BUSY    = 0x03U,
   HAL_DSI_STATE_TIMEOUT = 0x04U
-} HAL_DSI_StateTypeDef;
+}HAL_DSI_StateTypeDef;
 
 /**
   * @brief  DSI Handle Structure definition
   */
-#if (USE_HAL_DSI_REGISTER_CALLBACKS == 1)
-typedef struct __DSI_HandleTypeDef
-#else
 typedef struct
-#endif /* USE_HAL_DSI_REGISTER_CALLBACKS */
 {
   DSI_TypeDef               *Instance;    /*!< Register base address      */
   DSI_InitTypeDef           Init;         /*!< DSI required parameters    */
@@ -312,45 +324,9 @@ typedef struct
   __IO HAL_DSI_StateTypeDef State;        /*!< DSI communication state    */
   __IO uint32_t             ErrorCode;    /*!< DSI Error code             */
   uint32_t                  ErrorMsk;     /*!< DSI Error monitoring mask  */
-
-#if (USE_HAL_DSI_REGISTER_CALLBACKS == 1)
-  void (* TearingEffectCallback)(struct __DSI_HandleTypeDef *hdsi);   /*!< DSI Tearing Effect Callback */
-  void (* EndOfRefreshCallback)(struct __DSI_HandleTypeDef *hdsi);    /*!< DSI End Of Refresh Callback */
-  void (* ErrorCallback)(struct __DSI_HandleTypeDef *hdsi);           /*!< DSI Error Callback          */
-
-  void (* MspInitCallback)(struct __DSI_HandleTypeDef *hdsi);         /*!< DSI Msp Init callback       */
-  void (* MspDeInitCallback)(struct __DSI_HandleTypeDef *hdsi);       /*!< DSI Msp DeInit callback     */
-
-#endif /* USE_HAL_DSI_REGISTER_CALLBACKS */
-
-} DSI_HandleTypeDef;
-
-#if (USE_HAL_DSI_REGISTER_CALLBACKS == 1)
-/**
-  * @brief  HAL DSI Callback ID enumeration definition
-  */
-typedef enum
-{
-  HAL_DSI_MSPINIT_CB_ID            = 0x00U,    /*!< DSI MspInit callback ID        */
-  HAL_DSI_MSPDEINIT_CB_ID          = 0x01U,    /*!< DSI MspDeInit callback ID      */
-
-  HAL_DSI_TEARING_EFFECT_CB_ID     = 0x02U,    /*!< DSI Tearing Effect Callback ID */
-  HAL_DSI_ENDOF_REFRESH_CB_ID      = 0x03U,    /*!< DSI End Of Refresh Callback ID */
-  HAL_DSI_ERROR_CB_ID              = 0x04U     /*!< DSI Error Callback ID          */
-
-} HAL_DSI_CallbackIDTypeDef;
-
-/**
-  * @brief  HAL DSI Callback pointer definition
-  */
-typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to an DSI callback function */
-
-#endif /* USE_HAL_DSI_REGISTER_CALLBACKS */
+}DSI_HandleTypeDef;
 
 /* Exported constants --------------------------------------------------------*/
-/** @defgroup DSI_Exported_Constants DSI Exported Constants
-  * @{
-  */
 /** @defgroup DSI_DCS_Command DSI DCS Command
   * @{
   */
@@ -840,20 +816,17 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
 /** @defgroup DSI_Error_Data_Type DSI Error Data Type
   * @{
   */
-#define HAL_DSI_ERROR_NONE              0U
-#define HAL_DSI_ERROR_ACK               0x00000001U /*!< acknowledge errors          */
-#define HAL_DSI_ERROR_PHY               0x00000002U /*!< PHY related errors          */
-#define HAL_DSI_ERROR_TX                0x00000004U /*!< transmission error          */
-#define HAL_DSI_ERROR_RX                0x00000008U /*!< reception error             */
-#define HAL_DSI_ERROR_ECC               0x00000010U /*!< ECC errors                  */
-#define HAL_DSI_ERROR_CRC               0x00000020U /*!< CRC error                   */
-#define HAL_DSI_ERROR_PSE               0x00000040U /*!< Packet Size error           */
-#define HAL_DSI_ERROR_EOT               0x00000080U /*!< End Of Transmission error   */
-#define HAL_DSI_ERROR_OVF               0x00000100U /*!< FIFO overflow error         */
-#define HAL_DSI_ERROR_GEN               0x00000200U /*!< Generic FIFO related errors */
-#if (USE_HAL_DSI_REGISTER_CALLBACKS == 1)
-#define HAL_DSI_ERROR_INVALID_CALLBACK  0x00000400U /*!< DSI Invalid Callback error  */
-#endif /* USE_HAL_DSI_REGISTER_CALLBACKS */
+#define HAL_DSI_ERROR_NONE          0U
+#define HAL_DSI_ERROR_ACK           0x00000001U /*!< acknowledge errors          */
+#define HAL_DSI_ERROR_PHY           0x00000002U /*!< PHY related errors          */
+#define HAL_DSI_ERROR_TX            0x00000004U /*!< transmission error          */
+#define HAL_DSI_ERROR_RX            0x00000008U /*!< reception error             */
+#define HAL_DSI_ERROR_ECC           0x00000010U /*!< ECC errors                  */
+#define HAL_DSI_ERROR_CRC           0x00000020U /*!< CRC error                   */
+#define HAL_DSI_ERROR_PSE           0x00000040U /*!< Packet Size error           */
+#define HAL_DSI_ERROR_EOT           0x00000080U /*!< End Of Transmission error   */
+#define HAL_DSI_ERROR_OVF           0x00000100U /*!< FIFO overflow error         */
+#define HAL_DSI_ERROR_GEN           0x00000200U /*!< Generic FIFO related errors */
 /**
   * @}
   */
@@ -912,33 +885,17 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
   * @}
   */
 
-/**
-  * @}
-  */
-
 /* Exported macros -----------------------------------------------------------*/
-/** @defgroup DSI_Exported_Macros DSI Exported Macros
-  * @{
-  */
-
 /**
   * @brief Reset DSI handle state.
   * @param  __HANDLE__: DSI handle
   * @retval None
   */
-#if (USE_HAL_DSI_REGISTER_CALLBACKS == 1)
-#define __HAL_DSI_RESET_HANDLE_STATE(__HANDLE__) do{                                               \
-                                                     (__HANDLE__)->State = HAL_DSI_STATE_RESET;    \
-                                                     (__HANDLE__)->MspInitCallback = NULL;         \
-                                                     (__HANDLE__)->MspDeInitCallback = NULL;       \
-                                                   } while(0)
-#else
 #define __HAL_DSI_RESET_HANDLE_STATE(__HANDLE__) ((__HANDLE__)->State = HAL_DSI_STATE_RESET)
-#endif /*USE_HAL_DSI_REGISTER_CALLBACKS */
 
 /**
   * @brief  Enables the DSI host.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_ENABLE(__HANDLE__) do { \
@@ -947,11 +904,11 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                           /* Delay after an DSI Host enabling */ \
                                           tmpreg = READ_BIT((__HANDLE__)->Instance->CR, DSI_CR_EN);\
                                           UNUSED(tmpreg); \
-                                        } while(0U)
+                                        }while(0U)
 
 /**
   * @brief  Disables the DSI host.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_DISABLE(__HANDLE__) do { \
@@ -960,11 +917,11 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                           /* Delay after an DSI Host disabling */ \
                                           tmpreg = READ_BIT((__HANDLE__)->Instance->CR, DSI_CR_EN);\
                                           UNUSED(tmpreg); \
-                                         } while(0U)
+                                         }while(0U)
 
 /**
   * @brief  Enables the DSI wrapper.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_WRAPPER_ENABLE(__HANDLE__) do { \
@@ -973,11 +930,11 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                                  /* Delay after an DSI warpper enabling */ \
                                                  tmpreg = READ_BIT((__HANDLE__)->Instance->WCR, DSI_WCR_DSIEN);\
                                                  UNUSED(tmpreg); \
-                                                } while(0U)
+                                                }while(0U)
 
 /**
   * @brief  Disable the DSI wrapper.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_WRAPPER_DISABLE(__HANDLE__) do { \
@@ -986,11 +943,11 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                                   /* Delay after an DSI warpper disabling*/ \
                                                   tmpreg = READ_BIT((__HANDLE__)->Instance->WCR, DSI_WCR_DSIEN);\
                                                   UNUSED(tmpreg); \
-                                                 } while(0U)
+                                                 }while(0U)
 
 /**
   * @brief  Enables the DSI PLL.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_PLL_ENABLE(__HANDLE__) do { \
@@ -999,11 +956,11 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                              /* Delay after an DSI PLL enabling */ \
                                              tmpreg = READ_BIT((__HANDLE__)->Instance->WRPCR, DSI_WRPCR_PLLEN);\
                                              UNUSED(tmpreg); \
-                                            } while(0U)
+                                            }while(0U)
 
 /**
   * @brief  Disables the DSI PLL.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_PLL_DISABLE(__HANDLE__) do { \
@@ -1012,11 +969,11 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                               /* Delay after an DSI PLL disabling */ \
                                               tmpreg = READ_BIT((__HANDLE__)->Instance->WRPCR, DSI_WRPCR_PLLEN);\
                                               UNUSED(tmpreg); \
-                                             } while(0U)
+                                             }while(0U)
 
 /**
   * @brief  Enables the DSI regulator.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_REG_ENABLE(__HANDLE__) do { \
@@ -1025,11 +982,11 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                               /* Delay after an DSI regulator enabling */ \
                                               tmpreg = READ_BIT((__HANDLE__)->Instance->WRPCR, DSI_WRPCR_REGEN);\
                                               UNUSED(tmpreg); \
-                                            } while(0U)
+                                            }while(0U)
 
 /**
   * @brief  Disables the DSI regulator.
-  * @param  __HANDLE__  DSI handle
+  * @param  __HANDLE__: DSI handle
   * @retval None.
   */
 #define __HAL_DSI_REG_DISABLE(__HANDLE__) do { \
@@ -1038,12 +995,12 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
                                               /* Delay after an DSI regulator disabling */ \
                                               tmpreg = READ_BIT((__HANDLE__)->Instance->WRPCR, DSI_WRPCR_REGEN);\
                                               UNUSED(tmpreg); \
-                                             } while(0U)
+                                             }while(0U)
 
 /**
   * @brief  Get the DSI pending flags.
-  * @param  __HANDLE__  DSI handle.
-  * @param  __FLAG__  Get the specified flag.
+  * @param  __HANDLE__: DSI handle.
+  * @param  __FLAG__: Get the specified flag.
   *          This parameter can be any combination of the following values:
   *            @arg DSI_FLAG_TE   : Tearing Effect Interrupt Flag
   *            @arg DSI_FLAG_ER   : End of Refresh Interrupt Flag
@@ -1059,8 +1016,8 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
 
 /**
   * @brief  Clears the DSI pending flags.
-  * @param  __HANDLE__  DSI handle.
-  * @param  __FLAG__  specifies the flag to clear.
+  * @param  __HANDLE__: DSI handle.
+  * @param  __FLAG__: specifies the flag to clear.
   *          This parameter can be any combination of the following values:
   *            @arg DSI_FLAG_TE   : Tearing Effect Interrupt Flag
   *            @arg DSI_FLAG_ER   : End of Refresh Interrupt Flag
@@ -1073,8 +1030,8 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
 
 /**
   * @brief  Enables the specified DSI interrupts.
-  * @param  __HANDLE__  DSI handle.
-  * @param __INTERRUPT__  specifies the DSI interrupt sources to be enabled.
+  * @param  __HANDLE__: DSI handle.
+  * @param __INTERRUPT__: specifies the DSI interrupt sources to be enabled.
   *          This parameter can be any combination of the following values:
   *            @arg DSI_IT_TE  : Tearing Effect Interrupt
   *            @arg DSI_IT_ER  : End of Refresh Interrupt
@@ -1087,8 +1044,8 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
 
 /**
   * @brief  Disables the specified DSI interrupts.
-  * @param  __HANDLE__  DSI handle
-  * @param __INTERRUPT__  specifies the DSI interrupt sources to be disabled.
+  * @param  __HANDLE__: DSI handle
+  * @param __INTERRUPT__: specifies the DSI interrupt sources to be disabled.
   *          This parameter can be any combination of the following values:
   *            @arg DSI_IT_TE  : Tearing Effect Interrupt
   *            @arg DSI_IT_ER  : End of Refresh Interrupt
@@ -1101,8 +1058,8 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
 
 /**
   * @brief  Checks whether the specified DSI interrupt source is enabled or not.
-  * @param  __HANDLE__  DSI handle
-  * @param  __INTERRUPT__  specifies the DSI interrupt source to check.
+  * @param  __HANDLE__: DSI handle
+  * @param  __INTERRUPT__: specifies the DSI interrupt source to check.
   *          This parameter can be one of the following values:
   *            @arg DSI_IT_TE  : Tearing Effect Interrupt
   *            @arg DSI_IT_ER  : End of Refresh Interrupt
@@ -1112,10 +1069,6 @@ typedef  void (*pDSI_CallbackTypeDef)(DSI_HandleTypeDef *hdsi);  /*!< pointer to
   * @retval The state of INTERRUPT (SET or RESET).
   */
 #define __HAL_DSI_GET_IT_SOURCE(__HANDLE__, __INTERRUPT__) ((__HANDLE__)->Instance->WIER & (__INTERRUPT__))
-
-/**
-  * @}
-  */
 
 /* Exported functions --------------------------------------------------------*/
 /** @defgroup DSI_Exported_Functions DSI Exported Functions
@@ -1130,13 +1083,6 @@ void HAL_DSI_IRQHandler(DSI_HandleTypeDef *hdsi);
 void HAL_DSI_TearingEffectCallback(DSI_HandleTypeDef *hdsi);
 void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi);
 void HAL_DSI_ErrorCallback(DSI_HandleTypeDef *hdsi);
-
-/* Callbacks Register/UnRegister functions  ***********************************/
-#if (USE_HAL_DSI_REGISTER_CALLBACKS == 1)
-HAL_StatusTypeDef HAL_DSI_RegisterCallback(DSI_HandleTypeDef *hdsi, HAL_DSI_CallbackIDTypeDef CallbackID,
-                                           pDSI_CallbackTypeDef pCallback);
-HAL_StatusTypeDef HAL_DSI_UnRegisterCallback(DSI_HandleTypeDef *hdsi, HAL_DSI_CallbackIDTypeDef CallbackID);
-#endif /* USE_HAL_DSI_REGISTER_CALLBACKS */
 
 HAL_StatusTypeDef HAL_DSI_SetGenericVCID(DSI_HandleTypeDef *hdsi, uint32_t VirtualChannelID);
 HAL_StatusTypeDef HAL_DSI_ConfigVideoMode(DSI_HandleTypeDef *hdsi, DSI_VidCfgTypeDef *VidCfg);
@@ -1160,14 +1106,14 @@ HAL_StatusTypeDef HAL_DSI_LongWrite(DSI_HandleTypeDef *hdsi,
                                     uint32_t Mode,
                                     uint32_t NbParams,
                                     uint32_t Param1,
-                                    uint8_t *ParametersTable);
+                                    uint8_t* ParametersTable);
 HAL_StatusTypeDef HAL_DSI_Read(DSI_HandleTypeDef *hdsi,
                                uint32_t ChannelNbr,
-                               uint8_t *Array,
+                               uint8_t* Array,
                                uint32_t Size,
                                uint32_t Mode,
                                uint32_t DCSCmd,
-                               uint8_t *ParametersTable);
+                               uint8_t* ParametersTable);
 HAL_StatusTypeDef HAL_DSI_EnterULPMData(DSI_HandleTypeDef *hdsi);
 HAL_StatusTypeDef HAL_DSI_ExitULPMData(DSI_HandleTypeDef *hdsi);
 HAL_StatusTypeDef HAL_DSI_EnterULPM(DSI_HandleTypeDef *hdsi);
@@ -1176,14 +1122,11 @@ HAL_StatusTypeDef HAL_DSI_ExitULPM(DSI_HandleTypeDef *hdsi);
 HAL_StatusTypeDef HAL_DSI_PatternGeneratorStart(DSI_HandleTypeDef *hdsi, uint32_t Mode, uint32_t Orientation);
 HAL_StatusTypeDef HAL_DSI_PatternGeneratorStop(DSI_HandleTypeDef *hdsi);
 
-HAL_StatusTypeDef HAL_DSI_SetSlewRateAndDelayTuning(DSI_HandleTypeDef *hdsi, uint32_t CommDelay, uint32_t Lane,
-                                                    uint32_t Value);
+HAL_StatusTypeDef HAL_DSI_SetSlewRateAndDelayTuning(DSI_HandleTypeDef *hdsi, uint32_t CommDelay, uint32_t Lane, uint32_t Value);
 HAL_StatusTypeDef HAL_DSI_SetLowPowerRXFilter(DSI_HandleTypeDef *hdsi, uint32_t Frequency);
 HAL_StatusTypeDef HAL_DSI_SetSDD(DSI_HandleTypeDef *hdsi, FunctionalState State);
-HAL_StatusTypeDef HAL_DSI_SetLanePinsConfiguration(DSI_HandleTypeDef *hdsi, uint32_t CustomLane, uint32_t Lane,
-                                                   FunctionalState State);
-HAL_StatusTypeDef HAL_DSI_SetPHYTimings(DSI_HandleTypeDef *hdsi, uint32_t Timing, FunctionalState State,
-                                        uint32_t Value);
+HAL_StatusTypeDef HAL_DSI_SetLanePinsConfiguration(DSI_HandleTypeDef *hdsi, uint32_t CustomLane, uint32_t Lane, FunctionalState State);
+HAL_StatusTypeDef HAL_DSI_SetPHYTimings(DSI_HandleTypeDef *hdsi, uint32_t Timing, FunctionalState State, uint32_t Value);
 HAL_StatusTypeDef HAL_DSI_ForceTXStopMode(DSI_HandleTypeDef *hdsi, uint32_t Lane, FunctionalState State);
 HAL_StatusTypeDef HAL_DSI_ForceRXLowPower(DSI_HandleTypeDef *hdsi, FunctionalState State);
 HAL_StatusTypeDef HAL_DSI_ForceDataLanesInRX(DSI_HandleTypeDef *hdsi, FunctionalState State);
@@ -1348,6 +1291,6 @@ HAL_DSI_StateTypeDef HAL_DSI_GetState(DSI_HandleTypeDef *hdsi);
 }
 #endif
 
-#endif /* STM32L4xx_HAL_DSI_H */
+#endif /* __STM32L4xx_HAL_DSI_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

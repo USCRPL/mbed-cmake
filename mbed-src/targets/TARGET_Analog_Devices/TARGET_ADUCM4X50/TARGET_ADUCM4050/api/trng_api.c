@@ -38,7 +38,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#if DEVICE_TRNG
+#if defined(DEVICE_TRNG)
 
 #include <stdlib.h>
 #include <adi_rng.h>

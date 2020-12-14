@@ -53,14 +53,17 @@ ENTRY(Reset_Handler)
 
 __ram_vector_table__ = 1;
 
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
 /* With the RTOS in use, this does not affect the main stack size. The size of
  * the stack where main runs is determined via the RTOS. */
-__stack_size__ = MBED_BOOT_STACK_SIZE;
+__stack_size__ = 0x400;
 
+/* This is the guaranteed minimum available heap size for an application. When
+ * uVisor is enabled, this is also the maximum available heap size. The
+ * HEAP_SIZE value is set by uVisor porters to balance the size of the legacy
+ * heap and the page heap in uVisor applications. */
+__heap_size__ = 0x6000;
+
+HEAP_SIZE  = DEFINED(__heap_size__)  ? __heap_size__  : 0x0400;
 STACK_SIZE = DEFINED(__stack_size__) ? __stack_size__ : 0x0400;
 M_VECTOR_RAM_SIZE = DEFINED(__ram_vector_table__) ? 0x0140 : 0x0;
 
@@ -82,29 +85,29 @@ SECTIONS
   .interrupts :
   {
     __VECTOR_TABLE = .;
-    . = ALIGN(8);
+    . = ALIGN(4);
     KEEP(*(.isr_vector))     /* Startup code */
-    . = ALIGN(8);
+    . = ALIGN(4);
   } > m_interrupts
 
   .bootloader_config :
   {
-    . = ALIGN(8);
+    . = ALIGN(4);
     KEEP(*(.BootloaderConfig)) /* Bootloader Configuration Area (BCA) */
-    . = ALIGN(8);
+    . = ALIGN(4);
   } > m_bootloader_config
 
   .flash_config :
   {
-    . = ALIGN(8);
+    . = ALIGN(4);
     KEEP(*(.FlashConfig))    /* Flash Configuration Field (FCF) */
-    . = ALIGN(8);
+    . = ALIGN(4);
   } > m_flash_config
 
   /* The program code and other data goes into internal flash */
   .text :
   {
-    . = ALIGN(8);
+    . = ALIGN(4);
     *(.text)                 /* .text sections (code) */
     *(.text*)                /* .text* sections (code) */
     *(.rodata)               /* .rodata sections (constants, strings, etc.) */
@@ -114,7 +117,7 @@ SECTIONS
     *(.eh_frame)
     KEEP (*(.init))
     KEEP (*(.fini))
-    . = ALIGN(8);
+    . = ALIGN(4);
   } > m_text
 
   .ARM.extab :
@@ -202,12 +205,12 @@ SECTIONS
 
   .interrupts_ram :
   {
-    . = ALIGN(8);
+    . = ALIGN(4);
     __VECTOR_RAM__ = .;
     __interrupts_ram_start__ = .; /* Create a global symbol at data start */
     *(.m_interrupts_ram)     /* This is a user defined section */
     . += M_VECTOR_RAM_SIZE;
-    . = ALIGN(8);
+    . = ALIGN(4);
     __interrupts_ram_end__ = .; /* Define a global symbol at data end */
   } > m_data
 
@@ -216,13 +219,13 @@ SECTIONS
 
   .data : AT(__DATA_ROM)
   {
-    . = ALIGN(8);
+    . = ALIGN(4);
     __DATA_RAM = .;
     __data_start__ = .;      /* create a global symbol at data start */
     *(.data)                 /* .data sections */
     *(.data*)                /* .data* sections */
     KEEP(*(.jcr*))
-    . = ALIGN(8);
+    . = ALIGN(4);
     __data_end__ = .;        /* define a global symbol at data end */
   } > m_data
 
@@ -235,7 +238,7 @@ SECTIONS
   .bss :
   {
     /* This is used by the startup in order to initialize the .bss section */
-    . = ALIGN(8);
+    . = ALIGN(4);
     __START_BSS = .;
     __bss_start__ = .;
     *(.bss)
@@ -244,7 +247,7 @@ SECTIONS
     USB_RAM_START = .;
     . += USB_RAM_GAP;
     *(COMMON)
-    . = ALIGN(8);
+    . = ALIGN(4);
     __bss_end__ = .;
     __END_BSS = .;
   } > m_data
@@ -255,7 +258,7 @@ SECTIONS
     __end__ = .;
     PROVIDE(end = .);
     __HeapBase = .;
-    . = ORIGIN(m_data) + LENGTH(m_data) - STACK_SIZE;
+    . += HEAP_SIZE;
     __HeapLimit = .;
     __heap_limit = .; /* Add for _sbrk */
   } > m_data

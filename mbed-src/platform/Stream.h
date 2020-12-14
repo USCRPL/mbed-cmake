@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +18,22 @@
 
 #include "platform/platform.h"
 #include "platform/FileLike.h"
+#include "platform/FileHandle.h"
 #include "platform/NonCopyable.h"
-#include "platform/mbed_toolchain.h"
 #include <cstdio>
 #include <cstdarg>
 
 namespace mbed {
-/** \addtogroup platform-public-api */
+/** \addtogroup platform */
 /** @{*/
-
 /**
  * \defgroup platform_Stream Stream class
  * @{
  */
 
 extern void mbed_set_unbuffered_stream(std::FILE *_file);
+extern int mbed_getc(std::FILE *_file);
+extern char *mbed_gets(char *s, int size, std::FILE *_file);
 
 /** File stream
  *
@@ -45,22 +45,21 @@ public:
     Stream(const char *name = NULL);
     virtual ~Stream();
 
-#if !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
     int putc(int c);
     int puts(const char *s);
     int getc();
     char *gets(char *s, int size);
-    int printf(const char *format, ...) MBED_PRINTF_METHOD(1, 2);
-    int scanf(const char *format, ...) MBED_SCANF_METHOD(1, 2);
-    int vprintf(const char *format, std::va_list args) MBED_PRINTF_METHOD(1, 0);
-    int vscanf(const char *format, std::va_list args) MBED_SCANF_METHOD(1, 0);
+    int printf(const char *format, ...);
+    int scanf(const char *format, ...);
+    int vprintf(const char *format, std::va_list args);
+    int vscanf(const char *format, std::va_list args);
 
     operator std::FILE *()
     {
         return _file;
     }
 
-#endif // !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
+protected:
     virtual int close();
     virtual ssize_t write(const void *buffer, size_t length);
     virtual ssize_t read(void *buffer, size_t length);
@@ -71,13 +70,10 @@ public:
     virtual int sync();
     virtual off_t size();
 
-protected:
     virtual int _putc(int c) = 0;
     virtual int _getc() = 0;
 
-#if !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
     std::FILE *_file;
-#endif // !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
 
     /** Acquire exclusive access to this object.
      */

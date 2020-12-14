@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,24 +21,18 @@
 #include "platform/NonCopyable.h"
 
 namespace mbed {
-/**
- * \defgroup drivers_BusInOut BusInOut class
- * \ingroup drivers-public-api-gpio
- * @{
- */
+/** \addtogroup drivers */
 
-/** A digital input output bus, used for setting the state of a collection of pins.
- *  Implemented as an array of DigitalInOut pins, the bus can be constructed by any
- *  pins without restriction other than being capable of digital input or output
- *  capabilities
+/** A digital input output bus, used for setting the state of a collection of pins
  *
  * @note Synchronization level: Thread safe
+ * @ingroup drivers
  */
 class BusInOut : private NonCopyable<BusInOut> {
 
 public:
 
-    /** Create a BusInOut, connected to the specified pins
+    /** Create an BusInOut, connected to the specified pins
      *
      *  @param p0 DigitalInOut pin to connect to bus bit
      *  @param p1 DigitalInOut pin to connect to bus bit
@@ -67,11 +60,9 @@ public:
              PinName p8 = NC, PinName p9 = NC, PinName p10 = NC, PinName p11 = NC,
              PinName p12 = NC, PinName p13 = NC, PinName p14 = NC, PinName p15 = NC);
 
-    /** Create a BusInOut, connected to the specified pins
+    /** Create an BusInOut, connected to the specified pins
      *
-     *  @param pins An array of pins (PinName) to construct a BusInOut from. The maximum
-     *  number of pins in the array is 16 and any pins that are unspecified or are not to be
-     *  connected must be specified as NC in the array that is passed in
+     *  @param pins An array of pins to construct a BusInOut from
      */
     BusInOut(PinName pins[16]);
 
@@ -92,15 +83,15 @@ public:
      */
     int read();
 
-    /** Set all the pins in bus as output
+    /** Set as an output
      */
     void output();
 
-    /** Set all the pins in bus as an input
+    /** Set as an input
      */
     void input();
 
-    /** Set the input pin mode for all the pins in bus
+    /** Set the input pin mode
      *
      *  @param pull PullUp, PullDown, PullNone
      */
@@ -119,7 +110,7 @@ public:
     }
 
     /** A shorthand for write()
-     * \sa BusInOut::write()
+    * \sa BusInOut::write()
      */
     BusInOut &operator= (int v);
     BusInOut &operator= (BusInOut &rhs);
@@ -135,7 +126,6 @@ public:
     operator int();
 
 protected:
-#if !defined(DOXYGEN_ONLY)
     virtual void lock();
     virtual void unlock();
     DigitalInOut *_pin[16];
@@ -147,10 +137,7 @@ protected:
     int _nc_mask;
 
     PlatformMutex _mutex;
-#endif //!defined(DOXYGEN_ONLY)
 };
-
-/** @}*/
 
 } // namespace mbed
 

@@ -116,13 +116,6 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
 }
 
 //******************************************************************************
-void serial_free(serial_t *obj)
-{
-    UART_Shutdown(obj->uart);
-    objs[obj->index] = 0;
-}
-
-//******************************************************************************
 void serial_baud(serial_t *obj, int baudrate)
 {
     obj->cfg.baud = baudrate;
@@ -392,24 +385,4 @@ static void usurp_pin(PinName pin, int state)
     gpio_t gpio;
     gpio_init_out(&gpio, pin);
     gpio_write(&gpio, state);
-}
-
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
 }

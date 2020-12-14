@@ -28,6 +28,8 @@ typedef enum {
     PIN_OUTPUT
 } PinDirection;
 
+#define PORT_SHIFT 3
+
 typedef enum {
     // nRF52 pin names
     p0 = 0,
@@ -119,8 +121,6 @@ typedef enum {
     RTS_PIN_NUMBER = p31,
     STDIO_UART_TX = TX_PIN_NUMBER,
     STDIO_UART_RX = RX_PIN_NUMBER,
-    STDIO_UART_CTS = CTS_PIN_NUMBER,
-    STDIO_UART_RTS = RTS_PIN_NUMBER,
 
     I2C_SDA = p2,
     I2C_SCL = p3,

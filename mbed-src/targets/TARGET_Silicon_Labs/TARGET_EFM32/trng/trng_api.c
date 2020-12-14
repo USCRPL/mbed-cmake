@@ -24,7 +24,7 @@
 #include "trng_api.h"
 #include "sl_trng.h"
 
-#if DEVICE_TRNG
+#if defined(DEVICE_TRNG)
 static bool is_trng_enabled = false;
 
 void trng_init(trng_t *obj)

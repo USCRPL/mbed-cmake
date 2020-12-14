@@ -11,17 +11,17 @@ if (!isdefinedsymbol(MBED_APP_SIZE)) {
     define symbol MBED_APP_SIZE = 0x80000;
 }
 
-if (!isdefinedsymbol(MBED_RAM_START)) {
-    define symbol MBED_RAM_START = 0x20000000;
-    define symbol MBED_RAM_SIZE = 0x10000;
-}
-
-if (!isdefinedsymbol(MBED_BOOT_STACK_SIZE)) {
-    define symbol MBED_BOOT_STACK_SIZE = 0x400;
+/* If app_start is 0, do not set aside space for the softdevice */
+if (MBED_APP_START == 0) {
+  define symbol MBED_RAM_START = 0x20000000;
+  define symbol MBED_RAM_SIZE  = 0x10000;
+} else {
+  define symbol MBED_RAM_START = 0x200031D0;
+  define symbol MBED_RAM_SIZE  = 0xCE30;
 }
 
 define symbol MBED_RAM0_START = MBED_RAM_START;
-define symbol MBED_RAM0_SIZE  = 0xE0;  /* 8-byte aligned(0xDC) = 0xE0 */ 
+define symbol MBED_RAM0_SIZE  = 0xDC;
 define symbol MBED_RAM1_START = (MBED_RAM_START + MBED_RAM0_SIZE);
 define symbol MBED_RAM1_SIZE  = (MBED_RAM_SIZE - MBED_RAM0_SIZE);
 
@@ -39,7 +39,8 @@ export symbol __ICFEDIT_region_RAM_start__;
 export symbol __ICFEDIT_region_RAM_end__;
 
 /*-Sizes-*/
-define symbol __ICFEDIT_size_cstack__   = MBED_BOOT_STACK_SIZE;
+/*Heap 1/4 of ram and stack 1/8*/
+define symbol __ICFEDIT_size_cstack__   = 0x800;
 define symbol __ICFEDIT_size_heap__     = 0x5800;
 /**** End of ICF editor section. ###ICF###*/
 
@@ -53,9 +54,6 @@ define block CSTACK    with alignment = 8, size = __ICFEDIT_size_cstack__   { };
 define block HEAP      with alignment = 8, size = __ICFEDIT_size_heap__     { };
 
 initialize by copy { readwrite };
-do not initialize  { section .nvictable };
-place at address mem:__ICFEDIT_region_RAM_NVIC_start__ { section .nvictable };
-
 do not initialize  { section .noinit };
 place in RAM_region { section .noinit };
 

@@ -82,12 +82,6 @@ static inline uint16_t adc_read(analogin_t *obj)
         case PC_10:
             adc_ch = ADC_CH5;
             break;
-        case PC_09:
-            adc_ch = ADC_CH6;
-            break;
-        case PC_08:
-            adc_ch = ADC_CH7;
-            break;            
         default:
             return 0;
     }
@@ -112,11 +106,6 @@ float analogin_read(analogin_t *obj)
     uint16_t value = adc_read(obj);
 
     return (float)value * (1.0f / (float)0xFFF); // 12 bits range
-}
-
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
 }
 
 #endif

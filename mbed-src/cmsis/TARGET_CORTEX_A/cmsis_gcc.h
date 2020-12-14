@@ -1,11 +1,11 @@
 /**************************************************************************//**
  * @file     cmsis_gcc.h
  * @brief    CMSIS compiler specific macros, functions, instructions
- * @version  V1.1.1
- * @date     15. May 2019
+ * @version  V1.0.1
+ * @date     07. Sep 2017
  ******************************************************************************/
 /*
- * Copyright (c) 2009-2019 Arm Limited. All rights reserved.
+ * Copyright (c) 2009-2017 ARM Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -171,7 +171,7 @@ __STATIC_FORCEINLINE  uint32_t __REV(uint32_t value)
 #else
   uint32_t result;
 
-  __ASM volatile ("rev %0, %1" : "=r" (result) : "r" (value) );
+  __ASM volatile ("rev %0, %1" : __CMSIS_GCC_OUT_REG (result) : __CMSIS_GCC_USE_REG (value) );
   return result;
 #endif
 }
@@ -204,7 +204,7 @@ __STATIC_FORCEINLINE  int16_t __REVSH(int16_t value)
 #else
   int16_t result;
 
-  __ASM volatile ("revsh %0, %1" : "=r" (result) : "r" (value) );
+  __ASM volatile ("revsh %0, %1" : __CMSIS_GCC_OUT_REG (result) : __CMSIS_GCC_USE_REG (value) );
   return result;
 #endif
 }
@@ -267,23 +267,7 @@ __STATIC_FORCEINLINE  uint32_t __RBIT(uint32_t value)
   \param [in]  value  Value to count the leading zeros
   \return             number of leading zeros in value
  */
-__STATIC_FORCEINLINE uint8_t __CLZ(uint32_t value)
-{
-  /* Even though __builtin_clz produces a CLZ instruction on ARM, formally
-     __builtin_clz(0) is undefined behaviour, so handle this case specially.
-     This guarantees ARM-compatible results if happening to compile on a non-ARM
-     target, and ensures the compiler doesn't decide to activate any
-     optimisations using the logic "value was passed to __builtin_clz, so it
-     is non-zero".
-     ARM GCC 7.3 and possibly earlier will optimise this test away, leaving a
-     single CLZ instruction.
-   */
-  if (value == 0U)
-  {
-    return 32U;
-  }
-  return __builtin_clz(value);
-}
+#define __CLZ                             (uint8_t)__builtin_clz
 
 /**
   \brief   LDR Exclusive (8 bit)
@@ -466,9 +450,7 @@ __STATIC_FORCEINLINE  uint32_t __get_FPSCR(void)
 {
   #if ((defined (__FPU_PRESENT) && (__FPU_PRESENT == 1U)) && \
        (defined (__FPU_USED   ) && (__FPU_USED    == 1U))     )
-  #if __has_builtin(__builtin_arm_get_fpscr) 
-  // Re-enable using built-in when GCC has been fixed
-  // || (__GNUC__ > 7) || (__GNUC__ == 7 && __GNUC_MINOR__ >= 2)
+  #if __has_builtin(__builtin_arm_get_fpscr) || (__GNUC__ > 7) || (__GNUC__ == 7 && __GNUC_MINOR__ >= 2)
     /* see https://gcc.gnu.org/ml/gcc-patches/2017-04/msg00443.html */
     return __builtin_arm_get_fpscr();
   #else
@@ -491,9 +473,7 @@ __STATIC_FORCEINLINE void __set_FPSCR(uint32_t fpscr)
 {
   #if ((defined (__FPU_PRESENT) && (__FPU_PRESENT == 1U)) && \
        (defined (__FPU_USED   ) && (__FPU_USED    == 1U))     )
-  #if __has_builtin(__builtin_arm_set_fpscr)
-  // Re-enable using built-in when GCC has been fixed
-  // || (__GNUC__ > 7) || (__GNUC__ == 7 && __GNUC_MINOR__ >= 2)
+  #if __has_builtin(__builtin_arm_set_fpscr) || (__GNUC__ > 7) || (__GNUC__ == 7 && __GNUC_MINOR__ >= 2)
     /* see https://gcc.gnu.org/ml/gcc-patches/2017-04/msg00443.html */
     __builtin_arm_set_fpscr(fpscr);
   #else
@@ -683,11 +663,10 @@ __STATIC_INLINE void __FPU_Enable(void)
 #endif
 
     //Initialise FPSCR to a known state
-    "        VMRS    R1,FPSCR          \n"
-    "        LDR     R2,=0x00086060    \n" //Mask off all bits that do not have to be preserved. Non-preserved bits can/should be zero.
-    "        AND     R1,R1,R2          \n"
-    "        VMSR    FPSCR,R1            "
-    : : : "cc", "r1", "r2"
+    "        VMRS    R2,FPSCR          \n"
+    "        LDR     R3,=0x00086060    \n" //Mask off all bits that do not have to be preserved. Non-preserved bits can/should be zero.
+    "        AND     R2,R2,R3          \n"
+    "        VMSR    FPSCR,R2            "
   );
 }
 

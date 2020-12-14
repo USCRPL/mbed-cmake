@@ -1,6 +1,12 @@
+/** \addtogroup platform */
+/** @{*/
+/**
+ * \defgroup platform_power_mgmt Power management functions
+ * @{
+ */
+
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2018 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +23,8 @@
 #ifndef MBED_POWER_MGMT_H
 #define MBED_POWER_MGMT_H
 
-
-#include "platform/mbed_toolchain.h"
+#include "sleep_api.h"
+#include "mbed_toolchain.h"
 #include "hal/ticker_api.h"
 #include <stdbool.h>
 
@@ -26,16 +32,7 @@
 extern "C" {
 #endif
 
-/** \addtogroup platform-public-api */
-/** @{*/
-
-/**
- * \defgroup platform_power_mgmt Power management functions
- * @{
- */
-
-/**
- * @defgroup hal_sleep_manager Sleep manager API
+/** Sleep manager API
  * The sleep manager provides API to automatically select sleep mode.
  *
  * There are two sleep modes:
@@ -45,17 +42,6 @@ extern "C" {
  * Use locking/unlocking deepsleep for drivers that depend on features that
  * are not allowed (=disabled) during the deepsleep. For instance, high frequency
  * clocks.
- *
- * # Defined behavior
- * * The lock is a counter
- * * The lock can be locked up to USHRT_MAX - Verified by ::test_lock_eq_ushrt_max
- * * The lock has to be equally unlocked as locked - Verified by ::test_lock_eq_ushrt_max
- * * The function sleep_manager_lock_deep_sleep_internal() locks the automatic deep mode selection - Verified by ::test_lock_unlock
- * * The function sleep_manager_unlock_deep_sleep_internal() unlocks the automatic deep mode selection - Verified by ::test_lock_unlock
- * * The function sleep_manager_sleep_auto() chooses the sleep or deep sleep modes based on the lock - Verified by ::test_sleep_auto
- * * The function sleep_manager_lock_deep_sleep_internal() is IRQ and thread safe - Verified by ::sleep_manager_multithread_test and ::sleep_manager_irq_test
- * * The function sleep_manager_unlock_deep_sleep_internal() is IRQ and thread safe - Verified by ::sleep_manager_multithread_test and ::sleep_manager_irq_test
- * * The function sleep_manager_sleep_auto() is IRQ and thread safe
  *
  * Example:
  * @code
@@ -77,19 +63,7 @@ extern "C" {
  *      return _sensor.start(event, callback);
  * }
  * @endcode
- * @{
  */
-
-/**
- * @defgroup hal_sleep_manager_tests Sleep manager API tests
- * Tests to validate the proper implementation of the sleep manager
- *
- * To run the sleep manager hal tests use the command:
- *
- *     mbed test -t <toolchain> -m <target> -n tests-mbed_hal-sleep_manager*
- *
- */
-
 #ifdef MBED_SLEEP_TRACING_ENABLED
 
 void sleep_tracker_lock(const char *const filename, int line);
@@ -148,18 +122,7 @@ void sleep_manager_unlock_deep_sleep_internal(void);
  */
 bool sleep_manager_can_deep_sleep(void);
 
-/** Check if the target can deep sleep within a period of time
- *
- * This function in intended for use in testing. The amount
- * of time this functions waits for deeps sleep to be available
- * is currently 2ms. This may change in the future depending
- * on testing requirements.
- *
- * @return true if a target can go to deepsleep, false otherwise
- */
-bool sleep_manager_can_deep_sleep_test_check(void);
-
-/** Enter auto selected sleep mode. It chooses the sleep or deepsleep modes based
+/** Enter auto selected sleep mode. It chooses the sleep or deeepsleep modes based
  *  on the deepsleep locking counter
  *
  * This function is IRQ and thread safe
@@ -175,6 +138,7 @@ void sleep_manager_sleep_auto(void);
  *
  * @note This function can be a noop if not implemented by the platform.
  * @note This function will be a noop in debug mode (debug build profile when MBED_DEBUG is defined).
+ * @note This function will be a noop while uVisor is in use.
  * @note This function will be a noop if the following conditions are met:
  *   - The RTOS is present
  *   - The processor turn off the Systick clock during sleep
@@ -194,11 +158,13 @@ void sleep_manager_sleep_auto(void);
  */
 static inline void sleep(void)
 {
+#if !(defined(FEATURE_UVISOR) && defined(TARGET_UVISOR_SUPPORTED))
 #if DEVICE_SLEEP
-#if (MBED_CONF_RTOS_PRESENT == 0) || (DEVICE_SYSTICK_CLK_OFF_DURING_SLEEP == 0) || defined(MBED_TICKLESS)
+#if (MBED_CONF_RTOS_PRESENT == 0) || (DEVICE_STCLK_OFF_DURING_SLEEP == 0) || defined(MBED_TICKLESS)
     sleep_manager_sleep_auto();
-#endif /* (MBED_CONF_RTOS_PRESENT == 0) || (DEVICE_SYSTICK_CLK_OFF_DURING_SLEEP == 0) || defined(MBED_TICKLESS) */
+#endif /* (MBED_CONF_RTOS_PRESENT == 0) || (DEVICE_STCLK_OFF_DURING_SLEEP == 0) || defined(MBED_TICKLESS) */
 #endif /* DEVICE_SLEEP */
+#endif /* !(defined(FEATURE_UVISOR) && defined(TARGET_UVISOR_SUPPORTED)) */
 }
 
 /** Send the microcontroller to deep sleep
@@ -208,6 +174,7 @@ static inline void sleep(void)
  *
  * @note This function can be a noop if not implemented by the platform.
  * @note This function will be a noop in debug mode (debug build profile when MBED_DEBUG is defined)
+ * @note This function will be a noop while uVisor is in use.
  *
  * This processor is setup ready for deep sleep, and sent to sleep. This mode
  * has the same sleep features as sleep plus it powers down peripherals and clocks. All state
@@ -224,9 +191,20 @@ static inline void sleep(void)
 MBED_DEPRECATED_SINCE("mbed-os-5.6", "One entry point for an application, use sleep()")
 static inline void deepsleep(void)
 {
+#if !(defined(FEATURE_UVISOR) && defined(TARGET_UVISOR_SUPPORTED))
 #if DEVICE_SLEEP
     sleep_manager_sleep_auto();
 #endif /* DEVICE_SLEEP */
+#endif /* !(defined(FEATURE_UVISOR) && defined(TARGET_UVISOR_SUPPORTED)) */
+}
+
+/** Resets the processor and most of the sub-system
+ *
+ * @note Does not affect the debug sub-system
+ */
+static inline void system_reset(void)
+{
+    NVIC_SystemReset();
 }
 
 /** Provides the time spent in sleep mode since boot.
@@ -256,17 +234,6 @@ us_timestamp_t mbed_time_idle(void);
  * @note  Works only if platform supports LP ticker.
  */
 us_timestamp_t mbed_uptime(void);
-
-/** @}*/
-
-/** Resets the processor and most of the sub-system
- *
- * @note Does not affect the debug sub-system
- */
-MBED_NORETURN static inline void system_reset(void)
-{
-    NVIC_SystemReset();
-}
 
 #ifdef __cplusplus
 }

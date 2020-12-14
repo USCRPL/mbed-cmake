@@ -28,19 +28,8 @@ const ticker_info_t* us_ticker_get_info()
 
 static bool us_ticker_inited = false;
 
-#if MBED_CONF_TARGET_US_TICKER_TIMER == 0
-#define US_TICKER_TIMER      ((LPC_TIM_TypeDef *)LPC_TIM0_BASE)
-#define US_TICKER_TIMER_IRQn TIMER0_IRQn
-#elif MBED_CONF_TARGET_US_TICKER_TIMER == 1
-#define US_TICKER_TIMER      ((LPC_TIM_TypeDef *)LPC_TIM1_BASE)
-#define US_TICKER_TIMER_IRQn TIMER1_IRQn
-#elif MBED_CONF_TARGET_US_TICKER_TIMER == 2
-#define US_TICKER_TIMER      ((LPC_TIM_TypeDef *)LPC_TIM2_BASE)
-#define US_TICKER_TIMER_IRQn TIMER2_IRQn
-#else
 #define US_TICKER_TIMER      ((LPC_TIM_TypeDef *)LPC_TIM3_BASE)
 #define US_TICKER_TIMER_IRQn TIMER3_IRQn
-#endif
 
 void us_ticker_init(void) {
     if (us_ticker_inited) {
@@ -87,12 +76,4 @@ void us_ticker_disable_interrupt(void) {
 
 void us_ticker_clear_interrupt(void) {
     US_TICKER_TIMER->IR = 1;
-}
-
-void us_ticker_free(void)
-{
-    US_TICKER_TIMER->TCR = 0;
-
-    US_TICKER_TIMER->MCR &= ~1;
-    NVIC_DisableIRQ(US_TICKER_TIMER_IRQn);
 }

@@ -16,7 +16,7 @@
 #include "mbed_assert.h"
 #include "analogin_api.h"
 
-#if DEVICE_ANALOGIN && !defined(NXP_LPADC)
+#if DEVICE_ANALOGIN
 
 #include "cmsis.h"
 #include "pinmap.h"
@@ -32,30 +32,24 @@ extern void ADC_ClockPower_Configuration(void);
 #define MAX_FADC 6000000
 #define MAX_ADC_CLOCK 80000000
 
-#if STATIC_PINMAP_READY
-#define ANALOGIN_INIT_DIRECT analogin_init_direct
-void analogin_init_direct(analogin_t *obj, const PinMap *pinmap)
-#else
-#define ANALOGIN_INIT_DIRECT _analogin_init_direct
-static void _analogin_init_direct(analogin_t *obj, const PinMap *pinmap)
-#endif
+void analogin_init(analogin_t *obj, PinName pin)
 {
     uint32_t clkval;
     uint32_t clkdiv = 1;
 
-    obj->adc = (ADCName)pinmap->peripheral;
+    obj->adc = (ADCName)pinmap_peripheral(pin, PinMap_ADC);
     MBED_ASSERT(obj->adc != (ADCName)NC);
 
     uint32_t instance = obj->adc >> ADC_INSTANCE_SHIFT;
     adc_config_t adc_config;
     uint32_t reg;
-    uint32_t pin_number = pinmap->pin & 0x1F;
-    uint8_t port_number = pinmap->pin / 32;
+    uint32_t pin_number = pin & 0x1F;
+    uint8_t port_number = pin / 32;
 
     ADC_ClockPower_Configuration();
 
     /* Ensure the ADC clock derived from the system clock is less than 80MHz */
-    clkval = CLOCK_GetFreq(kCLOCK_BusClk);
+    clkval = CLOCK_GetFreq(kCLOCK_CoreSysClk);
     while ((clkval / clkdiv) > MAX_ADC_CLOCK) {
         clkdiv++;
     }
@@ -67,31 +61,20 @@ static void _analogin_init_direct(analogin_t *obj, const PinMap *pinmap)
     }
 
     ADC_GetDefaultConfig(&adc_config);
-    adc_config.clockDividerNumber = (clkdiv - 1);
+    adc_config.clockDividerNumber = clkdiv;
 
     ADC_Init(adc_addrs[instance], &adc_config);
-    pin_function(pinmap->pin, pinmap->function);
-    pin_mode(pinmap->pin, PullNone);
+    pinmap_pinout(pin, PinMap_ADC);
 
-    /* Clear the DIGIMODE & MODE bits */
-    reg = IOCON->PIO[port_number][pin_number] & ~(IOCON_PIO_DIGIMODE_MASK | IOCON_PIO_MODE_MASK);
+    /* Clear the DIGIMODE bit */
+    reg = IOCON->PIO[port_number][pin_number] & ~IOCON_PIO_DIGIMODE_MASK;
     IOCON->PIO[port_number][pin_number] = reg;
-}
-
-void analogin_init(analogin_t *obj, PinName pin)
-{
-    int peripheral = (int)pinmap_peripheral(pin, PinMap_ADC);
-    int function = (int)pinmap_find_function(pin, PinMap_ADC);
-
-    const PinMap static_pinmap = {pin, peripheral, function};
-
-    ANALOGIN_INIT_DIRECT(obj, &static_pinmap);
 }
 
 uint16_t analogin_read_u16(analogin_t *obj)
 {
     uint32_t instance = obj->adc >> ADC_INSTANCE_SHIFT;
-    uint32_t channel = obj->adc & 0xFF;
+    uint32_t channel = obj->adc & 0xF;
     adc_conv_seq_config_t adcConvSeqConfigStruct;
     adc_result_info_t adcResultInfoStruct;
 
@@ -110,20 +93,13 @@ uint16_t analogin_read_u16(analogin_t *obj)
     while (!ADC_GetChannelConversionResult(adc_addrs[instance], channel, &adcResultInfoStruct)) {
     }
 
-    /* The ADC has 12 bit resolution. We shift in 4 0s */
-    /* from the right to make it a 16 bit number as expected */
-    return adcResultInfoStruct.result << 4;
+    return adcResultInfoStruct.result;
 }
 
 float analogin_read(analogin_t *obj)
 {
     uint16_t value = analogin_read_u16(obj);
-    return (float)value * (1.0f / (float)0xFFF0);
-}
-
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
+    return (float)value * (1.0f / (float)0xFFFF);
 }
 
 #endif

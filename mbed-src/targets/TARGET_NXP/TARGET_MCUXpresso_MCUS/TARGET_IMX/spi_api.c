@@ -107,9 +107,15 @@ static inline int spi_readable(spi_t * obj)
 
 int spi_master_write(spi_t *obj, int value)
 {
+    lpspi_transfer_t masterXfer;
     uint32_t rx_data;
 
-    LPSPI_WriteData(spi_address[obj->instance], value);
+    masterXfer.txData = (uint8_t *)&value;
+    masterXfer.rxData = NULL;
+    masterXfer.dataSize = 1;
+    masterXfer.configFlags = kLPSPI_MasterPcs0 | kLPSPI_MasterPcsContinuous | kLPSPI_SlaveByteSwap;
+
+    LPSPI_MasterTransferBlocking(spi_address[obj->instance], &masterXfer);
 
     // wait rx buffer full
     while (!spi_readable(obj));
@@ -163,46 +169,6 @@ void spi_slave_write(spi_t *obj, int value)
     }
 
     LPSPI_ClearStatusFlags(spi_address[obj->instance], kLPSPI_FrameCompleteFlag);
-}
-
-const PinMap *spi_master_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_master_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_master_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_master_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
-}
-
-const PinMap *spi_slave_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_slave_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_slave_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_slave_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
 }
 
 #endif

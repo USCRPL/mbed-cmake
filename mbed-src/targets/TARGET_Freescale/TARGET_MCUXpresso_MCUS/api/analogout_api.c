@@ -28,16 +28,10 @@ static DAC_Type *const dac_bases[] = DAC_BASE_PTRS;
 
 #define RANGE_12BIT     0xFFF
 
-#if STATIC_PINMAP_READY
-#define ANALOGOUT_INIT_DIRECT analogout_init_direct
-void analogout_init_direct(dac_t *obj, const PinMap *pinmap)
-#else
-#define ANALOGOUT_INIT_DIRECT _analogout_init_direct
-static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
-#endif
+void analogout_init(dac_t *obj, PinName pin)
 {
     dac_config_t dac_config;
-    obj->dac = (DACName)pinmap->peripheral;
+    obj->dac = (DACName)pinmap_peripheral(pin, PinMap_DAC);
     if (obj->dac == (DACName)NC) {
         error("DAC pin mapping failed");
     }
@@ -48,15 +42,6 @@ static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
     DAC_SetBufferValue(dac_bases[obj->dac], 0, 0);
 
     DAC_Enable(dac_bases[obj->dac], true);
-}
-
-void analogout_init(dac_t *obj, PinName pin)
-{
-    int peripheral = (int)pinmap_peripheral(pin, PinMap_ADC);
-
-    const PinMap static_pinmap = {pin, peripheral, 0};
-
-    ANALOGOUT_INIT_DIRECT(obj, &static_pinmap);
 }
 
 void analogout_free(dac_t *obj)
@@ -99,11 +84,6 @@ uint16_t analogout_read_u16(dac_t *obj)
 {
     uint32_t value = dac_read(obj); // 12-bit
     return (value << 4) | ((value >> 8) & 0x003F);
-}
-
-const PinMap *analogout_pinmap()
-{
-    return PinMap_DAC;
 }
 
 #endif

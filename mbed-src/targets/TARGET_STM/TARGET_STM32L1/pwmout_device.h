@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-#if DEVICE_PWMOUT
+#ifdef DEVICE_PWMOUT
 
 /*  L1 HAL do not offer Output Compare idle nor inverted mode*/
 #define PWMOUT_INVERTED_NOT_SUPPORTED
@@ -56,9 +56,5 @@ typedef struct pwm_apb_map {
 extern const pwm_apb_map_t pwm_apb_map_table[];
 
 #endif // DEVICE_PWMOUT
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

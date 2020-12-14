@@ -158,8 +158,3 @@ void us_ticker_fire_interrupt(void)
 {
     NVIC_SetPendingIRQ(PIT_TICKER_IRQ);
 }
-
-void us_ticker_free(void)
-{
-
-}

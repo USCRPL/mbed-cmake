@@ -51,6 +51,8 @@ typedef enum {
     PIN_OUTPUT
 } PinDirection;
 
+#define PORT_SHIFT  3
+
 ///> define macro producing for example Px_y = NRF_GPIO_PIN_MAP(x, y)
 #define PinDef(port_num, pin_num) P##port_num##_##pin_num = NRF_GPIO_PIN_MAP(port_num, pin_num)
 
@@ -224,22 +226,6 @@ typedef enum {
     A3 = p29,
     A4 = p30,
     A5 = p31,
-
-    /**** QSPI pins ****/
-    QSPI1_IO0 = P0_20,
-    QSPI1_IO1 = P0_21,
-    QSPI1_IO2 = P0_22,
-    QSPI1_IO3 = P0_23,
-    QSPI1_SCK = P0_19,
-    QSPI1_CSN = P0_17,
-
-    /**** QSPI FLASH pins ****/
-    QSPI_FLASH1_IO0 = QSPI1_IO0,
-    QSPI_FLASH1_IO1 = QSPI1_IO1,
-    QSPI_FLASH1_IO2 = QSPI1_IO2,
-    QSPI_FLASH1_IO3 = QSPI1_IO3,
-    QSPI_FLASH1_SCK = QSPI1_SCK,
-    QSPI_FLASH1_CSN = QSPI1_CSN,
 
     // Not connected
     NC = (int)0xFFFFFFFF

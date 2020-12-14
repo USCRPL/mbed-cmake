@@ -125,16 +125,6 @@ typedef enum {
 } ADCName;
 
 typedef enum {
-#if defined(SCU_INIT_PNSSET2_VAL) && (SCU_INIT_PNSSET2_VAL & (1 << 7))
-    DAC_0_0 = (int) NU_MODNAME(DAC0_BASE + NS_OFFSET, 0, 0),
-    DAC_1_0 = (int) NU_MODNAME(DAC1_BASE + NS_OFFSET, 1, 0)
-#else
-    DAC_0_0 = (int) NU_MODNAME(DAC0_BASE, 0, 0),
-    DAC_1_0 = (int) NU_MODNAME(DAC1_BASE, 1, 0)
-#endif
-} DACName;
-
-typedef enum {
 
 #if defined(SCU_INIT_PNSSET3_VAL) && (SCU_INIT_PNSSET3_VAL & (1<<16))
     UART_0 = (int) NU_MODNAME(UART0_BASE + NS_OFFSET, 0, 0),
@@ -173,7 +163,7 @@ typedef enum {
 #endif
 
     // NOTE: board-specific
-    STDIO_UART  = UART_0
+    STDIO_UART  = UART_3
 
 } UARTName;
 
@@ -327,15 +317,6 @@ typedef enum {
 #endif
 
 } CANName;
-
-typedef enum {
-#if defined(SCU_INIT_PNSSET5_VAL) && (SCU_INIT_PNSSET5_VAL & (1 << 25))
-    TRNG_0 = (int) NU_MODNAME(TRNG_BASE + NS_OFFSET, 0, 0)
-#else
-    TRNG_0 = (int) NU_MODNAME(TRNG_BASE, 0, 0)
-#endif
-
-} TRNGName;
 
 #ifdef __cplusplus
 }

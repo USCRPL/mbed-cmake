@@ -50,6 +50,8 @@ typedef enum {
     PIN_OUTPUT
 } PinDirection;
 
+#define PORT_SHIFT  3
+
 typedef enum {
     p0  = 0,
     p1  = 1,
@@ -139,8 +141,6 @@ typedef enum {
     USBRX = RX_PIN_NUMBER,
     STDIO_UART_TX = TX_PIN_NUMBER,
     STDIO_UART_RX = RX_PIN_NUMBER,
-    STDIO_UART_CTS = CTS_PIN_NUMBER,
-    STDIO_UART_RTS = RTS_PIN_NUMBER,
 
     SPI_PSELMOSI0 = p23,
     SPI_PSELMISO0 = p24,

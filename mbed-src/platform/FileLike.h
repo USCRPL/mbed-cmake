@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +16,18 @@
 #ifndef MBED_FILELIKE_H
 #define MBED_FILELIKE_H
 
+#include "platform/mbed_toolchain.h"
 #include "platform/FileBase.h"
 #include "platform/FileHandle.h"
 #include "platform/NonCopyable.h"
 
 namespace mbed {
+/** \addtogroup platform */
+/** @{*/
 /**
  * \defgroup platform_FileLike FileLike class
- * \ingroup platform-public-api-file
  * @{
  */
-
 /** Class FileLike
  *
  *  A file-like object is one that can be opened with fopen by
@@ -44,6 +44,8 @@ public:
     FileLike(const char *name = NULL) : FileBase(name, FilePathType) {}
     virtual ~FileLike() {}
 };
+
+/**@}*/
 
 /**@}*/
 

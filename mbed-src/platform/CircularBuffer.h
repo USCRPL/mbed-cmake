@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2015-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2015 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +16,6 @@
 #ifndef MBED_CIRCULARBUFFER_H
 #define MBED_CIRCULARBUFFER_H
 
-#include <stdint.h>
 #include "platform/mbed_critical.h"
 #include "platform/mbed_assert.h"
 
@@ -51,7 +49,7 @@ struct is_unsigned<unsigned long long> {
 };
 };
 
-/** \addtogroup platform-public-api */
+/** \addtogroup platform */
 /** @{*/
 /**
  * \defgroup platform_CircularBuffer CircularBuffer functions
@@ -94,14 +92,10 @@ public:
         core_util_critical_section_enter();
         if (full()) {
             _tail++;
-            if (_tail == BufferSize) {
-                _tail = 0;
-            }
+            _tail %= BufferSize;
         }
         _pool[_head++] = data;
-        if (_head == BufferSize) {
-            _head = 0;
-        }
+        _head %= BufferSize;
         if (_head == _tail) {
             _full = true;
         }
@@ -119,9 +113,7 @@ public:
         core_util_critical_section_enter();
         if (!empty()) {
             data = _pool[_tail++];
-            if (_tail == BufferSize) {
-                _tail = 0;
-            }
+            _tail %= BufferSize;
             _full = false;
             data_popped = true;
         }
@@ -202,9 +194,9 @@ public:
 
 private:
     T _pool[BufferSize];
-    CounterType _head;
-    CounterType _tail;
-    bool _full;
+    volatile CounterType _head;
+    volatile CounterType _tail;
+    volatile bool _full;
 };
 
 /**@}*/

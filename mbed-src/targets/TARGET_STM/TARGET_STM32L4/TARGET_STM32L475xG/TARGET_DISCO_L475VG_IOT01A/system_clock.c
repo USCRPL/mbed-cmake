@@ -31,6 +31,7 @@
 **/
 
 #include "stm32l4xx.h"
+#include "nvic_addr.h"
 #include "mbed_error.h"
 
 /*!< Uncomment the following line if you need to relocate your vector Table in
@@ -59,6 +60,47 @@ uint8_t SetSysClock_PLL_HSI(void);
 #if ((CLOCK_SOURCE) & USE_PLL_MSI)
 uint8_t SetSysClock_PLL_MSI(void);
 #endif /* ((CLOCK_SOURCE) & USE_PLL_MSI) */
+
+
+/**
+  * @brief  Setup the microcontroller system.
+  * @param  None
+  * @retval None
+  */
+
+void SystemInit(void)
+{
+    /* FPU settings ------------------------------------------------------------*/
+#if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
+    SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2)); /* set CP10 and CP11 Full Access */
+#endif
+    /* Reset the RCC clock configuration to the default reset state ------------*/
+    /* Set MSION bit */
+    RCC->CR |= RCC_CR_MSION;
+
+    /* Reset CFGR register */
+    RCC->CFGR = 0x00000000;
+
+    /* Reset HSEON, CSSON , HSION, and PLLON bits */
+    RCC->CR &= (uint32_t)0xEAF6FFFF;
+
+    /* Reset PLLCFGR register */
+    RCC->PLLCFGR = 0x00001000;
+
+    /* Reset HSEBYP bit */
+    RCC->CR &= (uint32_t)0xFFFBFFFF;
+
+    /* Disable all interrupts */
+    RCC->CIER = 0x00000000;
+
+    /* Configure the Vector Table location add offset address ------------------*/
+#ifdef VECT_TAB_SRAM
+    SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+#else
+    SCB->VTOR = NVIC_FLASH_VECTOR_ADDRESS; /* Vector Table Relocation in Internal FLASH */
+#endif
+
+}
 
 
 /**
@@ -156,7 +198,6 @@ uint8_t SetSysClock_PLL_HSE(uint8_t bypass)
         return 0; // FAIL
     }
 
-#if DEVICE_USBDEVICE
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
     RCC_PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
     RCC_PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSE;
@@ -169,7 +210,6 @@ uint8_t SetSysClock_PLL_HSE(uint8_t bypass)
     if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit) != HAL_OK) {
         return 0; // FAIL
     }
-#endif /* DEVICE_USBDEVICE */
 
     // Disable MSI Oscillator
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
@@ -231,7 +271,6 @@ uint8_t SetSysClock_PLL_HSI(void)
         return 0; // FAIL
     }
 
-#if DEVICE_USBDEVICE
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
     RCC_PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
     RCC_PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSI;
@@ -244,7 +283,6 @@ uint8_t SetSysClock_PLL_HSI(void)
     if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit) != HAL_OK) {
         return 0; // FAIL
     }
-#endif /* DEVICE_USBDEVICE */
 
     // Disable MSI Oscillator
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
@@ -271,19 +309,15 @@ uint8_t SetSysClock_PLL_MSI(void)
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-#if MBED_CONF_TARGET_LSE_AVAILABLE
     // Enable LSE Oscillator to automatically calibrate the MSI clock
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_NONE; // No PLL update
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON; // External 32.768 kHz clock on OSC_IN/OSC_OUT
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-        return 0; // FAIL
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK) {
+        RCC->CR |= RCC_CR_MSIPLLEN; // Enable MSI PLL-mode
     }
 
-    /* Enable the CSS interrupt in case LSE signal is corrupted or not present */
     HAL_RCCEx_DisableLSECSS();
-#endif /* MBED_CONF_TARGET_LSE_AVAILABLE */
-
     /* Enable MSI Oscillator and activate PLL with MSI as source */
     RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_MSI | RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.MSIState             = RCC_MSI_ON;
@@ -302,19 +336,12 @@ uint8_t SetSysClock_PLL_MSI(void)
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         return 0; // FAIL
     }
-
-#if MBED_CONF_TARGET_LSE_AVAILABLE
     /* Enable MSI Auto-calibration through LSE */
     HAL_RCCEx_EnableMSIPLLMode();
-#endif /* MBED_CONF_TARGET_LSE_AVAILABLE */
-
-#if DEVICE_USBDEVICE
     /* Select MSI output as USB clock source */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
     PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_MSI; /* 48 MHz */
     HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-#endif /* DEVICE_USBDEVICE */
-
     // Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 clocks dividers
     RCC_ClkInitStruct.ClockType      = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
     RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK; /* 80 MHz */

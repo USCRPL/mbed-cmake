@@ -16,8 +16,6 @@
 #include "mbed_assert.h"
 #include "i2c_api.h"
 
-#if DEVICE_I2C
-
 #include "cmsis.h"
 #include "pinmap.h"
 #include "clk_freqs.h"
@@ -287,26 +285,6 @@ int i2c_byte_write(i2c_t *obj, int data) {
     return !i2c_do_write(obj, (data & 0xFF));
 }
 
-const PinMap *i2c_master_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_master_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
-}
-
-const PinMap *i2c_slave_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_slave_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
-}
-
 
 #if DEVICE_I2CSLAVE
 void i2c_slave_mode(i2c_t *obj, int enable_slave) {
@@ -392,5 +370,3 @@ void i2c_slave_address(i2c_t *obj, int idx, uint32_t address, uint32_t mask) {
     obj->i2c->A1 = address & 0xfe;
 }
 #endif
-
-#endif  // #if DEVICE_I2C

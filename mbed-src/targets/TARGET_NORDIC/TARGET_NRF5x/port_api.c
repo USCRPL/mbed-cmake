@@ -36,8 +36,6 @@
  * 
  */
 
-#if DEVICE_PORTIN || DEVICE_PORTOUT || DEVICE_PORTINOUT
-
 #include "port_api.h"
 #include "pinmap.h"
 
@@ -134,5 +132,3 @@ int port_read(port_t *obj)
 {
     return ((m_ports[obj->port]->IN) & obj->mask);
 }
-
-#endif // DEVICE_PORTIN || DEVICE_PORTOUT || DEVICE_PORTINOUT

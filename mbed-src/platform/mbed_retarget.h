@@ -1,7 +1,6 @@
 /*
  * mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2016 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,10 +78,8 @@ typedef unsigned int  gid_t;    ///< Group ID
 
 #include <time.h>
 
-/** \addtogroup platform-public-api */
+/** \addtogroup platform */
 /** @{*/
-
-#if !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
 /**
  * \defgroup platform_retarget Retarget functions
  * @{
@@ -91,6 +88,7 @@ typedef unsigned int  gid_t;    ///< Group ID
 /* DIR declarations must also be here */
 #if __cplusplus
 namespace mbed {
+
 class FileHandle;
 class DirHandle;
 
@@ -121,71 +119,25 @@ FileHandle *mbed_target_override_console(int fd);
  * by mbed_target_override_console, else will default to serial - see
  * mbed_target_override_console for more details.
  *
- * Example using UARTSerial:
+ * Example:
  * @code
- * FileHandle *mbed::mbed_override_console(int) {
+ * FileHandle* mbed::mbed_override_console(int) {
  *     static UARTSerial my_serial(D0, D1);
  *     return &my_serial;
  * }
  * @endcode
- *
- * Example using SingleWireOutput:
- * @code
- * FileHandle *mbed::mbed_override_console(int) {
- *     static SerialWireOutput swo;
- *     return &swo;
- * }
- * @endcode
- *
- * Example using arm semihosting:
- * @code
- * FileHandle *mbed::mbed_override_console(int fileno) {
- *    static LocalFileSystem fs("host");
- *    if (fileno == STDIN_FILENO) {
- *        static FileHandle *in_terminal;
- *        static int in_open_result = fs.open(&in_terminal, ":tt", O_RDONLY);
- *        return in_terminal;
- *    } else {
- *        static FileHandle *out_terminal;
- *        static int out_open_result = fs.open(&out_terminal, ":tt", O_WRONLY);
- *        return out_terminal;
- *    }
- * }
- * @endcode
- *
+
  * @param fd file descriptor - STDIN_FILENO, STDOUT_FILENO or STDERR_FILENO
  * @return  pointer to FileHandle to override normal stream otherwise NULL
  */
 FileHandle *mbed_override_console(int fd);
 
-/** Look up the Mbed file handle corresponding to a file descriptor
- *
- * This conversion function permits an application to find the underlying
- * FileHandle object corresponding to a POSIX file descriptor.
- *
- * This allows access to specialized behavior only available via the
- * FileHandle API.
- *
- * Example of saving power by disabling console input - for buffered serial,
- * this would release the RX interrupt handler, which would release the
- * deep sleep lock.
- * @code
- * mbed_file_handle(STDIN_FILENO)->enable_input(false);
- * @endcode
- *
- * @param fd file descriptor
- * @return   FileHandle pointer
- *           NULL if descriptor does not correspond to a FileHandle (only
- *           possible if it's not open with current implementation).
- */
-FileHandle *mbed_file_handle(int fd);
 }
 
 typedef mbed::DirHandle DIR;
 #else
 typedef struct Dir DIR;
 #endif
-#endif // !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
 
 /* The intent of this section is to unify the errno error values to match
  * the POSIX definitions for the GCC_ARM, ARMCC and IAR compilers. This is
@@ -560,7 +512,6 @@ struct pollfd {
 #if __cplusplus
 extern "C" {
 #endif
-#if !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
     int open(const char *path, int oflag, ...);
 #ifndef __IAR_SYSTEMS_ICC__ /* IAR provides fdopen itself */
 #if __cplusplus
@@ -569,14 +520,11 @@ extern "C" {
     FILE *fdopen(int fildes, const char *mode);
 #endif
 #endif
-#endif // !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
     ssize_t write(int fildes, const void *buf, size_t nbyte);
     ssize_t read(int fildes, void *buf, size_t nbyte);
-    int fsync(int fildes);
-    int isatty(int fildes);
-#if !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
     off_t lseek(int fildes, off_t offset, int whence);
-    int ftruncate(int fildes, off_t length);
+    int isatty(int fildes);
+    int fsync(int fildes);
     int fstat(int fildes, struct stat *st);
     int fcntl(int fildes, int cmd, ...);
     int poll(struct pollfd fds[], nfds_t nfds, int timeout);
@@ -590,12 +538,11 @@ extern "C" {
     long telldir(DIR *);
     void seekdir(DIR *, long);
     int mkdir(const char *name, mode_t n);
-#endif // !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
 #if __cplusplus
 }; // extern "C"
 
 namespace mbed {
-#if !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
+
 /** This call is an analogue to POSIX fdopen().
  *
  *  It associates a C stream to an already-opened FileHandle, to allow you to
@@ -623,33 +570,6 @@ std::FILE *fdopen(mbed::FileHandle *fh, const char *mode);
  *  @return         an integer file descriptor, or negative if no descriptors available
  */
 int bind_to_fd(mbed::FileHandle *fh);
-
-#else
-/** Targets may implement this to override how to write to the console.
- *
- * If the target has provided minimal_console_putc, this is called
- * to give the target a chance to specify an alternative minimal console.
- *
- * If this is not provided, serial_putc will be used if
- * `target.console-uart` is `true`, else there will not be an output.
- *
- *  @param c   The char to write
- *  @return    The written char
- */
-int minimal_console_putc(int c);
-
-/** Targets may implement this to override how to read from the console.
- *
- * If the target has provided minimal_console_getc, this is called
- * to give the target a chance to specify an alternative minimal console.
- *
- * If this is not provided, serial_getc will be used if
- * `target.console-uart` is `true`, else no input would be captured.
- *
- *  @return  The char read from the serial port
- */
-int minimal_console_getc();
-#endif // !MBED_CONF_PLATFORM_STDIO_MINIMAL_CONSOLE_ONLY
 
 } // namespace mbed
 

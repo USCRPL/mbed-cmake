@@ -22,24 +22,29 @@
  * limitations under the License.
  */
 
-#include "irq_ctrl.h"
-#include "cmsis.h"
-#include "mbed_drv_cfg.h"
-
-// Define OS Timer channel and interrupt number
-#define OSTM                        (OSTM0)
-#define OSTM_IRQn                   ((IRQn_ID_t)OSTMI0TINT_IRQn)
-
 #ifdef MBED_CONF_RTOS_PRESENT
+
 #include "os_tick.h"
+#include "irq_ctrl.h"
+
+#include <VKRZA1H.h>
+
+#include <cmsis.h>
+
 
 // Define OS TImer interrupt priority
 #ifndef OSTM_IRQ_PRIORITY
 #define OSTM_IRQ_PRIORITY           0xFFU
 #endif
 
+// Define OS Timer channel and interrupt number
+#define OSTM                        (OSTM0)
+#define OSTM_IRQn                   ((IRQn_ID_t)OSTMI0TINT_IRQn)
+
+
 static uint32_t OSTM_Clock;         // Timer tick frequency
 static uint8_t  OSTM_PendIRQ;       // Timer interrupt pending flag
+
 
 // Setup OS Tick.
 int32_t OS_Tick_Setup (uint32_t freq, IRQHandler_t handler)
@@ -57,15 +62,15 @@ int32_t OS_Tick_Setup (uint32_t freq, IRQHandler_t handler)
   // Get CPG.FRQCR[IFC] bits
   clock = (CPG.FRQCR >> 8) & 0x03;
 
-  // Determine Divider 2 output clock by using RENESAS_RZ_A1_P0_CLK
+  // Determine Divider 2 output clock by using SystemCoreClock
   if (clock == 0x03U) {
-    clock = (RENESAS_RZ_A1_P0_CLK * 3U);
+    clock = (SystemCoreClock * 3U);
   }
   else if (clock == 0x01U) {
-    clock = (RENESAS_RZ_A1_P0_CLK * 3U)/2U;
+    clock = (SystemCoreClock * 3U)/2U;
   }
   else {
-    clock = RENESAS_RZ_A1_P0_CLK;
+    clock = SystemCoreClock;
   }
 
   // Determine tick frequency
@@ -187,10 +192,6 @@ uint32_t OS_Tick_GetOverflow (void)
 {
   return (IRQ_GetPending(OSTM_IRQn));
 }
-#endif
 
-// Get Cortex-A9 OS Timer interrupt number
-IRQn_ID_t mbed_get_a9_tick_irqn(){
-  return OSTM_IRQn;
-}
+#endif
 

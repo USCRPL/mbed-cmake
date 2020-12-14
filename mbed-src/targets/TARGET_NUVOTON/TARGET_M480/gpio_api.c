@@ -51,9 +51,6 @@ void gpio_init(gpio_t *obj, PinName pin)
     }
 
     obj->mask = gpio_set(pin);
-    /* Default mode/direction */
-    obj->mode = PullUp;
-    obj->direction = PIN_INPUT;
 }
 
 void gpio_mode(gpio_t *obj, PinMode mode)
@@ -62,57 +59,7 @@ void gpio_mode(gpio_t *obj, PinMode mode)
         return;
     }
 
-    uint32_t pin_index = NU_PININDEX(obj->pin);
-    uint32_t port_index = NU_PINPORT(obj->pin);
-    GPIO_T *gpio_base = NU_PORT_BASE(port_index);
-
-    switch (mode) {
-        case PullNone:
-            if (mode == PullNone) {
-                GPIO_SetPullCtl(gpio_base, 1 << pin_index, GPIO_PUSEL_DISABLE);
-            }
-        case PullDown:
-            if (mode == PullDown) {
-                GPIO_SetPullCtl(gpio_base, 1 << pin_index, GPIO_PUSEL_PULL_DOWN);
-            }
-        case PullUp:
-            if (mode == PullUp) {
-                GPIO_SetPullCtl(gpio_base, 1 << pin_index, GPIO_PUSEL_PULL_UP);
-            }
-            /* H/W doesn't support separate configuration for input pull mode/direction.
-             * We translate to input-only/push-pull output I/O mode dependent on direction. */
-            obj->mode = (obj->direction == PIN_INPUT) ? InputOnly : PushPullOutput;
-            break;
-
-        case QuasiBidirectional:
-            /* With quasi-bidirectional I/O mode, before digital input function is performed,
-             * the corresponding bit in GPIOx_DOUT must be set to 1. */
-            obj->mode = QuasiBidirectional;
-            if (obj->direction == PIN_INPUT) {
-                gpio_write(obj, 1);
-            }
-            break;
-
-        case InputOnly:
-        case PushPullOutput:
-            /* We may meet contradictory I/O mode/direction configuration. Favor I/O mode
-             * in the gpio_mode call here. */
-            if (mode == InputOnly) {
-                obj->direction = PIN_INPUT;
-                obj->mode = InputOnly;
-            } else {
-                obj->direction = PIN_OUTPUT;
-                obj->mode = PushPullOutput;
-            }
-            break;
-
-        default:
-            /* Allow for configuring other I/O modes directly */
-            obj->mode = mode;
-            break;
-    }
-
-    pin_mode(obj->pin, obj->mode);
+    pin_mode(obj->pin, mode);
 }
 
 void gpio_dir(gpio_t *obj, PinDirection direction)
@@ -121,48 +68,24 @@ void gpio_dir(gpio_t *obj, PinDirection direction)
         return;
     }
 
-    obj->direction = direction;
-
-    uint32_t pin_index = NU_PININDEX(obj->pin);
-    uint32_t port_index = NU_PINPORT(obj->pin);
+    uint32_t pin_index = NU_PINNAME_TO_PIN(obj->pin);
+    uint32_t port_index = NU_PINNAME_TO_PORT(obj->pin);
     GPIO_T *gpio_base = NU_PORT_BASE(port_index);
 
-    switch (obj->mode) {
-        case PullNone:
-            if (obj->mode == PullNone) {
-                GPIO_SetPullCtl(gpio_base, 1 << pin_index, GPIO_PUSEL_DISABLE);
-            }
-        case PullDown:
-            if (obj->mode == PullDown) {
-                GPIO_SetPullCtl(gpio_base, 1 << pin_index, GPIO_PUSEL_PULL_DOWN);
-            }
-        case PullUp:
-            if (obj->mode == PullUp) {
-                GPIO_SetPullCtl(gpio_base, 1 << pin_index, GPIO_PUSEL_PULL_UP);
-            }
-            /* H/W doesn't support separate configuration for input pull mode/direction.
-             * We translate to input-only/push-pull output I/O mode dependent on direction. */
-            obj->mode = (obj->direction == PIN_INPUT) ? InputOnly : PushPullOutput;
-            break;
-            
-        case QuasiBidirectional:
-            /* With quasi-bidirectional I/O mode, before digital input function is performed,
-             * the corresponding bit in GPIOx_DOUT must be set to 1. */
-            if (obj->direction == PIN_INPUT) {
-                gpio_write(obj, 1);
-            }
-            break;
+    uint32_t mode_intern = GPIO_MODE_INPUT;
 
-        case InputOnly:
-        case PushPullOutput:
-            /* We may meet contradictory I/O mode/direction configuration. Favor direction
-             * in the gpio_dir call here. */
-            obj->mode = (obj->direction == PIN_INPUT) ? InputOnly : PushPullOutput;
-            break;
+    switch (direction) {
+    case PIN_INPUT:
+        mode_intern = GPIO_MODE_INPUT;
+        break;
 
-        default:
-            break;
+    case PIN_OUTPUT:
+        mode_intern = GPIO_MODE_OUTPUT;
+        break;
+
+    default:
+        return;
     }
 
-    pin_mode(obj->pin, obj->mode);
+    GPIO_SetMode(gpio_base, 1 << pin_index, mode_intern);
 }

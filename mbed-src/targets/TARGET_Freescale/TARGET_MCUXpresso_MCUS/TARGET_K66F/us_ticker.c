@@ -15,7 +15,6 @@
  */
 #include <stddef.h>
 #include "us_ticker_api.h"
-#include "us_ticker_defines.h"
 #include "PeripheralNames.h"
 #include "fsl_pit.h"
 #include "fsl_clock_config.h"
@@ -82,9 +81,9 @@ void us_ticker_init(void)
  *
  * @return The current timer's counter value in ticks
  */
-uint32_t (us_ticker_read)()
+uint32_t us_ticker_read()
 {
-    return us_ticker_read();
+    return ~(PIT_GetCurrentTimerCount(PIT, kPIT_Chnl_1));
 }
 
 /** Disable us ticker interrupt
@@ -136,9 +135,4 @@ void us_ticker_set_interrupt(timestamp_t timestamp)
 void us_ticker_fire_interrupt(void)
 {
     NVIC_SetPendingIRQ(PIT3_IRQn);
-}
-
-void us_ticker_free(void)
-{
-
 }

@@ -1,18 +1,12 @@
 /* Linker script to configure memory regions. */
 
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
-STACK_SIZE = MBED_BOOT_STACK_SIZE;
-
 MEMORY
 {
   /* 128KB FLASH, 32KB RAM, Reserve up till 0xF4. There are 61 vectors = 244
-   * bytes (0xF4) in RAM. 8-byte aligned(0xF4) = 0xF8
+   * bytes (0xF4) in RAM.
    */
   FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 128k
-  RAM (rwx) : ORIGIN = 0x200000F8, LENGTH = 0x8000-0xF8
+  RAM (rwx) : ORIGIN = 0x200000F4, LENGTH = 0x8000-0xF4
 }
 
 /* Linker script to place sections and symbol values. Should be used together
@@ -94,13 +88,13 @@ SECTIONS
         *(vtable)
         *(.data*)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* preinit data */
         PROVIDE_HIDDEN (__preinit_array_start = .);
         KEEP(*(.preinit_array))
         PROVIDE_HIDDEN (__preinit_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* init data */
         PROVIDE_HIDDEN (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
@@ -108,7 +102,7 @@ SECTIONS
         PROVIDE_HIDDEN (__init_array_end = .);
 
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* finit data */
         PROVIDE_HIDDEN (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
@@ -116,7 +110,7 @@ SECTIONS
         PROVIDE_HIDDEN (__fini_array_end = .);
 
         KEEP(*(.jcr*))
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* All data end */
         __data_end__ = .;
         _edata = .;
@@ -125,12 +119,12 @@ SECTIONS
 
     .bss :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_start__ = .;
         _sbss = .;
         *(.bss*)
         *(COMMON)
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_end__ = .;
         _ebss = .;
     } > RAM
@@ -140,7 +134,6 @@ SECTIONS
         __end__ = .;
         end = __end__;
         *(.heap*)
-        . = ORIGIN(RAM) + LENGTH(RAM) - STACK_SIZE;
         __HeapLimit = .;
     } > RAM
 
@@ -156,7 +149,7 @@ SECTIONS
      * size of stack_dummy section */
     __StackTop = ORIGIN(RAM) + LENGTH(RAM);
     _estack = __StackTop;
-    __StackLimit = __StackTop - STACK_SIZE;
+    __StackLimit = __StackTop - SIZEOF(.stack_dummy);
     PROVIDE(__stack = __StackTop);
 
     /* Check if data + heap + stack exceeds RAM limit */

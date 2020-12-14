@@ -1,11 +1,5 @@
 /* Linker script for mbed LPC1549 */
 
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
-STACK_SIZE = MBED_BOOT_STACK_SIZE;
-
 /* Linker script to configure memory regions. */
 MEMORY
 {
@@ -95,13 +89,13 @@ SECTIONS
         *(vtable)
         *(.data*)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* preinit data */
         PROVIDE (__preinit_array_start = .);
         KEEP(*(.preinit_array))
         PROVIDE (__preinit_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* init data */
         PROVIDE (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
@@ -109,14 +103,14 @@ SECTIONS
         PROVIDE (__init_array_end = .);
 
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* finit data */
         PROVIDE (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
         KEEP(*(.fini_array))
         PROVIDE (__fini_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* All data end */
         __data_end__ = .;
 
@@ -138,10 +132,8 @@ SECTIONS
         __end__ = .;
         end = __end__;
         *(.heap*)
-        . = ORIGIN(Ram1_16) + LENGTH(Ram1_16);
         __HeapLimit = .;
-    } > Ram1_16
-
+    } > Ram0_16
 
     /* .stack_dummy section doesn't contains any symbols. It is only
      * used for linker to calculate size of stack sections, and assign
@@ -149,12 +141,12 @@ SECTIONS
     .stack_dummy :
     {
         *(.stack)
-    } > Ram2_4
+    } > Ram0_16
 
     /* Set stack top to end of RAM, and stack limit move down by
      * size of stack_dummy section */
-    __StackTop = ORIGIN(Ram2_4) + LENGTH(Ram2_4);
-    __StackLimit = __StackTop - STACK_SIZE;
+    __StackTop = ORIGIN(Ram0_16) + LENGTH(Ram0_16);
+    __StackLimit = __StackTop - SIZEOF(.stack_dummy);
     PROVIDE(__stack = __StackTop);
     
     /* Check if data + heap + stack exceeds RAM limit */

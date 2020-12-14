@@ -35,13 +35,13 @@
 #include "PeripheralNames.h"
 
 //*** ADC ***
-#if DEVICE_ANALOGIN
+#ifdef DEVICE_ANALOGIN
 extern const PinMap PinMap_ADC[];
 extern const PinMap PinMap_ADC_Internal[];
 #endif
 
 //*** DAC ***
-#if DEVICE_ANALOGOUT
+#ifdef DEVICE_ANALOGOUT
 extern const PinMap PinMap_DAC[];
 #endif
 
@@ -57,17 +57,17 @@ extern const PinMap PinMap_PWM[];
 #endif
 
 //*** SERIAL ***
-#if DEVICE_SERIAL
+#ifdef DEVICE_SERIAL
 extern const PinMap PinMap_UART_TX[];
 extern const PinMap PinMap_UART_RX[];
-#if DEVICE_SERIAL_FC
+#ifdef DEVICE_SERIAL_FC
 extern const PinMap PinMap_UART_RTS[];
 extern const PinMap PinMap_UART_CTS[];
 #endif
 #endif
 
 //*** SPI ***
-#if DEVICE_SPI
+#ifdef DEVICE_SPI
 extern const PinMap PinMap_SPI_MOSI[];
 extern const PinMap PinMap_SPI_MISO[];
 extern const PinMap PinMap_SPI_SCLK[];
@@ -75,30 +75,9 @@ extern const PinMap PinMap_SPI_SSEL[];
 #endif
 
 //*** CAN ***
-#if DEVICE_CAN
+#ifdef DEVICE_CAN
 extern const PinMap PinMap_CAN_RD[];
 extern const PinMap PinMap_CAN_TD[];
 #endif
-
-#if DEVICE_QSPI
-extern const PinMap PinMap_QSPI_DATA0[];
-extern const PinMap PinMap_QSPI_DATA1[];
-extern const PinMap PinMap_QSPI_DATA2[];
-extern const PinMap PinMap_QSPI_DATA3[];
-extern const PinMap PinMap_QSPI_SCLK[];
-extern const PinMap PinMap_QSPI_SSEL[];
-#endif
-
-#if DEVICE_USBDEVICE
-
-#define USE_USB_NO_OTG   0
-#define USE_USB_OTG_FS   1
-#define USE_USB_OTG_HS   2
-#define USE_USB_HS_IN_FS 3
-
-extern const PinMap PinMap_USB_HS[];
-extern const PinMap PinMap_USB_FS[];
-
-#endif /* DEVICE_USBDEVICE */
 
 #endif

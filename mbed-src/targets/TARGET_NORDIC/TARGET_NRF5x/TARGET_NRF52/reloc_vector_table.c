@@ -39,8 +39,6 @@
 #include "nrf.h"
 #include "cmsis_nvic.h"
 #include "stdint.h"
-#include "PinNames.h"
-#include "hal/gpio_api.h"
 
 #if defined(SOFTDEVICE_PRESENT)
 #include "nrf_sdm.h"
@@ -48,13 +46,13 @@
 #endif
 
 #if defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
-    __attribute__ ((section(".bss.nvictable"),zero_init))
+    __attribute__ ((section(".bss.noinit"),zero_init))
     uint32_t nrf_dispatch_vector[NVIC_NUM_VECTORS];
 #elif defined(__GNUC__)
-    __attribute__ ((section(".nvictable")))
+    __attribute__ ((section(".noinit")))
     uint32_t nrf_dispatch_vector[NVIC_NUM_VECTORS];
 #elif defined(__ICCARM__)
-    uint32_t nrf_dispatch_vector[NVIC_NUM_VECTORS] @ ".nvictable";
+    uint32_t nrf_dispatch_vector[NVIC_NUM_VECTORS] @ ".noinit";
 #endif
 
 extern uint32_t __Vectors[];
@@ -111,15 +109,4 @@ void nrf_reloc_vector_table(void)
     /* No SoftDevice is present. Set all interrupts to vector table in RAM. */
     SCB->VTOR = (uint32_t) nrf_dispatch_vector;    
 #endif
-}
-
-
-void mbed_sdk_init(void)
-{
-	if (STDIO_UART_RTS != NC) {
-		gpio_t rts;
-		gpio_init_out(&rts, STDIO_UART_RTS);
-		/* Set STDIO_UART_RTS as gpio driven low */
-		gpio_write(&rts, 0);
-	}
 }

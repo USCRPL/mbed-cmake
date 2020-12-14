@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#if DEVICE_CAN
+#ifdef DEVICE_CAN
 
 #if defined(CAN3_BASE)
 

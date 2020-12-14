@@ -16,8 +16,6 @@
 #include "mbed_assert.h"
 #include "i2c_api.h"
 
-#if DEVICE_I2C
-
 #include <math.h>
 
 #include "cmsis.h"
@@ -575,26 +573,6 @@ int  i2c_byte_write(i2c_t *obj, int data)
     return 0;
 }
 
-const PinMap *i2c_master_sda_pinmap()
-{
-    return PinMap_SERCOM_PAD;
-}
-
-const PinMap *i2c_master_scl_pinmap()
-{
-    return PinMap_SERCOM_PAD;
-}
-
-const PinMap *i2c_slave_sda_pinmap()
-{
-    return PinMap_SERCOM_PAD;
-}
-
-const PinMap *i2c_slave_scl_pinmap()
-{
-    return PinMap_SERCOM_PAD;
-}
-
 
 #if DEVICE_I2CSLAVE
 
@@ -1015,5 +993,3 @@ void i2c_abort_asynch(i2c_t *obj)
 }
 
 #endif
-
-#endif  // #if DEVICE_I2C

@@ -25,7 +25,6 @@
 #include "nu_modutil.h"
 #include "nu_bitutil.h"
 #include <string.h>
-#include <stdbool.h>
 
 #if DEVICE_SERIAL_ASYNCH
 #include "dma_api.h"
@@ -85,11 +84,8 @@ static void serial_rx_enable_event(serial_t *obj, int event, uint8_t enable);
 static int serial_is_rx_complete(serial_t *obj);
 
 static void serial_check_dma_usage(DMAUsage *dma_usage, int *dma_ch);
-#endif
-
 static int serial_is_irq_en(serial_t *obj, SerialIrq irq);
-
-bool serial_can_deep_sleep(void);
+#endif
 
 static struct nu_uart_var uart0_var = {
     .ref_cnt            =   0,
@@ -199,43 +195,29 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     MBED_ASSERT(modinit->modname == (int) obj->serial.uart);
     
     struct nu_uart_var *var = (struct nu_uart_var *) modinit->var;
-
-    obj->serial.pin_tx = tx;
-    obj->serial.pin_rx = rx;
-    obj->serial.pin_rts = NC;
-    obj->serial.pin_cts = NC;
-
-    pinmap_pinout(tx, PinMap_UART_TX);
-    pinmap_pinout(rx, PinMap_UART_RX);
-
+    
     if (! var->ref_cnt) {
+        // Reset this module
+        SYS_ResetModule(modinit->rsetidx);
+    
         // Select IP clock source
         CLK_SetModuleClock(modinit->clkidx, modinit->clksrc, modinit->clkdiv);
-
         // Enable IP clock
         CLK_EnableModuleClock(modinit->clkidx);
 
-        // Reset this module
-        SYS_ResetModule(modinit->rsetidx);
-
-        // Configure baudrate
-        int baudrate = 9600;
-        if (obj->serial.uart == STDIO_UART) {
-#if MBED_CONF_PLATFORM_STDIO_BAUD_RATE
-            baudrate = MBED_CONF_PLATFORM_STDIO_BAUD_RATE;
-#endif
-        } else {
-#if MBED_CONF_PLATFORM_DEFAULT_SERIAL_BAUD_RATE
-            baudrate = MBED_CONF_PLATFORM_DEFAULT_SERIAL_BAUD_RATE;
-#endif            
-        }
-        serial_baud(obj, baudrate);
-
-        // Configure data bits, parity, and stop bits
-        serial_format(obj, 8, ParityNone, 1);
+        pinmap_pinout(tx, PinMap_UART_TX);
+        pinmap_pinout(rx, PinMap_UART_RX);
+    
+        obj->serial.pin_tx = tx;
+        obj->serial.pin_rx = rx;
     }
     var->ref_cnt ++;
-
+    
+    // Configure the UART module and set its baudrate
+    serial_baud(obj, 9600);
+    // Configure data bits, parity, and stop bits
+    serial_format(obj, 8, ParityNone, 1);
+    
     obj->serial.vec = var->vec;
     obj->serial.irq_en = 0;
     
@@ -247,14 +229,12 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     obj->serial.dma_chn_id_rx = DMA_ERROR_OUT_OF_CHANNELS;
 #endif
 
-    /* With support for checking H/W UART initialized or not, we allow serial_init(&stdio_uart)
-     * calls in even though H/W UART 'STDIO_UART' has initialized. When serial_init(&stdio_uart)
-     * calls in, we only need to set the 'stdio_uart_inited' flag. */
-    if (((uintptr_t) obj) == ((uintptr_t) &stdio_uart)) {
-        MBED_ASSERT(obj->serial.uart == STDIO_UART);
+    // For stdio management
+    if (obj->serial.uart == STDIO_UART) {
         stdio_uart_inited = 1;
+        memcpy(&stdio_uart, obj, sizeof(serial_t));
     }
-
+    
     if (var->ref_cnt) {
         // Mark this module to be inited.
         int i = modinit - uart_modinit_tab;
@@ -295,28 +275,16 @@ void serial_free(serial_t *obj)
     if (var->obj == obj) {
         var->obj = NULL;
     }
-
-    /* Clear the 'stdio_uart_inited' flag when serial_free(&stdio_uart) calls in. */
-    if (((uintptr_t) obj) == ((uintptr_t) &stdio_uart)) {
-        MBED_ASSERT(obj->serial.uart == STDIO_UART);
+    
+    if (obj->serial.uart == STDIO_UART) {
         stdio_uart_inited = 0;
     }
-
+    
     if (! var->ref_cnt) {
         // Mark this module to be deinited.
         int i = modinit - uart_modinit_tab;
         uart_modinit_mask &= ~(1 << i);
     }
-
-    // Free up pins
-    gpio_set(obj->serial.pin_tx);
-    gpio_set(obj->serial.pin_rx);
-    gpio_set(obj->serial.pin_rts);
-    gpio_set(obj->serial.pin_cts);
-    obj->serial.pin_tx = NC;
-    obj->serial.pin_rx = NC;
-    obj->serial.pin_rts = NC;
-    obj->serial.pin_cts = NC;
 }
 
 void serial_baud(serial_t *obj, int baudrate) {
@@ -360,28 +328,11 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
 void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, PinName txflow)
 {
     UART_T *uart_base = (UART_T *) NU_MODBASE(obj->serial.uart);
+    
+    // First, disable flow control completely.
+    uart_base->INTEN &= ~(UART_INTEN_ATORTSEN_Msk | UART_INTEN_ATOCTSEN_Msk);
 
-    // Free up old rts/cts pins when they are different from new ones
-    if (obj->serial.pin_rts != rxflow) {
-        gpio_set(obj->serial.pin_rts);
-        obj->serial.pin_rts = rxflow;
-    }
-    if (obj->serial.pin_cts != txflow) {
-        gpio_set(obj->serial.pin_cts);
-        obj->serial.pin_cts = txflow;
-    }
-
-    // Free up old rts/cts pins when they are different from new ones
-    if (obj->serial.pin_rts != rxflow) {
-        gpio_set(obj->serial.pin_rts);
-        obj->serial.pin_rts = rxflow;
-    }
-    if (obj->serial.pin_cts != txflow) {
-        gpio_set(obj->serial.pin_cts);
-        obj->serial.pin_cts = txflow;
-    }
-
-    if (rxflow != NC) {
+    if ((type == FlowControlRTS || type == FlowControlRTSCTS) && rxflow != NC) {
         // Check if RTS pin matches.
         uint32_t uart_rts = pinmap_peripheral(rxflow, PinMap_UART_RTS);
         MBED_ASSERT(uart_rts == obj->serial.uart);
@@ -389,24 +340,14 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
         pinmap_pinout(rxflow, PinMap_UART_RTS);
         // nRTS pin output is low level active
         uart_base->MODEM |= UART_MODEM_RTSACTLV_Msk;
-        // Configure RTS trigger level to 8 bytes
+        uart_base->MODEM &= ~UART_MODEM_RTS_Msk;
+    
         uart_base->FIFO = (uart_base->FIFO & ~UART_FIFO_RTSTRGLV_Msk) | UART_FIFO_RTSTRGLV_8BYTES;
-
-        if (type == FlowControlRTS || type == FlowControlRTSCTS) {        
-            // Enable RTS
-            uart_base->INTEN |= UART_INTEN_ATORTSEN_Msk;
-        } else {
-            // Disable RTS
-            uart_base->INTEN &= ~UART_INTEN_ATORTSEN_Msk;
-            /* Drive nRTS pin output to low-active. Allow the peer to be able to send data
-             * even though its CTS is still enabled. */
-            uart_base->MODEM &= ~UART_MODEM_RTS_Msk;
-        }
+        // Enable RTS
+        uart_base->INTEN |= UART_INTEN_ATORTSEN_Msk;
     }
-
-    /* If CTS is disabled, we don't need to configure CTS. But to be consistent with
-     * RTS code above, we still configure CTS. */
-    if (txflow != NC) {
+    
+    if ((type == FlowControlCTS || type == FlowControlRTSCTS) && txflow != NC)  {
         // Check if CTS pin matches.
         uint32_t uart_cts = pinmap_peripheral(txflow, PinMap_UART_CTS);
         MBED_ASSERT(uart_cts == obj->serial.uart);
@@ -414,14 +355,8 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
         pinmap_pinout(txflow, PinMap_UART_CTS);
         // nCTS pin input is low level active
         uart_base->MODEMSTS |= UART_MODEMSTS_CTSACTLV_Msk;
-
-        if (type == FlowControlCTS || type == FlowControlRTSCTS)  {
-            // Enable CTS
-            uart_base->INTEN |= UART_INTEN_ATOCTSEN_Msk;
-        } else {
-            // Disable CTS
-            uart_base->INTEN &= ~UART_INTEN_ATOCTSEN_Msk;
-        }
+        // Enable CTS
+        uart_base->INTEN |= UART_INTEN_ATOCTSEN_Msk;
     }
 }
 
@@ -540,8 +475,7 @@ static void uart_irq(serial_t *obj)
     if (uart_base->INTSTS & (UART_INTSTS_RDAINT_Msk | UART_INTSTS_RXTOINT_Msk)) {
         // Simulate clear of the interrupt flag. Temporarily disable the interrupt here and to be recovered on next read.
         UART_DISABLE_INT(uart_base, (UART_INTEN_RDAIEN_Msk | UART_INTEN_RXTOIEN_Msk));
-        if (obj->serial.irq_handler && serial_is_irq_en(obj, RxIrq)) {
-            // Call irq_handler() only when RxIrq is enabled
+        if (obj->serial.irq_handler) {
             ((uart_irq_handler) obj->serial.irq_handler)(obj->serial.irq_id, RxIrq);
         }
     }
@@ -549,8 +483,7 @@ static void uart_irq(serial_t *obj)
     if (uart_base->INTSTS & UART_INTSTS_THREINT_Msk) {
         // Simulate clear of the interrupt flag. Temporarily disable the interrupt here and to be recovered on next write.
         UART_DISABLE_INT(uart_base, UART_INTEN_THREIEN_Msk);
-        if (obj->serial.irq_handler && serial_is_irq_en(obj, TxIrq)) {
-            // Call irq_handler() only when TxIrq is enabled
+        if (obj->serial.irq_handler) {
             ((uart_irq_handler) obj->serial.irq_handler)(obj->serial.irq_id, TxIrq);
         }
     }
@@ -1186,8 +1119,6 @@ static void serial_check_dma_usage(DMAUsage *dma_usage, int *dma_ch)
     }
 }
 
-#endif  // #if DEVICE_SERIAL_ASYNCH
-
 static int serial_is_irq_en(serial_t *obj, SerialIrq irq)
 {
     int inten_msk = 0;
@@ -1204,42 +1135,5 @@ static int serial_is_irq_en(serial_t *obj, SerialIrq irq)
     return !! inten_msk;
 }
 
-bool serial_can_deep_sleep(void)
-{
-    bool sleep_allowed = 1;
-    const struct nu_modinit_s *modinit = uart_modinit_tab;
-    while (modinit->var != NULL) {
-        struct nu_uart_var *uart_var = (struct nu_uart_var *) modinit->var;
-        UART_T *uart_base = (UART_T *) NU_MODBASE(modinit->modname);
-        if (uart_var->ref_cnt > 0) {
-            if (!UART_IS_TX_EMPTY(uart_base)) {
-                sleep_allowed = 0;
-                break;
-            }
-        }
-        modinit++;
-    }
-    return sleep_allowed;
-}
-
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
-}
-
+#endif  // #if DEVICE_SERIAL_ASYNCH
 #endif  // #if DEVICE_SERIAL

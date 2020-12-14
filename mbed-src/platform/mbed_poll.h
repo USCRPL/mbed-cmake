@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2017-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2017 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +26,8 @@ namespace mbed {
 
 class FileHandle;
 
-/** \addtogroup platform-public-api */
+/** \addtogroup platform */
 /** @{*/
-
 /**
  * \defgroup platform_poll poll functions
  * @{

@@ -39,22 +39,16 @@
 static int channel1_used = 0;
 static int channel2_used = 0;
 
-#if STATIC_PINMAP_READY
-#define ANALOGOUT_INIT_DIRECT analogout_init_direct
-void analogout_init_direct(dac_t *obj, const PinMap *pinmap)
-#else
-#define ANALOGOUT_INIT_DIRECT _analogout_init_direct
-static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
-#endif
+void analogout_init(dac_t *obj, PinName pin)
 {
     DAC_ChannelConfTypeDef sConfig = {0};
 
     // Get the peripheral name from the pin and assign it to the object
-    obj->dac = (DACName)pinmap->peripheral;
+    obj->dac = (DACName)pinmap_peripheral(pin, PinMap_DAC);
     MBED_ASSERT(obj->dac != (DACName)NC);
 
     // Get the pin function and assign the used channel to the object
-    uint32_t function = (uint32_t)pinmap->function;
+    uint32_t function = pinmap_function(pin, PinMap_DAC);
     MBED_ASSERT(function != (uint32_t)NC);
     switch (STM_PIN_CHANNEL(function)) {
         case 1:
@@ -71,11 +65,10 @@ static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
     }
 
     // Configure GPIO
-    pin_function(pinmap->pin, pinmap->function);
-    pin_mode(pinmap->pin, PullNone);
+    pinmap_pinout(pin, PinMap_DAC);
 
     // Save the pin for future use
-    obj->pin = pinmap->pin;
+    obj->pin = pin;
 
     // Enable DAC clock
     __DAC_CLK_ENABLE();
@@ -104,16 +97,6 @@ static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
     analogout_write_u16(obj, 0);
 }
 
-void analogout_init(dac_t *obj, PinName pin)
-{
-    int peripheral = (int)pinmap_peripheral(pin, PinMap_DAC);
-    int function = (int)pinmap_find_function(pin, PinMap_DAC);
-
-    const PinMap static_pinmap = {pin, peripheral, function};
-
-    ANALOGOUT_INIT_DIRECT(obj, &static_pinmap);
-}
-
 void analogout_free(dac_t *obj)
 {
     // Reset DAC and disable clock
@@ -133,11 +116,6 @@ void analogout_free(dac_t *obj)
 
     // Configure GPIO
     pin_function(obj->pin, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
-}
-
-const PinMap *analogout_pinmap()
-{
-    return PinMap_DAC;
 }
 
 #endif // DEVICE_ANALOGOUT

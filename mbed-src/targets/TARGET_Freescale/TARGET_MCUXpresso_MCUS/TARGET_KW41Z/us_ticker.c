@@ -15,7 +15,6 @@
  */
 #include <stddef.h>
 #include "us_ticker_api.h"
-#include "us_ticker_defines.h"
 #include "PeripheralNames.h"
 #include "fsl_pit.h"
 #include "fsl_tpm.h"
@@ -96,9 +95,9 @@ void us_ticker_init(void)
 }
 
 
-uint32_t (us_ticker_read)()
+uint32_t us_ticker_read()
 {
-    return us_ticker_read();
+    return ~(PIT_GetCurrentTimerCount(PIT, kPIT_Chnl_1));
 }
 
 void us_ticker_disable_interrupt(void)
@@ -152,15 +151,4 @@ void us_ticker_fire_interrupt(void)
     us_ticker_int_remainder = 0;
 
     NVIC_SetPendingIRQ(TPM2_IRQn);
-}
-
-void us_ticker_free(void)
-{
-    PIT_StopTimer(PIT, kPIT_Chnl_1);
-    PIT_StopTimer(PIT, kPIT_Chnl_0);
-
-    TPM_DisableInterrupts(TPM2, kTPM_TimeOverflowInterruptEnable);
-    NVIC_DisableIRQ(TPM2_IRQn);
-
-    us_ticker_inited = false;
 }

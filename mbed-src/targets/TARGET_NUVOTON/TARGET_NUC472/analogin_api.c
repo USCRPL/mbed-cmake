@@ -53,67 +53,33 @@ void analogin_init(analogin_t *obj, PinName pin)
     const struct nu_modinit_s *modinit = get_modinit(obj->adc, adc_modinit_tab);
     MBED_ASSERT(modinit != NULL);
     MBED_ASSERT(modinit->modname == obj->adc);
-
-    obj->pin = pin;
-
-    // Wire pinout
-    pinmap_pinout(pin, PinMap_ADC);
     
     EADC_T *eadc_base = (EADC_T *) NU_MODBASE(obj->adc);
-
+    
     // NOTE: All channels (identified by ADCName) share a ADC module. This reset will also affect other channels of the same ADC module.
     if (! eadc_modinit_mask) {
-        // Select clock source of paired channels
-        CLK_SetModuleClock(modinit->clkidx, modinit->clksrc, modinit->clkdiv);
-
-        // Enable clock of paired channels
-        CLK_EnableModuleClock(modinit->clkidx);
-
         // Reset this module if no channel enabled
         SYS_ResetModule(modinit->rsetidx);
-
+        
+        // Select clock source of paired channels
+        CLK_SetModuleClock(modinit->clkidx, modinit->clksrc, modinit->clkdiv);
+        // Enable clock of paired channels
+        CLK_EnableModuleClock(modinit->clkidx);
+        
         // Make EADC_module ready to convert
         EADC_Open(eadc_base, 0);
     }
-
+    
     uint32_t smp_chn =  NU_MODSUBINDEX(obj->adc);
     uint32_t smp_mod =  NU_MODINDEX(obj->adc) * 8 + smp_chn;
-
+    
+    // Wire pinout
+    pinmap_pinout(pin, PinMap_ADC);
+    
     // Configure the sample module Nmod for analog input channel Nch and software trigger source
     EADC_ConfigSampleModule(eadc_base, smp_mod, EADC_SOFTWARE_TRIGGER, smp_chn);
-
-    eadc_modinit_mask |= 1 << smp_mod;
-}
-
-void analogin_free(analogin_t *obj)
-{
-    const struct nu_modinit_s *modinit = get_modinit(obj->adc, adc_modinit_tab);
-    MBED_ASSERT(modinit->modname == (int) obj->adc);
-
-    /* Module subindex (aka channel) */
-    uint32_t chn =  NU_MODSUBINDEX(obj->adc);
-
-    EADC_T *eadc_base = (EADC_T *) NU_MODBASE(obj->adc);
-
-    /* Channel-level windup from here */
-
-    /* Mark channel free */
-    eadc_modinit_mask &= ~(1 << chn);
-
-    /* Module-level windup from here */
-
-    /* See analogin_init() for reason */
-    if (! eadc_modinit_mask) {
-        /* Disable EADC module */
-        EADC_Close(eadc_base);
-
-        /* Disable IP clock */
-        CLK_DisableModuleClock(modinit->clkidx);
-    }
     
-    /* Free up pins */
-    gpio_set(obj->pin);
-    obj->pin = NC;
+    eadc_modinit_mask |= 1 << smp_mod;
 }
 
 uint16_t analogin_read_u16(analogin_t *obj)
@@ -137,11 +103,6 @@ float analogin_read(analogin_t *obj)
 {
     uint16_t value = analogin_read_u16(obj);
     return (float) value * (1.0f / (float) 0xFFFF);
-}
-
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
 }
 
 #endif

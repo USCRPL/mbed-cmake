@@ -16,7 +16,6 @@
 #include <stdbool.h>
 #include "hal/us_ticker_api.h"
 #include "platform/mbed_wait_api.h"
-#include "platform/mbed_thread.h"
 #include "gpio_api.h"
 #include "ublox_low_level_api.h"
 
@@ -40,10 +39,12 @@ void ublox_mdm_init(void)
     // led should be off
     gpio_init_out_ex(&gpio, LED,       0);
     
-    // Can't use thread_sleep_for() as RTOS isn't initialised yet
-    //thread_sleep_for(50); // when USB cable is inserted the interface chip issues
+    // Can't use wait_ms() as RTOS isn't initialised yet
+    //wait_ms(50); // when USB cable is inserted the interface chip issues
     // Here's the code from the non-RTOS version
-    wait_us(50000);
+    us_ticker_init();
+    uint32_t start = us_ticker_read();
+    while ((us_ticker_read() - start) < 50000);
 }
 
 // For forwards compatibility
@@ -58,14 +59,12 @@ void ublox_mdm_powerOn(int usb)
     // turn on the mode by enabling power with power on pin low and correct USB detect level
     gpio_init_out_ex(&gpio, MDMUSBDET,  usb ? 1 : 0);  // USBDET: 0=disabled, 1=enabled
     if (!modemOn) { // enable modem
-        modemOn = true;
         gpio_init_out_ex(&gpio, MDMEN, 1);        // LDOEN:  1=on
-        thread_sleep_for(1);                      // wait until supply switched off
+        wait_ms(1);                   // wait until supply switched off
         // now we can safely enable the level shifters
         gpio_init_out_ex(&gpio, MDMLVLOE, 0);      // LVLEN:  0=enabled (uart/gpio)
-        if (gpsOn) {
+        if (gpsOn)
             gpio_init_out_ex(&gpio, MDMILVLOE, 1); // ILVLEN: 1=enabled (i2c)
-        }
     }
 }
 
@@ -79,13 +78,13 @@ void ublox_mdm_powerOff(void)
 {
     gpio_t gpio;
     if (modemOn) {
-        modemOn = false;
         // diable all level shifters
         gpio_init_out_ex(&gpio, MDMILVLOE, 0);  // ILVLEN: 0=disabled (i2c)
         gpio_init_out_ex(&gpio, MDMLVLOE, 1);   // LVLEN:  1=disabled (uart/gpio)
         gpio_init_out_ex(&gpio,MDMUSBDET, 0);  // USBDET: 0=disabled
         // now we can savely switch off the ldo
         gpio_init_out_ex(&gpio, MDMEN, 0);      // LDOEN:  0=off
+        modemOn = false;
     }
 }        
 
@@ -93,13 +92,11 @@ void ublox_gps_powerOn(void)
 {
     gpio_t gpio;
     if (!gpsOn) {
-        gpsOn = true;
         // switch on power supply
         gpio_init_out_ex(&gpio, GPSEN, 1);          // LDOEN: 1=on
-        thread_sleep_for(1);                        // wait until supply switched off
-        if (modemOn) {
+        wait_ms(1);                     // wait until supply switched off
+        if (modemOn)
             gpio_init_out_ex(&gpio, MDMILVLOE, 1);  // ILVLEN: 1=enabled (i2c)
-        }
     }
 }
 
@@ -107,7 +104,6 @@ void ublox_gps_powerOff(void)
 {
     gpio_t gpio;
     if (gpsOn) {
-        gpsOn = false;
         gpio_init_out_ex(&gpio, MDMILVLOE, 0);   // ILVLEN: 0=disabled (i2c)
         gpio_init_out_ex(&gpio, GPSEN, 0);       // LDOEN: 0=off
     }

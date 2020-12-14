@@ -18,7 +18,6 @@
 #include "mbed_assert.h"
 #include "pinmap.h"
 #include "PortNames.h"
-#include "PeripheralNames.h"
 #include "mbed_error.h"
 #include "partition_M2351.h"
 #include "hal_secure.h"
@@ -42,55 +41,31 @@ void pin_mode(PinName pin, PinMode mode)
     GPIO_T *gpio_base = NU_PORT_BASE(port_index);
     
     uint32_t mode_intern = GPIO_MODE_INPUT;
-
+    
     switch (mode) {
-        case InputOnly:
+        case PullUp:
             mode_intern = GPIO_MODE_INPUT;
             break;
-
-        case PushPullOutput:
+            
+        case PullDown:
+        case PullNone:
+            // NOTE: Not support
+            return;
+        
+        case PushPull:
             mode_intern = GPIO_MODE_OUTPUT;
             break;
-
+            
         case OpenDrain:
             mode_intern = GPIO_MODE_OPEN_DRAIN;
             break;
-
-        case QuasiBidirectional:
+            
+        case Quasi:
             mode_intern = GPIO_MODE_QUASI;
             break;
-
-        default:
-            /* H/W doesn't support separate configuration for input pull mode/direction.
-             * We expect upper layer would have translated input pull mode/direction
-             * to I/O mode */
-            return;
     }
-
+    
     GPIO_SetMode(gpio_base, 1 << pin_index, mode_intern);
-
-    /* Invalid combinations of PinMode/PinDirection
-     *
-     * We assume developer would avoid the following combinations of PinMode/PinDirection
-     * which are invalid:
-     * 1. InputOnly/PIN_OUTPUT
-     * 2. PushPullOutput/PIN_INPUT
-     */
-}
-
-/* List of peripherals excluded from testing */
-const PeripheralList *pinmap_restricted_peripherals()
-{
-    static const int perifs[] = {
-        STDIO_UART          // Dedicated to USB VCOM
-    };
-
-    static const PeripheralList peripheral_list = {
-        sizeof(perifs) / sizeof(perifs[0]),
-        perifs
-    };
-
-    return &peripheral_list;
 }
 
 #if defined (__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3U)

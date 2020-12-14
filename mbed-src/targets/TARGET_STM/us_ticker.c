@@ -13,14 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#if DEVICE_USTICKER
-
 #include <stddef.h>
 #include "us_ticker_api.h"
 #include "PeripheralNames.h"
 #include "us_ticker_data.h"
-#include "us_ticker_defines.h"
 
 TIM_HandleTypeDef TimMasterHandle;
 
@@ -75,15 +71,8 @@ void init_16bit_timer(void)
     TIM_MST_RCC;
 
     // Reset timer
-#if defined(DUAL_CORE)
-    while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-    }
-#endif /* DUAL_CORE */
     TIM_MST_RESET_ON;
     TIM_MST_RESET_OFF;
-#if defined(DUAL_CORE)
-    LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
 
     // Update the SystemCoreClock variable
     SystemCoreClockUpdate();
@@ -168,15 +157,8 @@ void init_32bit_timer(void)
     TIM_MST_RCC;
 
     // Reset timer
-#if defined(DUAL_CORE)
-    while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
-    }
-#endif /* DUAL_CORE */
     TIM_MST_RESET_ON;
     TIM_MST_RESET_OFF;
-#if defined(DUAL_CORE)
-    LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
-#endif /* DUAL_CORE */
 
     // Configure time base
     TimMasterHandle.Instance    = TIM_MST;
@@ -224,13 +206,11 @@ void us_ticker_init(void)
 {
     // Timer is already initialized in HAL_InitTick()
     __HAL_TIM_DISABLE_IT(&TimMasterHandle, TIM_IT_CC1);
-    HAL_TIM_OC_Start(&TimMasterHandle, TIM_CHANNEL_1);
 }
 
-uint32_t (us_ticker_read)()
+uint32_t us_ticker_read()
 {
-    /* Invoke the macro */
-    return us_ticker_read();
+    return TIM_MST->CNT;
 }
 
 void us_ticker_set_interrupt(timestamp_t timestamp)
@@ -276,11 +256,3 @@ void restore_timer_ctx(void)
     __HAL_TIM_SET_COMPARE(&TimMasterHandle, TIM_CHANNEL_1, timer_ccr1_reg);
     TIM_MST->DIER = timer_dier_reg;
 }
-
-void us_ticker_free(void)
-{
-    HAL_TIM_OC_Stop(&TimMasterHandle, TIM_CHANNEL_1);
-    us_ticker_disable_interrupt();
-}
-
-#endif /* DEVICE_USTICKER */

@@ -3,7 +3,6 @@
 /** @{*/
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +20,6 @@
 #define MBED_GPIO_IRQ_API_H
 
 #include "device.h"
-#include "pinmap.h"
 
 #if DEVICE_INTERRUPTIN
 
@@ -45,29 +43,7 @@ typedef void (*gpio_irq_handler)(uint32_t id, gpio_irq_event event);
 
 /**
  * \defgroup hal_gpioirq GPIO IRQ HAL functions
- *
- * # Defined behavior
- * * ::gpio_irq_init initializes the GPIO IRQ pin
- * * ::gpio_irq_init attaches the interrupt handler
- * * ::gpio_irq_free releases the GPIO IRQ pin
- * * ::gpio_irq_set enables/disables pin IRQ event
- * * ::gpio_irq_enable enables GPIO IRQ
- * * ::gpio_irq_disable disables GPIO IRQ
- *
- * # Undefined behavior
- * * Calling other function before ::gpio_irq_init
- *
  * @{
- */
-
-/**
- * \defgroup hal_gpioirq_tests GPIO IRQ HAL tests
- * The GPIO IRQ HAL tests ensure driver conformance to defined behaviour.
- *
- * To run the GPIO IRQ hal tests use the command:
- *
- *     mbed test -t <toolchain> -m <target> -n tests-mbed_hal_fpga_ci_test_shield-gpio_irq
- *
  */
 
 /** Initialize the GPIO IRQ pin
@@ -107,18 +83,6 @@ void gpio_irq_enable(gpio_irq_t *obj);
  * @param obj The GPIO object
  */
 void gpio_irq_disable(gpio_irq_t *obj);
-
-/** Get the pins that support all GPIO IRQ tests
- *
- * Return a PinMap array of pins that support GPIO IRQ.
- * The array is terminated with {NC, NC, 0}.
- *
- * Targets should override the weak implementation of this
- * function to provide the actual pinmap for GPIO IRQ testing.
- *
- * @return PinMap array
- */
-const PinMap *gpio_irq_pinmap(void);
 
 /**@}*/
 

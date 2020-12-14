@@ -21,6 +21,31 @@
 ; * CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
 ; *
 ; ******************************************************************************/
+;/*
+;//-------- <<< Use Configuration Wizard in Context Menu >>> ------------------
+;*/
+
+; <h> Stack Configuration
+;   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
+; </h>
+
+Stack_Size      EQU     0x00000400
+
+                AREA    STACK, NOINIT, READWRITE, ALIGN=3
+Stack_Mem       SPACE   Stack_Size
+__initial_sp    EQU     0x20020000
+
+
+; <h> Heap Configuration
+;   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
+; </h>
+
+Heap_Size       EQU     0x00000C00
+
+                AREA    HEAP, NOINIT, READWRITE, ALIGN=3
+__heap_base
+Heap_Mem        SPACE   Heap_Size
+__heap_limit
 
 
                 PRESERVE8
@@ -32,9 +57,9 @@
                 AREA    RESET, DATA, READONLY, ALIGN=8
                 EXPORT  __Vectors
                 EXPORT  __Vectors_End
-                IMPORT  |Image$$ARM_LIB_STACK$$ZI$$Limit|
+                EXPORT  __Vectors_Size
 
-__Vectors       DCD     |Image$$ARM_LIB_STACK$$ZI$$Limit| ; Top of Stack
+__Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     Reset_Handler             ; Reset Handler
                 DCD     NMI_Handler               ; NMI Handler
                 DCD     HardFault_Handler         ; Hard Fault Handler
@@ -241,5 +266,11 @@ EMU_IRQHandler
                 ENDP
 
                 ALIGN
+
+; User Initial Stack & Heap
+
+                EXPORT  __initial_sp
+                EXPORT  __heap_base
+                EXPORT  __heap_limit
 
                 END

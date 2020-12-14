@@ -2,23 +2,20 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 SEARCH_DIR(.)
 
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
-STACK_SIZE = MBED_BOOT_STACK_SIZE;
-
 /* Memory Spaces Definitions */
 MEMORY {
     rom (rx)  : ORIGIN = 0x00000000, LENGTH = 0x00040000
-        ram (rwx) : ORIGIN = 0x20000000 + 0xB8, LENGTH = 0x00008000 - 0xB8
+        ram (rwx) : ORIGIN = 0x20000000 + 0xB4, LENGTH = 0x00008000 - 0xB4
     }
+
+    /* The stack size used by the application. NOTE: you need to adjust according to your application. */
+    STACK_SIZE = DEFINED(STACK_SIZE) ? STACK_SIZE : DEFINED(__stack_size__) ? __stack_size__ : 0x2000;
 
     /* Section Definitions */
     SECTIONS {
 .text :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         _sfixed = .;
         KEEP(*(.vectors .vectors.*))
         *(.text .text.* .gnu.linkonce.t.*)
@@ -28,29 +25,29 @@ MEMORY {
 
         /* Support C constructors, and C destructors in both user code
            and the C library. This also provides support for C++ code. */
-        . = ALIGN(8);
+        . = ALIGN(4);
         KEEP(*(.init))
-        . = ALIGN(8);
+        . = ALIGN(4);
         __preinit_array_start = .;
         KEEP (*(.preinit_array))
         __preinit_array_end = .;
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         __init_array_start = .;
         KEEP (*(SORT(.init_array.*)))
         KEEP (*(.init_array))
         __init_array_end = .;
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         KEEP (*crtbegin.o(.ctors))
         KEEP (*(EXCLUDE_FILE (*crtend.o) .ctors))
         KEEP (*(SORT(.ctors.*)))
         KEEP (*crtend.o(.ctors))
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         KEEP(*(.fini))
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         __fini_array_start = .;
         KEEP (*(.fini_array))
         KEEP (*(SORT(.fini_array.*)))
@@ -61,7 +58,7 @@ MEMORY {
         KEEP (*(SORT(.dtors.*)))
         KEEP (*crtend.o(.dtors))
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         _efixed = .;            /* End of text section */
     } > rom
 
@@ -73,39 +70,38 @@ MEMORY {
     } > rom
     PROVIDE_HIDDEN (__exidx_end = .);
 
-    . = ALIGN(8);
+    . = ALIGN(4);
     _etext = .;
 
 .relocate :
     AT (_etext)
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         _srelocate = .;
         *(.ramfunc .ramfunc.*);
         *(.data .data.*);
-        . = ALIGN(8);
+        . = ALIGN(4);
         _erelocate = .;
     } > ram
 
     /* .bss section which is used for uninitialized data */
     .bss (NOLOAD) :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         _sbss = . ;
         _szero = .;
         *(.bss .bss.*)
         *(COMMON)
-        . = ALIGN(8);
+        . = ALIGN(4);
         _ebss = . ;
         _ezero = .;
     } > ram
 
     .heap (NOLOAD) :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __end__ = . ;
         . = ORIGIN(ram) + LENGTH(ram) - STACK_SIZE;
-        __HeapLimit = .;
     } > ram
 
     /* stack section */
@@ -117,11 +113,6 @@ MEMORY {
         . = ALIGN(8);
         _estack = .;
     } > ram
-    
-    /* Set stack top to end of RAM, and stack limit move down by
-     * size of stack_dummy section */
-    __StackTop = ORIGIN(RAM) + LENGTH(RAM);
-    __StackLimit = __StackTop - STACK_SIZE;
 
-    . = ALIGN(8);
+    . = ALIGN(4);
 }

@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-#ifdef MBED_CONF_LWIP_PRESENT
-
 #include "OdinWiFiInterface.h"
 
 WiFiInterface *WiFiInterface::get_target_default_instance()
@@ -24,5 +22,3 @@ WiFiInterface *WiFiInterface::get_target_default_instance()
     static OdinWiFiInterface wifi;
     return &wifi;
 }
-
-#endif // MBED_CONF_LWIP_PRESENT

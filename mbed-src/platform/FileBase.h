@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +18,9 @@
 
 typedef int FILEHANDLE;
 
+#include <cstdio>
+#include <cstring>
+
 #include "platform/platform.h"
 #include "platform/SingletonPtr.h"
 #include "platform/PlatformMutex.h"
@@ -31,16 +33,12 @@ typedef enum {
     FileSystemPathType
 } PathType;
 
-/** \defgroup platform-public-api-file File
- * \ingroup platform-public-api
- */
-
+/** \addtogroup platform */
+/** @{*/
 /**
  * \defgroup platform_FileBase FileBase class
- * \ingroup platform-public-api-file
  * @{
  */
-
 /** Class FileBase
  *
  */
@@ -57,11 +55,9 @@ public:
 
     static FileBase *get(int n);
 
-    void set_as_default();
-
+    /* disallow copy constructor and assignment operators */
 private:
     static FileBase *_head;
-    static FileBase *_default;
     static SingletonPtr<PlatformMutex> _mutex;
 
     FileBase   *_next;
@@ -71,6 +67,9 @@ private:
 
 /**@}*/
 
+/**@}*/
+
 } // namespace mbed
 
 #endif
+

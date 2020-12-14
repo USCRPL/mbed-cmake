@@ -256,7 +256,7 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
     stop_bits -= 1;
     data_bits -= 5;
 
-    int parity_enable = 0, parity_select = 0;
+    int parity_enable, parity_select;
     switch (parity) {
         case ParityNone: parity_enable = 0; parity_select = 0; break;
         case ParityOdd : parity_enable = 1; parity_select = 0; break;
@@ -264,6 +264,7 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
         case ParityForced1: parity_enable = 1; parity_select = 2; break;
         case ParityForced0: parity_enable = 1; parity_select = 3; break;
         default:
+            parity_enable = 0, parity_select = 0;
             break;
     }
 
@@ -438,25 +439,5 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
             serial_flow_irq_set(obj, 1);
         }
     }
-}
-
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
 }
 

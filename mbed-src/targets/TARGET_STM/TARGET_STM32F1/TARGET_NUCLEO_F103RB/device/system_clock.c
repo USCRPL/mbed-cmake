@@ -17,9 +17,9 @@
 /**
   * This file configures the system clock as follows:
   *-------------------------------------------------------------------------------------------
-  * System clock source                | 1- PLL_HSE_EXTC  / DEVICE_USBDEVICE   | 3- PLL_HSI / DEVICE_USBDEVICE
+  * System clock source                | 1- PLL_HSE_EXTC  / CLOCK_SOURCE_USB=1 | 3- PLL_HSI / CLOCK_SOURCE_USB=1
   *                                    | (external 8 MHz clock)                | (internal 8 MHz)
-  *                                    | 2- PLL_HSE_XTAL / DEVICE_USBDEVICE    |
+  *                                    | 2- PLL_HSE_XTAL / CLOCK_SOURCE_USB=1  |
   *                                    | (external 8 MHz xtal)                 |
   *-------------------------------------------------------------------------------------------
   * SYSCLK(MHz)                        | 72 / 72                               | 64 / 48
@@ -29,6 +29,8 @@
   * APB1CLK (MHz)                      | 36 / 36                               | 32 / 24
   *-------------------------------------------------------------------------------------------
   * APB2CLK (MHz)                      | 72 / 72                               | 64 / 48
+  *-------------------------------------------------------------------------------------------
+  * USB capable (48 MHz precise clock) | NO / YES                              | NO / YES
   *-------------------------------------------------------------------------------------------
   */
 
@@ -162,9 +164,9 @@ uint8_t SetSysClock_PLL_HSE(uint8_t bypass)
 {
     RCC_ClkInitTypeDef RCC_ClkInitStruct;
     RCC_OscInitTypeDef RCC_OscInitStruct;
-#if (DEVICE_USBDEVICE)
+#if (CLOCK_SOURCE_USB)
     RCC_PeriphCLKInitTypeDef RCC_PeriphCLKInit;
-#endif /* DEVICE_USBDEVICE */
+#endif /* CLOCK_SOURCE_USB */
 
     /* Enable HSE oscillator and activate PLL with HSE as source */
     RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSE;
@@ -191,12 +193,12 @@ uint8_t SetSysClock_PLL_HSE(uint8_t bypass)
         return 0; // FAIL
     }
 
-#if (DEVICE_USBDEVICE)
+#if (CLOCK_SOURCE_USB)
     /* USB clock selection */
     RCC_PeriphCLKInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
     RCC_PeriphCLKInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInit);
-#endif /* DEVICE_USBDEVICE */
+#endif /* CLOCK_SOURCE_USB */
 
     /* Output clock on MCO1 pin(PA8) for debugging purpose */
     //HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSE, RCC_MCODIV_1); // 8 MHz
@@ -213,9 +215,9 @@ uint8_t SetSysClock_PLL_HSI(void)
 {
     RCC_ClkInitTypeDef RCC_ClkInitStruct;
     RCC_OscInitTypeDef RCC_OscInitStruct;
-#if (DEVICE_USBDEVICE)
+#if (CLOCK_SOURCE_USB)
     RCC_PeriphCLKInitTypeDef RCC_PeriphCLKInit;
-#endif /* DEVICE_USBDEVICE */
+#endif /* CLOCK_SOURCE_USB */
 
     /* Enable HSI oscillator and activate PLL with HSI as source */
     RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSE;
@@ -224,21 +226,21 @@ uint8_t SetSysClock_PLL_HSI(void)
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_HSI_DIV2;
-#if (DEVICE_USBDEVICE)
+#if (CLOCK_SOURCE_USB)
     RCC_OscInitStruct.PLL.PLLMUL          = RCC_PLL_MUL12; // 48 MHz (8 MHz/2 * 12)
-#else /* DEVICE_USBDEVICE */
+#else /* CLOCK_SOURCE_USB */
     RCC_OscInitStruct.PLL.PLLMUL          = RCC_PLL_MUL16; // 64 MHz (8 MHz/2 * 16)
-#endif /* DEVICE_USBDEVICE */
+#endif /* CLOCK_SOURCE_USB */
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         return 0; // FAIL
     }
 
-#if (DEVICE_USBDEVICE)
+#if (CLOCK_SOURCE_USB)
     /* USB clock selection */
     RCC_PeriphCLKInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
     RCC_PeriphCLKInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInit);
-#endif /* DEVICE_USBDEVICE */
+#endif /* CLOCK_SOURCE_USB */
 
     /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 clocks dividers */
     RCC_ClkInitStruct.ClockType      = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);

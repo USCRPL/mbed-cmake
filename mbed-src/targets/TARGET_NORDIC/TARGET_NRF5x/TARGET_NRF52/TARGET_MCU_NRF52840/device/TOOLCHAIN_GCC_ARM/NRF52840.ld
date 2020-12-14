@@ -25,29 +25,24 @@
   #define MBED_APP_SIZE 0x100000
 #endif
 
-#if !defined(MBED_RAM_START)
-  #define MBED_RAM_START 0x20000000
-  #define MBED_RAM_SIZE 0x40000
-#endif
-
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x800
+/* If app_start is 0, do not set aside space for the softdevice */
+#if MBED_APP_START == 0
+  #define MBED_RAM_START  0x20000000
+  #define MBED_RAM_SIZE   0x40000
+#else
+  #define MBED_RAM_START  0x20003188
+  #define MBED_RAM_SIZE   0x3CE78
 #endif
 
 #define MBED_RAM0_START MBED_RAM_START
 #define MBED_RAM0_SIZE  0x100
-
-#define MBED_CRASH_REPORT_RAM_START (MBED_RAM0_START + MBED_RAM0_SIZE)
-#define MBED_CRASH_REPORT_RAM_SIZE  0x100
-
-#define MBED_RAM1_START (MBED_CRASH_REPORT_RAM_START + MBED_CRASH_REPORT_RAM_SIZE)
-#define MBED_RAM1_SIZE  (MBED_RAM_SIZE - (MBED_RAM0_SIZE + MBED_CRASH_REPORT_RAM_SIZE))
+#define MBED_RAM1_START (MBED_RAM_START + MBED_RAM0_SIZE)
+#define MBED_RAM1_SIZE  (MBED_RAM_SIZE - MBED_RAM0_SIZE)
 
 MEMORY
 {
   FLASH (rx)     : ORIGIN = MBED_APP_START, LENGTH = MBED_APP_SIZE
   RAM_NVIC (rwx) : ORIGIN = MBED_RAM0_START, LENGTH = MBED_RAM0_SIZE
-  RAM_CRASH_DATA (rwx) : ORIGIN = MBED_CRASH_REPORT_RAM_START, LENGTH = MBED_CRASH_REPORT_RAM_SIZE
   RAM (rwx)      : ORIGIN = MBED_RAM1_START, LENGTH = MBED_RAM1_SIZE
 }
 
@@ -149,12 +144,14 @@ SECTIONS
     .ARM.extab :
     {
         *(.ARM.extab* .gnu.linkonce.armextab.*)
+        . = ALIGN(4);
     } > FLASH
 
     __exidx_start = .;
     .ARM.exidx :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+        . = ALIGN(4);
     } > FLASH
     __exidx_end = .;
 
@@ -166,13 +163,13 @@ SECTIONS
         *(vtable)
         *(.data*)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* preinit data */
         PROVIDE_HIDDEN (__preinit_array_start = .);
         KEEP(*(.preinit_array))
         PROVIDE_HIDDEN (__preinit_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* init data */
         PROVIDE_HIDDEN (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
@@ -180,20 +177,20 @@ SECTIONS
         PROVIDE_HIDDEN (__init_array_end = .);
 
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* finit data */
         PROVIDE_HIDDEN (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
         KEEP(*(.fini_array))
         PROVIDE_HIDDEN (__fini_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         PROVIDE(__start_fs_data = .);
         KEEP(*(.fs_data))
         PROVIDE(__stop_fs_data = .);
 
         *(.jcr)
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* All data end */
         __data_end__ = .;
 
@@ -201,39 +198,20 @@ SECTIONS
 
     __edata = .;
 
-    .nvictable (NOLOAD) :
-    {
-      PROVIDE(__start_nvictable = .);
-      KEEP(*(.nvictable))
-      PROVIDE(__stop_nvictable = .);
-    } > RAM_NVIC
-    
-    .crash_data_ram :
-    {
-      . = ALIGN(8);
-      __CRASH_DATA_RAM__ = .;
-      __CRASH_DATA_RAM_START__ = .; /* Create a global symbol at data start */
-      KEEP(*(.keep.crash_data_ram))
-      *(.m_crash_data_ram)     /* This is a user defined section */
-      . += MBED_CRASH_REPORT_RAM_SIZE;
-      . = ALIGN(8);
-      __CRASH_DATA_RAM_END__ = .; /* Define a global symbol at data end */
-    } > RAM_CRASH_DATA
-
     .noinit (NOLOAD) :
     {
       PROVIDE(__start_noinit = .);
       KEEP(*(.noinit))
       PROVIDE(__stop_noinit = .);
-    } > RAM
+    } > RAM_NVIC
 
     .bss :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_start__ = .;
         *(.bss*)
         *(COMMON)
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_end__ = .;
     } > RAM
 
@@ -244,9 +222,8 @@ SECTIONS
         *(.heap*);
 
         /* Expand the heap to reach the stack boundary. */
-        ASSERT(. <= (ORIGIN(RAM) + LENGTH(RAM) - MBED_BOOT_STACK_SIZE), "heap region overflowed into stack");
-        . = ORIGIN(RAM) + LENGTH(RAM) - MBED_BOOT_STACK_SIZE;
-        __HeapLimit = .;
+        ASSERT(. <= (ORIGIN(RAM) + LENGTH(RAM) - 0x800), "heap region overflowed into stack");
+        . += (ORIGIN(RAM) + LENGTH(RAM) - 0x800) - .;
     } > RAM
     PROVIDE(__heap_start = ADDR(.heap));
     PROVIDE(__heap_size = SIZEOF(.heap));
@@ -260,12 +237,12 @@ SECTIONS
     {
         __StackLimit = .;
         *(.stack*)
-        . = ORIGIN(RAM) + LENGTH(RAM);
+        . += (ORIGIN(RAM) + LENGTH(RAM) - .);
     } > RAM
 
     /* Set the stack top to the end of RAM and move down the stack limit by
      * the size of the stack_dummy section. */
     __StackTop = ORIGIN(RAM) + LENGTH(RAM);
-    __StackLimit = __StackTop - MBED_BOOT_STACK_SIZE;
+    __StackLimit = __StackTop - SIZEOF(.stack);
     PROVIDE(__stack = __StackTop);
 }

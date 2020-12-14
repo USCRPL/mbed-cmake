@@ -26,10 +26,13 @@
  * limitations under the License.
  */
 
-#include "RZ_A1H.h"
+#include <RZ_A1H.h>
 #include "RZ_A1_Init.h"
 #include "irq_ctrl.h"
-#include "mbed_drv_cfg.h"
+
+#define CS2_SDRAM_MODE_16BIT_CAS2_BR_BW (*(volatile uint16_t*)0x3FFFD040)
+#define CS3_SDRAM_MODE_16BIT_CAS2_BR_BW (*(volatile uint16_t*)0x3FFFE040)
+#define GPIO_PORT0_BOOTMODE_BITMASK (0x000fu)
 
 /*
  Port 0 (P0) MD pin assignment
@@ -42,7 +45,7 @@
 /*----------------------------------------------------------------------------
   System Core Clock Variable
  *----------------------------------------------------------------------------*/
-uint32_t SystemCoreClock = RENESAS_RZ_A1_SYS_CLK;
+uint32_t SystemCoreClock = CM0_RENESAS_RZ_A1_P0_CLK;
 
 /*----------------------------------------------------------------------------
   System Core Clock update function
@@ -50,9 +53,22 @@ uint32_t SystemCoreClock = RENESAS_RZ_A1_SYS_CLK;
 void SystemCoreClockUpdate (void)
 {
   uint32_t freq;
+  uint16_t mode;
   uint16_t ifc;
 
-  freq = RENESAS_RZ_A1_SYS_CLK;
+  mode = (GPIO.PPR0 >> 2U) & 0x01U;
+
+  if (mode == 0) {
+    /* Clock Mode 0 */
+    /* CLKIN is between 10MHz and 13.33MHz */
+    /* Divider 1 uses 1/1 ratio, PLL x30 is ON */
+    freq = CM0_RENESAS_RZ_A1_CLKIN * 30U;
+  } else {
+    /* Clock Mode 1 */
+    /* CLKIN is 48MHz */
+    /* Divider 1 uses 1/4 ratio, PLL x32 is ON */
+    freq = (CM1_RENESAS_RZ_A1_CLKIN * 32U) / 4U;
+  }
 
   /* Get CPG.FRQCR[IFC] bits */
   ifc = (CPG.FRQCR >> 8U) & 0x03U;
@@ -61,11 +77,12 @@ void SystemCoreClockUpdate (void)
   if (ifc == 0x03U) {
     /* Division ratio is 1/3 */
     freq = (freq / 3U);
-  } else if (ifc == 0x01U) {
-    /* Division ratio is 2/3 */
-    freq = (freq * 2U) / 3U;
-  } else {
-    /* do nothing */
+  }
+  else {
+    if (ifc == 0x01U) {
+      /* Division ratio is 2/3 */
+      freq = (freq * 2U) / 3U;
+    }
   }
 
   SystemCoreClock = freq;
@@ -91,12 +108,7 @@ void SystemInit (void)
 {
 /*       do not use global variables because this function is called before
          reaching pre-main. RW section may be overwritten afterwards.          */
-
-#if ((__FPU_PRESENT == 1) && (__FPU_USED == 1))
-  // Enable FPU
-  __FPU_Enable();
-#endif
-
+  
   // Enable SRAM write access
   CPG.SYSCR3 = 0x0F;
 
@@ -133,6 +145,11 @@ void SystemInit (void)
   L2C_InvAllByWay();
   // Enable L2C
   L2C_Enable();
+#endif
+
+#if ((__FPU_PRESENT == 1) && (__FPU_USED == 1))
+  // Enable FPU
+  __FPU_Enable();
 #endif
 
   // IRQ Initialize

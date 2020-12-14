@@ -323,14 +323,12 @@ typedef enum {
     SPI_CS      = PH_6,
     PWM_OUT     = PA_1,
 
-    /**** USB FS pins ****/
+    /**** USB pins ****/
     USB_OTG_FS_DM = PA_11,
     USB_OTG_FS_DP = PA_12,
     USB_OTG_FS_ID = PA_10,
     USB_OTG_FS_SOF = PA_8,
     USB_OTG_FS_VBUS = PA_9,
-
-    /**** USB HS pins ****/
     USB_OTG_HS_DM = PB_14,
     USB_OTG_HS_DP = PB_15,
     USB_OTG_HS_ID = PB_12,
@@ -344,10 +342,10 @@ typedef enum {
     USB_OTG_HS_ULPI_D5 = PB_12,
     USB_OTG_HS_ULPI_D6 = PB_13,
     USB_OTG_HS_ULPI_D7 = PB_5,
-    USB_OTG_HS_ULPI_DIR = PC_2,
-    USB_OTG_HS_ULPI_DIR_ALT0 = PI_11,
-    USB_OTG_HS_ULPI_NXT = PC_3,
-    USB_OTG_HS_ULPI_NXT_ALT0 = PH_4,
+    USB_OTG_HS_ULPI_DIR = PI_11,
+    USB_OTG_HS_ULPI_DIR_ALT0 = PC_2,
+    USB_OTG_HS_ULPI_NXT = PH_4,
+    USB_OTG_HS_ULPI_NXT_ALT0 = PC_3,
     USB_OTG_HS_ULPI_STP = PC_0,
     USB_OTG_HS_VBUS = PB_13,
 
@@ -407,14 +405,6 @@ typedef enum {
     SYS_TRACED3 = PC_12,
     SYS_TRACED3_ALT0 = PE_6,
     SYS_WKUP = PA_0,
-
-    /**** QSPI FLASH pins ****/
-    QSPI_FLASH1_IO0 = PF_8,
-    QSPI_FLASH1_IO1 = PF_9,
-    QSPI_FLASH1_IO2 = PF_7,
-    QSPI_FLASH1_IO3 = PF_6,
-    QSPI_FLASH1_SCK = PF_10,
-    QSPI_FLASH1_CSN = PB_6,
 
     // Not connected
     NC = (int)0xFFFFFFFF

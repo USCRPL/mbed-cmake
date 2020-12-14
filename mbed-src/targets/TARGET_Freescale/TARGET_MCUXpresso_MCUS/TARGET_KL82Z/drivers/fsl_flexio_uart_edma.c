@@ -217,15 +217,11 @@ status_t FLEXIO_UART_TransferSendEDMA(FLEXIO_UART_Type *base,
     else
     {
         handle->txState = kFLEXIO_UART_TxBusy;
-        handle->txDataSizeAll = xfer->dataSize;
 
         /* Prepare transfer. */
         EDMA_PrepareTransfer(&xferConfig, xfer->data, sizeof(uint8_t),
                              (void *)FLEXIO_UART_GetTxDataRegisterAddress(base), sizeof(uint8_t), sizeof(uint8_t),
                              xfer->dataSize, kEDMA_MemoryToPeripheral);
-
-        /* Store the initially configured eDMA minor byte transfer count into the FLEXIO UART handle */
-        handle->nbytes = sizeof(uint8_t);
 
         /* Submit transfer. */
         EDMA_SubmitTransfer(handle->txEdmaHandle, &xferConfig);
@@ -263,14 +259,10 @@ status_t FLEXIO_UART_TransferReceiveEDMA(FLEXIO_UART_Type *base,
     else
     {
         handle->rxState = kFLEXIO_UART_RxBusy;
-        handle->rxDataSizeAll = xfer->dataSize;
 
         /* Prepare transfer. */
         EDMA_PrepareTransfer(&xferConfig, (void *)FLEXIO_UART_GetRxDataRegisterAddress(base), sizeof(uint8_t),
                              xfer->data, sizeof(uint8_t), sizeof(uint8_t), xfer->dataSize, kEDMA_PeripheralToMemory);
-
-        /* Store the initially configured eDMA minor byte transfer count into the FLEXIO UART handle */
-        handle->nbytes = sizeof(uint8_t);
 
         /* Submit transfer. */
         EDMA_SubmitTransfer(handle->rxEdmaHandle, &xferConfig);
@@ -315,36 +307,42 @@ status_t FLEXIO_UART_TransferGetReceiveCountEDMA(FLEXIO_UART_Type *base,
                                                  flexio_uart_edma_handle_t *handle,
                                                  size_t *count)
 {
-    assert(handle);
     assert(handle->rxEdmaHandle);
-    assert(count);
 
-    if (kFLEXIO_UART_RxIdle == handle->rxState)
+    if (!count)
     {
-        return kStatus_NoTransferInProgress;
+        return kStatus_InvalidArgument;
     }
 
-    *count = handle->rxDataSizeAll -
-             (uint32_t)handle->nbytes *
-                 EDMA_GetRemainingMajorLoopCount(handle->rxEdmaHandle->base, handle->rxEdmaHandle->channel);
+    if (kFLEXIO_UART_RxBusy == handle->rxState)
+    {
+        *count = (handle->rxSize - EDMA_GetRemainingBytes(handle->rxEdmaHandle->base, handle->rxEdmaHandle->channel));
+    }
+    else
+    {
+        *count = handle->rxSize;
+    }
 
     return kStatus_Success;
 }
 
 status_t FLEXIO_UART_TransferGetSendCountEDMA(FLEXIO_UART_Type *base, flexio_uart_edma_handle_t *handle, size_t *count)
 {
-    assert(handle);
     assert(handle->txEdmaHandle);
-    assert(count);
 
-    if (kFLEXIO_UART_TxIdle == handle->txState)
+    if (!count)
     {
-        return kStatus_NoTransferInProgress;
+        return kStatus_InvalidArgument;
     }
 
-    *count = handle->txDataSizeAll -
-             (uint32_t)handle->nbytes *
-                 EDMA_GetRemainingMajorLoopCount(handle->txEdmaHandle->base, handle->txEdmaHandle->channel);
+    if (kFLEXIO_UART_TxBusy == handle->txState)
+    {
+        *count = (handle->txSize - EDMA_GetRemainingBytes(handle->txEdmaHandle->base, handle->txEdmaHandle->channel));
+    }
+    else
+    {
+        *count = handle->txSize;
+    }
 
     return kStatus_Success;
 }

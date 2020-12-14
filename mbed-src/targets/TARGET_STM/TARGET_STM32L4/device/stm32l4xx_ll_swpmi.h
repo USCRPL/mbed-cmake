@@ -6,20 +6,36 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef STM32L4xx_LL_SWPMI_H
-#define STM32L4xx_LL_SWPMI_H
+#ifndef __STM32L4xx_LL_SWPMI_H
+#define __STM32L4xx_LL_SWPMI_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +48,7 @@ extern "C" {
   * @{
   */
 
-#if defined(SWPMI1)
+#if defined (SWPMI1)
 
 /** @defgroup SWPMI_LL SWPMI
   * @{
@@ -68,7 +84,7 @@ typedef struct
                                         This feature can be modified afterwards using unitary function @ref LL_SWPMI_SetVoltageClass. */
 
   uint32_t BitRatePrescaler;       /*!< Specifies the SWPMI bitrate prescaler.
-                                        This parameter must be a number between Min_Data=0 and Max_Data=63U.
+                                        This parameter must be a number between Min_Data=0 and Max_Data=63.
 
                                         The value can be calculated thanks to helper macro @ref __LL_SWPMI_CALC_BITRATE_PRESCALER
 
@@ -350,7 +366,7 @@ __STATIC_INLINE void LL_SWPMI_Activate(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActivated(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->CR, SWPMI_CR_SWPACT) == (SWPMI_CR_SWPACT)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->CR, SWPMI_CR_SWPACT) == (SWPMI_CR_SWPACT));
 }
 
 /**
@@ -381,7 +397,7 @@ __STATIC_INLINE void LL_SWPMI_RequestDeactivation(SWPMI_TypeDef *SWPMIx)
   * @brief  Set Bitrate prescaler SWPMI_freq = SWPMI_clk / (((BitRate) + 1)  * 4)
   * @rmtoll BRR          BR            LL_SWPMI_SetBitRatePrescaler
   * @param  SWPMIx SWPMI Instance
-  * @param  BitRatePrescaler A number between Min_Data=0 and Max_Data=63U
+  * @param  BitRatePrescaler A number between Min_Data=0 and Max_Data=63
   * @retval None
   */
 __STATIC_INLINE void LL_SWPMI_SetBitRatePrescaler(SWPMI_TypeDef *SWPMIx, uint32_t BitRatePrescaler)
@@ -393,7 +409,7 @@ __STATIC_INLINE void LL_SWPMI_SetBitRatePrescaler(SWPMI_TypeDef *SWPMIx, uint32_
   * @brief  Get Bitrate prescaler
   * @rmtoll BRR          BR            LL_SWPMI_GetBitRatePrescaler
   * @param  SWPMIx SWPMI Instance
-  * @retval A number between Min_Data=0 and Max_Data=63U
+  * @retval A number between Min_Data=0 and Max_Data=63
   */
 __STATIC_INLINE uint32_t LL_SWPMI_GetBitRatePrescaler(SWPMI_TypeDef *SWPMIx)
 {
@@ -443,7 +459,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_GetVoltageClass(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBF(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXBFF) == (SWPMI_ISR_RXBFF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXBFF) == (SWPMI_ISR_RXBFF));
 }
 
 /**
@@ -454,7 +470,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBF(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXBE(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXBEF) == (SWPMI_ISR_TXBEF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXBEF) == (SWPMI_ISR_TXBEF));
 }
 
 /**
@@ -465,7 +481,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXBE(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBER(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXBERF) == (SWPMI_ISR_RXBERF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXBERF) == (SWPMI_ISR_RXBERF));
 }
 
 /**
@@ -476,7 +492,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBER(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXOVR(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXOVRF) == (SWPMI_ISR_RXOVRF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXOVRF) == (SWPMI_ISR_RXOVRF));
 }
 
 /**
@@ -487,7 +503,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXOVR(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXUNR(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXUNRF) == (SWPMI_ISR_TXUNRF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXUNRF) == (SWPMI_ISR_TXUNRF));
 }
 
 /**
@@ -499,7 +515,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXUNR(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXNE(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXNE) == (SWPMI_ISR_RXNE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXNE) == (SWPMI_ISR_RXNE));
 }
 
 /**
@@ -511,7 +527,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXNE(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXE(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXE) == (SWPMI_ISR_TXE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXE) == (SWPMI_ISR_TXE));
 }
 
 /**
@@ -523,7 +539,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXE(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TC(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TCF) == (SWPMI_ISR_TCF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_TCF) == (SWPMI_ISR_TCF));
 }
 
 /**
@@ -535,7 +551,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TC(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SR(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_SRF) == (SWPMI_ISR_SRF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_SRF) == (SWPMI_ISR_SRF));
 }
 
 /**
@@ -546,7 +562,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SR(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SUSP(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_SUSP) == (SWPMI_ISR_SUSP)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_SUSP) == (SWPMI_ISR_SUSP));
 }
 
 /**
@@ -557,7 +573,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SUSP(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_DEACT(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_DEACTF) == (SWPMI_ISR_DEACTF)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->ISR, SWPMI_ISR_DEACTF) == (SWPMI_ISR_DEACTF));
 }
 
 /**
@@ -851,7 +867,7 @@ __STATIC_INLINE void LL_SWPMI_DisableIT_RXBF(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_SR(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_SRIE) == (SWPMI_IER_SRIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_SRIE) == (SWPMI_IER_SRIE));
 }
 
 /**
@@ -862,7 +878,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_SR(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TC(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TCIE) == (SWPMI_IER_TCIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_TCIE) == (SWPMI_IER_TCIE));
 }
 
 /**
@@ -873,7 +889,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TC(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TX(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TIE) == (SWPMI_IER_TIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_TIE) == (SWPMI_IER_TIE));
 }
 
 /**
@@ -884,7 +900,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TX(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RX(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RIE) == (SWPMI_IER_RIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_RIE) == (SWPMI_IER_RIE));
 }
 
 /**
@@ -895,7 +911,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RX(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXUNR(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TXUNRIE) == (SWPMI_IER_TXUNRIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_TXUNRIE) == (SWPMI_IER_TXUNRIE));
 }
 
 /**
@@ -906,7 +922,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXUNR(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXOVR(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RXOVRIE) == (SWPMI_IER_RXOVRIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_RXOVRIE) == (SWPMI_IER_RXOVRIE));
 }
 
 /**
@@ -917,7 +933,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXOVR(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBER(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RXBERIE) == (SWPMI_IER_RXBERIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_RXBERIE) == (SWPMI_IER_RXBERIE));
 }
 
 /**
@@ -928,7 +944,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBER(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXBE(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TXBEIE) == (SWPMI_IER_TXBEIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_TXBEIE) == (SWPMI_IER_TXBEIE));
 }
 
 /**
@@ -939,7 +955,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXBE(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBF(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RXBFIE) == (SWPMI_IER_RXBFIE)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->IER, SWPMI_IER_RXBFIE) == (SWPMI_IER_RXBFIE));
 }
 
 /**
@@ -980,7 +996,7 @@ __STATIC_INLINE void LL_SWPMI_DisableDMAReq_RX(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_RX(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->CR, SWPMI_CR_RXDMA) == (SWPMI_CR_RXDMA)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->CR, SWPMI_CR_RXDMA) == (SWPMI_CR_RXDMA));
 }
 
 /**
@@ -1013,7 +1029,7 @@ __STATIC_INLINE void LL_SWPMI_DisableDMAReq_TX(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_TX(SWPMI_TypeDef *SWPMIx)
 {
-  return ((READ_BIT(SWPMIx->CR, SWPMI_CR_TXDMA) == (SWPMI_CR_TXDMA)) ? 1UL : 0UL);
+  return (READ_BIT(SWPMIx->CR, SWPMI_CR_TXDMA) == (SWPMI_CR_TXDMA));
 }
 
 /**
@@ -1028,7 +1044,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_TX(SWPMI_TypeDef *SWPMIx)
   */
 __STATIC_INLINE uint32_t LL_SWPMI_DMA_GetRegAddr(SWPMI_TypeDef *SWPMIx, uint32_t Direction)
 {
-  uint32_t data_reg_addr;
+  register uint32_t data_reg_addr = 0;
 
   if (Direction == LL_SWPMI_DMA_REG_DATA_TRANSMIT)
   {
@@ -1138,7 +1154,7 @@ void        LL_SWPMI_StructInit(LL_SWPMI_InitTypeDef *SWPMI_InitStruct);
   * @}
   */
 
-#endif /* SWPMI1 */
+#endif /* defined (SWPMI1) */
 
 /**
   * @}
@@ -1148,6 +1164,6 @@ void        LL_SWPMI_StructInit(LL_SWPMI_InitTypeDef *SWPMI_InitStruct);
 }
 #endif
 
-#endif /* STM32L4xx_LL_SWPMI_H */
+#endif /* __STM32L4xx_LL_SWPMI_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

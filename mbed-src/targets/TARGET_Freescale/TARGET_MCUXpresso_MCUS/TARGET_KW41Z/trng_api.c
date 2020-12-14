@@ -22,7 +22,7 @@
  * Reference: "MKW41Z/31Z/21Z Reference Manual", chapter 43
  */
 
-#if DEVICE_TRNG
+#if defined(DEVICE_TRNG)
 
 #include "fsl_trng.h"
 #include "trng_api.h"

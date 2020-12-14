@@ -1,19 +1,31 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2017 ARM Limited
- * Copyright (c) 2017 STMicroelectronics
- * SPDX-License-Identifier: Apache-2.0
+ *******************************************************************************
+ * Copyright (c) 2017, STMicroelectronics
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of STMicroelectronics nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *******************************************************************************
  */
 
 #if DEVICE_FLASH
@@ -24,7 +36,6 @@
 
 static uint32_t GetSector(uint32_t Address);
 static uint32_t GetSectorSize(uint32_t Sector);
-static uint32_t GetSectorBase(uint32_t SectorId);
 
 int32_t flash_init(flash_t *obj)
 {
@@ -119,9 +130,6 @@ int32_t flash_erase_sector(flash_t *obj, uint32_t address)
         status = -1;
     }
 
-    SCB_CleanInvalidateDCache_by_Addr((uint32_t *)GetSectorBase(SectorId), GetSectorSize(SectorId));
-    SCB_InvalidateICache();
-
     flash_lock();
 
     return status;
@@ -131,8 +139,6 @@ int32_t flash_program_page(flash_t *obj, uint32_t address, const uint8_t *data,
                            uint32_t size)
 {
     int32_t status = 0;
-    uint32_t StartAddress = address;
-    uint32_t FullSize = size;
 
     if ((address >= (FLASH_BASE + FLASH_SIZE)) || (address < FLASH_BASE)) {
         return -1;
@@ -160,9 +166,6 @@ int32_t flash_program_page(flash_t *obj, uint32_t address, const uint8_t *data,
             data++;
         }
     }
-
-    SCB_CleanInvalidateDCache_by_Addr((uint32_t *)StartAddress, FullSize);
-    SCB_InvalidateICache();
 
     flash_lock();
 
@@ -260,30 +263,6 @@ static uint32_t GetSectorSize(uint32_t Sector)
     }
 #endif
     return sectorsize;
-}
-
-/**
-  * @brief  Gets sector base address
-  * @param  SectorId
-  * @retval base address of a given sector
-  */
-static uint32_t GetSectorBase(uint32_t SectorId)
-{
-    uint32_t i = 0;
-    uint32_t address_sector = FLASH_BASE;
-
-    for (i = 0; i < SectorId; i++) {
-        address_sector += GetSectorSize(i);
-    }
-    return address_sector;
-}
-
-
-uint8_t flash_get_erase_value(const flash_t *obj)
-{
-    (void)obj;
-
-    return 0xFF;
 }
 
 #endif

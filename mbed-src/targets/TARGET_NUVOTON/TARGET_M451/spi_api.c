@@ -131,24 +131,24 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk, PinName ssel
     MBED_ASSERT(modinit != NULL);
     MBED_ASSERT(modinit->modname == (int) obj->spi.spi);
 
-    obj->spi.pin_mosi = mosi;
-    obj->spi.pin_miso = miso;
-    obj->spi.pin_sclk = sclk;
-    obj->spi.pin_ssel = ssel;
+    // Reset this module
+    SYS_ResetModule(modinit->rsetidx);
+
+    // Select IP clock source
+    CLK_SetModuleClock(modinit->clkidx, modinit->clksrc, modinit->clkdiv);
+    // Enable IP clock
+    CLK_EnableModuleClock(modinit->clkidx);
 
     pinmap_pinout(mosi, PinMap_SPI_MOSI);
     pinmap_pinout(miso, PinMap_SPI_MISO);
     pinmap_pinout(sclk, PinMap_SPI_SCLK);
     pinmap_pinout(ssel, PinMap_SPI_SSEL);
 
-    // Select IP clock source
-    CLK_SetModuleClock(modinit->clkidx, modinit->clksrc, modinit->clkdiv);
+    obj->spi.pin_mosi = mosi;
+    obj->spi.pin_miso = miso;
+    obj->spi.pin_sclk = sclk;
+    obj->spi.pin_ssel = ssel;
 
-    // Enable IP clock
-    CLK_EnableModuleClock(modinit->clkidx);
-
-    // Reset this module
-    SYS_ResetModule(modinit->rsetidx);
 
 #if DEVICE_SPI_ASYNCH
     obj->spi.dma_usage = DMA_USAGE_NEVER;
@@ -195,16 +195,6 @@ void spi_free(spi_t *obj)
     // Mark this module to be deinited.
     int i = modinit - spi_modinit_tab;
     spi_modinit_mask &= ~(1 << i);
-
-    // Free up pins
-    gpio_set(obj->spi.pin_mosi);
-    gpio_set(obj->spi.pin_miso);
-    gpio_set(obj->spi.pin_sclk);
-    gpio_set(obj->spi.pin_ssel);
-    obj->spi.pin_mosi = NC;
-    obj->spi.pin_miso = NC;
-    obj->spi.pin_sclk = NC;
-    obj->spi.pin_ssel = NC;
 }
 
 void spi_format(spi_t *obj, int bits, int mode, int slave)
@@ -289,46 +279,6 @@ int spi_master_block_write(spi_t *obj, const char *tx_buffer, int tx_length,
     return total;
 }
 
-const PinMap *spi_master_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_master_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_master_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_master_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
-}
-
-const PinMap *spi_slave_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_slave_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_slave_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_slave_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
-}
-
 #if DEVICE_SPISLAVE
 int spi_slave_receive(spi_t *obj)
 {
@@ -389,9 +339,6 @@ void spi_master_transfer(spi_t *obj, const void *tx, size_t tx_length, void *rx,
     spi_buffer_set(obj, tx, tx_length, rx, rx_length);
 
     SPI_ENABLE_SYNC(spi_base);
-
-    // Initialize total SPI transfer frames
-    obj->spi.txrx_rmn = NU_MAX(tx_length, rx_length);
 
     if (obj->spi.dma_usage == DMA_USAGE_NEVER) {
         // Interrupt way
@@ -661,12 +608,16 @@ static uint32_t spi_event_check(spi_t *obj)
 static uint32_t spi_master_write_asynch(spi_t *obj, uint32_t tx_limit)
 {
     uint32_t n_words = 0;
+    uint32_t tx_rmn = obj->tx_buff.length - obj->tx_buff.pos;
+    uint32_t rx_rmn = obj->rx_buff.length - obj->rx_buff.pos;
+    uint32_t max_tx = NU_MAX(tx_rmn, rx_rmn);
+    max_tx = NU_MIN(max_tx, tx_limit);
     uint8_t data_width = spi_get_data_width(obj);
     uint8_t bytes_per_word = (data_width + 7) / 8;
     uint8_t *tx = (uint8_t *)(obj->tx_buff.buffer) + bytes_per_word * obj->tx_buff.pos;
     SPI_T *spi_base = (SPI_T *) NU_MODBASE(obj->spi.spi);
 
-    while (obj->spi.txrx_rmn && spi_writeable(obj)) {
+    while ((n_words < max_tx) && spi_writeable(obj)) {
         if (spi_is_tx_complete(obj)) {
             // Transmit dummy as transmit buffer is empty
             SPI_WRITE_TX(spi_base, 0);
@@ -690,7 +641,6 @@ static uint32_t spi_master_write_asynch(spi_t *obj, uint32_t tx_limit)
             obj->tx_buff.pos ++;
         }
         n_words ++;
-        obj->spi.txrx_rmn --;
     }
 
     //Return the number of words that have been sent
@@ -711,12 +661,15 @@ static uint32_t spi_master_write_asynch(spi_t *obj, uint32_t tx_limit)
 static uint32_t spi_master_read_asynch(spi_t *obj)
 {
     uint32_t n_words = 0;
+    uint32_t tx_rmn = obj->tx_buff.length - obj->tx_buff.pos;
+    uint32_t rx_rmn = obj->rx_buff.length - obj->rx_buff.pos;
+    uint32_t max_rx = NU_MAX(tx_rmn, rx_rmn);
     uint8_t data_width = spi_get_data_width(obj);
     uint8_t bytes_per_word = (data_width + 7) / 8;
     uint8_t *rx = (uint8_t *)(obj->rx_buff.buffer) + bytes_per_word * obj->rx_buff.pos;
     SPI_T *spi_base = (SPI_T *) NU_MODBASE(obj->spi.spi);
 
-    while (spi_readable(obj)) {
+    while ((n_words < max_rx) && spi_readable(obj)) {
         if (spi_is_rx_complete(obj)) {
             // Disregard as receive buffer is full
             SPI_READ_RX(spi_base);

@@ -114,7 +114,7 @@ extern "C" {
   * @brief Internal Low Speed oscillator (LSI) value.
   */
 #if !defined  (LSI_VALUE)
-#define LSI_VALUE               40000U     /*!< LSI Typical Value in Hz */
+#define LSI_VALUE               32000U     /*!< LSI Typical Value in Hz */
 #endif /* LSI_VALUE */                     /*!< Value of the Internal Low Speed oscillator in Hz
                                                 The real value may vary depending on the variations
                                                 in voltage and temperature. */
@@ -164,14 +164,8 @@ extern "C" {
 /* Definition of the Ethernet driver buffers size and count */
 #define ETH_RX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for receive               */
 #define ETH_TX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for transmit              */
-
-#ifdef MBED_CONF_STM32_EMAC_ETH_RXBUFNB
-#define ETH_RXBUFNB                       MBED_CONF_STM32_EMAC_ETH_RXBUFNB  /* Rx buffers of size ETH_RX_BUF_SIZE  */
-#endif
-
-#ifdef MBED_CONF_STM32_EMAC_ETH_TXBUFNB
-#define ETH_TXBUFNB                       MBED_CONF_STM32_EMAC_ETH_TXBUFNB  /* Tx buffers of size ETH_TX_BUF_SIZE  */
-#endif
+#define ETH_RXBUFNB                    8U                  /* 8 Rx buffers of size ETH_RX_BUF_SIZE  */
+#define ETH_TXBUFNB                    4U                  /* 4 Tx buffers of size ETH_TX_BUF_SIZE  */
 
 /* Section 2: PHY configuration section */
 

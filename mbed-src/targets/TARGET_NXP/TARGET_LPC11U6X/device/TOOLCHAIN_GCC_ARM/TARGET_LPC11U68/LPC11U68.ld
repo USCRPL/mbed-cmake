@@ -8,13 +8,6 @@
  * By LPCXpresso v7.2.0 [Build 153] [2014-05-19]  on Sat Jun 14 15:26:54 JST 2014
  */
 
- 
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
-STACK_SIZE = MBED_BOOT_STACK_SIZE;
-
 MEMORY
 {
   /* Define each memory region */
@@ -37,14 +30,14 @@ SECTIONS
 {
 
     /* MAIN TEXT SECTION */    
-    .text : ALIGN(8)
+    .text : ALIGN(4)
     {
         FILL(0xff)
         __vectors_start__ = ABSOLUTE(.) ;
         KEEP(*(.isr_vector))
         
         /* Global Section Table */
-        . = ALIGN(8) ;
+        . = ALIGN(4) ;
         __section_table_start = .;
         __data_section_table = .;
         LONG(LOADADDR(.data));
@@ -73,18 +66,18 @@ SECTIONS
         
         *(.text*)
         *(.rodata .rodata.*)
-        . = ALIGN(8);
+        . = ALIGN(4);
         
         /* C++ constructors etc */
-        . = ALIGN(8);
+        . = ALIGN(4);
         KEEP(*(.init))
         
-        . = ALIGN(8);
+        . = ALIGN(4);
         __preinit_array_start = .;
         KEEP (*(.preinit_array))
         __preinit_array_end = .;
         
-        . = ALIGN(8);
+        . = ALIGN(4);
         __init_array_start = .;
         KEEP (*(SORT(.init_array.*)))
         KEEP (*(.init_array))
@@ -109,13 +102,13 @@ SECTIONS
      * for exception handling/unwind - some Newlib functions (in common
      * with C++ and STDC++) use this. 
      */
-    .ARM.extab : ALIGN(8)
+    .ARM.extab : ALIGN(4)
     {
     	*(.ARM.extab* .gnu.linkonce.armextab.*)
     } > MFlash256
     __exidx_start = .;
     
-    .ARM.exidx : ALIGN(8)
+    .ARM.exidx : ALIGN(4)
     {
     	*(.ARM.exidx* .gnu.linkonce.armexidx.*)
     } > MFlash256
@@ -131,14 +124,14 @@ SECTIONS
     } > Ram1_2 
     
     /* DATA section for Ram1_2 */
-    .data_RAM2 : ALIGN(8)
+    .data_RAM2 : ALIGN(4)
     {
        FILL(0xff)
        *(.ramfunc.$RAM2)
        *(.ramfunc.$Ram1_2)
     	*(.data.$RAM2*)
     	*(.data.$Ram1_2*)
-       . = ALIGN(8) ;
+       . = ALIGN(4) ;
     } > Ram1_2 AT>MFlash256
     /* possible MTB section for Ram2USB_2 */
     .mtb_buffer_RAM3 (NOLOAD) :
@@ -148,14 +141,14 @@ SECTIONS
     } > Ram2USB_2 
     
     /* DATA section for Ram2USB_2 */
-    .data_RAM3 : ALIGN(8)
+    .data_RAM3 : ALIGN(4)
     {
        FILL(0xff)
        *(.ramfunc.$RAM3)
        *(.ramfunc.$Ram2USB_2)
     	*(.data.$RAM3*)
     	*(.data.$Ram2USB_2*)
-       . = ALIGN(8) ;
+       . = ALIGN(4) ;
     } > Ram2USB_2 AT>MFlash256
     
     /* MAIN DATA SECTION */
@@ -166,102 +159,77 @@ SECTIONS
        KEEP(*(.mtb*))
     } > Ram0_32 
 
-    .uninit_RESERVED : ALIGN(8)
+    .uninit_RESERVED : ALIGN(4)
     {
         KEEP(*(.bss.$RESERVED*))
-        . = ALIGN(8) ;
+        . = ALIGN(4) ;
         _end_uninit_RESERVED = .;
     } > Ram0_32
 
 	
 	/* Main DATA section (Ram0_32) */
-	.data : ALIGN(8)
+	.data : ALIGN(4)
 	{
 	   FILL(0xff)
 	   _data = . ;
 	   *(vtable)
 	   *(.ramfunc*)
 	   *(.data*)
-	   . = ALIGN(8) ;
+	   . = ALIGN(4) ;
 	   _edata = . ;
 	} > Ram0_32 AT>MFlash256
 
     /* BSS section for Ram1_2 */
-    .bss_RAM2 : ALIGN(8)
+    .bss_RAM2 : ALIGN(4)
     {
     	*(.bss.$RAM2*)
     	*(.bss.$Ram1_2*)
-       . = ALIGN(8) ;
+       . = ALIGN(4) ;
     } > Ram1_2
     /* BSS section for Ram2USB_2 */
-    .bss_RAM3 : ALIGN(8)
+    .bss_RAM3 : ALIGN(4)
     {
     	*(.bss.$RAM3*)
     	*(.bss.$Ram2USB_2*)
-       . = ALIGN(8) ;
+       . = ALIGN(4) ;
     } > Ram2USB_2
 
     /* MAIN BSS SECTION */
-    .bss : ALIGN(8)
+    .bss : ALIGN(4)
     {
         _bss = .;
         *(.bss*)
         *(COMMON)
-        . = ALIGN(8) ;
+        . = ALIGN(4) ;
         _ebss = .;
         PROVIDE(end = .);
         __end__ = .;
     } > Ram0_32
         
     /* NOINIT section for Ram1_2 */
-    .noinit_RAM2 (NOLOAD) : ALIGN(8)
+    .noinit_RAM2 (NOLOAD) : ALIGN(4)
     {
     	*(.noinit.$RAM2*)
     	*(.noinit.$Ram1_2*)
-       . = ALIGN(8) ;
+       . = ALIGN(4) ;
     } > Ram1_2 
     /* NOINIT section for Ram2USB_2 */
-    .noinit_RAM3 (NOLOAD) : ALIGN(8)
+    .noinit_RAM3 (NOLOAD) : ALIGN(4)
     {
     	*(.noinit.$RAM3*)
     	*(.noinit.$Ram2USB_2*)
-       . = ALIGN(8) ;
+       . = ALIGN(4) ;
     } > Ram2USB_2 
     
     /* DEFAULT NOINIT SECTION */
-    .noinit (NOLOAD): ALIGN(8)
+    .noinit (NOLOAD): ALIGN(4)
     {
         _noinit = .;
         *(.noinit*) 
-         . = ALIGN(8) ;
+         . = ALIGN(4) ;
         _end_noinit = .;
     } > Ram0_32
-
-    PROVIDE(_pvHeapStart = .);
-    .heap :
-    {
-        __end__ = .;
-        end = __end__;
-        *(.heap*)
-        . = ORIGIN(Ram0_32) + LENGTH(Ram0_32) - STACK_SIZE;
-        __HeapLimit = .;
-    } > Ram0_32
-
-
-    /* .stack_dummy section doesn't contains any symbols. It is only
-     * used for linker to calculate size of stack sections, and assign
-     * values to stack symbols later */
-    .stack_dummy :
-    {
-        *(.stack)
-    } > Ram0_32
-
-    /* Set stack top to end of RAM, and stack limit move down by
-     * size of stack_dummy section */
-    __StackTop = ORIGIN(Ram0_32) + LENGTH(Ram0_32);
-    __StackLimit = __StackTop - STACK_SIZE;
-    PROVIDE(__stack = __StackTop);
     
-    PROVIDE(__stack = __StackTop);
-    PROVIDE(_vStackTop = __StackTop);
+    PROVIDE(_pvHeapStart = .);
+    PROVIDE(_vStackTop = __top_Ram0_32 - 0);
 }

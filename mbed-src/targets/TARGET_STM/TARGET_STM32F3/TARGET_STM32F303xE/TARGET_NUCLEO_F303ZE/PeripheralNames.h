@@ -55,12 +55,12 @@ typedef enum {
     UART_5 = (int)UART5_BASE
 } UARTName;
 
-#define DEVICE_SPI_COUNT 4
 typedef enum {
     SPI_1 = (int)SPI1_BASE,
     SPI_2 = (int)SPI2_BASE,
     SPI_3 = (int)SPI3_BASE,
     SPI_4 = (int)SPI4_BASE
+
 } SPIName;
 
 typedef enum {
@@ -84,10 +84,6 @@ typedef enum {
 typedef enum {
     CAN_1 = (int)CAN_BASE
 } CANName;
-
-typedef enum {
-    USB_FS = (int)USB_BASE,
-} USBName;
 
 #ifdef __cplusplus
 }

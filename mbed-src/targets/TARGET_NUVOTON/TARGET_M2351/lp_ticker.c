@@ -19,9 +19,9 @@
 #if DEVICE_LPTICKER
 
 #include "sleep_api.h"
+#include "mbed_wait_api.h"
 #include "mbed_assert.h"
 #include "nu_modutil.h"
-#include "nu_timer.h"
 #include "nu_miscutil.h"
 #include "partition_M2351.h"
 
@@ -101,9 +101,17 @@ void lp_ticker_init(void)
         /* By HAL spec, ticker_init allows the ticker to keep counting and disables the
          * ticker interrupt. */
         lp_ticker_disable_interrupt();
+        lp_ticker_clear_interrupt();
+        NVIC_ClearPendingIRQ(TIMER_MODINIT.irq_n);
         return;
     }
     ticker_inited = 1;
+
+    /* Reset module
+     *
+     * NOTE: We must call secure version (from non-secure domain) because SYS/CLK regions are secure.
+     */
+    SYS_ResetModule_S(TIMER_MODINIT.rsetidx);
 
     /* Select IP clock source
      *
@@ -117,12 +125,6 @@ void lp_ticker_init(void)
      */
     CLK_EnableModuleClock_S(TIMER_MODINIT.clkidx);
 
-    /* Reset module
-     *
-     * NOTE: We must call secure version (from non-secure domain) because SYS/CLK regions are secure.
-     */
-    SYS_ResetModule_S(TIMER_MODINIT.rsetidx);
-
     TIMER_T *timer_base = (TIMER_T *) NU_MODBASE(TIMER_MODINIT.modname);
 
     // Configure clock
@@ -135,10 +137,10 @@ void lp_ticker_init(void)
     // Continuous mode
     // NOTE: TIMER_CTL_CNTDATEN_Msk exists in NUC472, but not in M451/M480/M2351. In M451/M480/M2351, TIMER_CNT is updated continuously by default.
     timer_base->CTL = TIMER_CONTINUOUS_MODE | prescale_timer/* | TIMER_CTL_CNTDATEN_Msk*/;
-    nu_busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     timer_base->CMP = cmp_timer;
-    nu_busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     // Set vector
     NVIC_SetVector(TIMER_MODINIT.irq_n, (uint32_t) TIMER_MODINIT.var);
@@ -146,13 +148,13 @@ void lp_ticker_init(void)
     NVIC_DisableIRQ(TIMER_MODINIT.irq_n);
 
     TIMER_EnableInt(timer_base);
-    nu_busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     TIMER_EnableWakeup(timer_base);
-    nu_busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     TIMER_Start(timer_base);
-    nu_busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     /* Wait for timer to start counting and raise active flag */
     while(! (timer_base->CTL & TIMER_CTL_ACTSTS_Msk));
@@ -160,7 +162,23 @@ void lp_ticker_init(void)
 
 void lp_ticker_free(void)
 {
+    TIMER_T *timer_base = (TIMER_T *) NU_MODBASE(TIMER_MODINIT.modname);
+
+    /* Stop counting */
+    TIMER_Stop(timer_base);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+
+    /* Wait for timer to stop counting and unset active flag */
+    while((timer_base->CTL & TIMER_CTL_ACTSTS_Msk));
+
+    /* Disable wakeup */
+    TIMER_DisableWakeup(timer_base);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+
     /* Disable interrupt */
+    TIMER_DisableInt(timer_base);
+    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+
     NVIC_DisableIRQ(TIMER_MODINIT.irq_n);
 
     /* Disable IP clock
@@ -185,10 +203,6 @@ timestamp_t lp_ticker_read()
 
 void lp_ticker_set_interrupt(timestamp_t timestamp)
 {
-    /* Clear any previously pending interrupts */
-    lp_ticker_clear_interrupt();
-    NVIC_ClearPendingIRQ(TIMER_MODINIT.irq_n);
-
     /* In continuous mode, counter will be reset to zero with the following sequence: 
      * 1. Stop counting
      * 2. Configure new CMP value

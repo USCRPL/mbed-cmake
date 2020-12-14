@@ -143,9 +143,3 @@ uint16_t analogin_read_u16(analogin_t *obj)
 
     return sample;
 }
-
-//******************************************************************************
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
-}

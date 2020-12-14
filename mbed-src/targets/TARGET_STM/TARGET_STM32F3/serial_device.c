@@ -58,12 +58,12 @@ static void uart_irq(UARTName uart_name)
         UART_HandleTypeDef *huart = &uart_handlers[id];
         if (serial_irq_ids[id] != 0) {
             if (__HAL_UART_GET_FLAG(huart, UART_FLAG_TXE) != RESET) {
-                if (__HAL_UART_GET_IT(huart, UART_IT_TXE) != RESET && __HAL_UART_GET_IT_SOURCE(huart, UART_IT_TXE)) {
+                if (__HAL_UART_GET_IT(huart, UART_IT_TXE) != RESET) {
                     irq_handler(serial_irq_ids[id], TxIrq);
                 }
             }
             if (__HAL_UART_GET_FLAG(huart, UART_FLAG_RXNE) != RESET) {
-                if (__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET && __HAL_UART_GET_IT_SOURCE(huart, UART_IT_RXNE)) {
+                if (__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET) {
                     irq_handler(serial_irq_ids[id], RxIrq);
                     /*  Flag has been cleared when reading the content */
                 }
@@ -228,9 +228,8 @@ void serial_clear(serial_t *obj)
     struct serial_s *obj_s = SERIAL_S(obj);
     UART_HandleTypeDef *huart = &uart_handlers[obj_s->index];
 
-    /* Clear RXNE and error flags */
-    volatile uint32_t tmpval __attribute__((unused)) = huart->Instance->RDR;
-    HAL_UART_ErrorCallback(huart);
+    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_TCF);
+    __HAL_UART_SEND_REQ(huart, UART_RXDATA_FLUSH_REQUEST);
 }
 
 void serial_break_set(serial_t *obj)
@@ -487,6 +486,13 @@ uint8_t serial_rx_active(serial_t *obj)
     return (((HAL_UART_GetState(huart) & HAL_UART_STATE_BUSY_RX) == HAL_UART_STATE_BUSY_RX) ? 1 : 0);
 }
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) != RESET) {
+        __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_TCF);
+    }
+}
+
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     if (__HAL_UART_GET_FLAG(huart, UART_FLAG_PE) != RESET) {
@@ -516,7 +522,7 @@ int serial_irq_handler_asynch(serial_t *obj)
 
     volatile int return_event = 0;
     uint8_t *buf = (uint8_t *)(obj->rx_buff.buffer);
-    size_t i = 0;
+    uint8_t i = 0;
 
     // TX PART:
     if (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) != RESET) {
@@ -595,6 +601,9 @@ void serial_tx_abort_asynch(serial_t *obj)
     __HAL_UART_DISABLE_IT(huart, UART_IT_TC);
     __HAL_UART_DISABLE_IT(huart, UART_IT_TXE);
 
+    // clear flags
+    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_TCF);
+
     // reset states
     huart->TxXferCount = 0;
     // update handle state
@@ -643,62 +652,6 @@ void serial_rx_abort_asynch(serial_t *obj)
  * Set HW Control Flow
  * @param obj    The serial object
  * @param type   The Control Flow type (FlowControlNone, FlowControlRTS, FlowControlCTS, FlowControlRTSCTS)
- * @param pinmap Pointer to structure which holds static pinmap
- */
-#if STATIC_PINMAP_READY
-#define SERIAL_SET_FC_DIRECT serial_set_flow_control_direct
-void serial_set_flow_control_direct(serial_t *obj, FlowControl type, const serial_fc_pinmap_t *pinmap)
-#else
-#define SERIAL_SET_FC_DIRECT _serial_set_flow_control_direct
-static void _serial_set_flow_control_direct(serial_t *obj, FlowControl type, const serial_fc_pinmap_t *pinmap)
-#endif
-{
-    struct serial_s *obj_s = SERIAL_S(obj);
-
-    if (type == FlowControlNone) {
-        // Disable hardware flow control
-        obj_s->hw_flow_ctl = UART_HWCONTROL_NONE;
-    }
-    if (type == FlowControlRTS) {
-        // Enable RTS
-        MBED_ASSERT(pinmap->rx_flow_pin != (UARTName)NC);
-        obj_s->hw_flow_ctl = UART_HWCONTROL_RTS;
-        obj_s->pin_rts = pinmap->rx_flow_pin;
-        // Enable the pin for RTS function
-        pin_function(pinmap->rx_flow_pin, pinmap->rx_flow_function);
-        pin_mode(pinmap->rx_flow_pin, PullNone);
-    }
-    if (type == FlowControlCTS) {
-        // Enable CTS
-        MBED_ASSERT(pinmap->tx_flow_pin != (UARTName)NC);
-        obj_s->hw_flow_ctl = UART_HWCONTROL_CTS;
-        obj_s->pin_cts = pinmap->tx_flow_pin;
-        // Enable the pin for CTS function
-        pin_function(pinmap->tx_flow_pin, pinmap->tx_flow_function);
-        pin_mode(pinmap->tx_flow_pin, PullNone);
-    }
-    if (type == FlowControlRTSCTS) {
-        // Enable CTS & RTS
-        MBED_ASSERT(pinmap->rx_flow_pin != (UARTName)NC);
-        MBED_ASSERT(pinmap->tx_flow_pin != (UARTName)NC);
-        obj_s->hw_flow_ctl = UART_HWCONTROL_RTS_CTS;
-        obj_s->pin_rts = pinmap->rx_flow_pin;;
-        obj_s->pin_cts = pinmap->tx_flow_pin;;
-        // Enable the pin for CTS function
-        pin_function(pinmap->tx_flow_pin, pinmap->tx_flow_function);
-        pin_mode(pinmap->tx_flow_pin, PullNone);
-        // Enable the pin for RTS function
-        pin_function(pinmap->rx_flow_pin, pinmap->rx_flow_function);
-        pin_mode(pinmap->rx_flow_pin, PullNone);
-    }
-
-    init_uart(obj);
-}
-
-/**
- * Set HW Control Flow
- * @param obj    The serial object
- * @param type   The Control Flow type (FlowControlNone, FlowControlRTS, FlowControlCTS, FlowControlRTSCTS)
  * @param rxflow Pin for the rxflow
  * @param txflow Pin for the txflow
  */
@@ -706,22 +659,48 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
 {
     struct serial_s *obj_s = SERIAL_S(obj);
 
+    // Determine the UART to use (UART_1, UART_2, ...)
     UARTName uart_rts = (UARTName)pinmap_peripheral(rxflow, PinMap_UART_RTS);
     UARTName uart_cts = (UARTName)pinmap_peripheral(txflow, PinMap_UART_CTS);
 
-    if (((UARTName)pinmap_merge(uart_rts, obj_s->uart) == (UARTName)NC) || ((UARTName)pinmap_merge(uart_cts, obj_s->uart) == (UARTName)NC)) {
-        MBED_ASSERT(0);
-        return;
+    // Get the peripheral name (UART_1, UART_2, ...) from the pin and assign it to the object
+    obj_s->uart = (UARTName)pinmap_merge(uart_cts, uart_rts);
+    MBED_ASSERT(obj_s->uart != (UARTName)NC);
+
+    if (type == FlowControlNone) {
+        // Disable hardware flow control
+        obj_s->hw_flow_ctl = UART_HWCONTROL_NONE;
+    }
+    if (type == FlowControlRTS) {
+        // Enable RTS
+        MBED_ASSERT(uart_rts != (UARTName)NC);
+        obj_s->hw_flow_ctl = UART_HWCONTROL_RTS;
+        obj_s->pin_rts = rxflow;
+        // Enable the pin for RTS function
+        pinmap_pinout(rxflow, PinMap_UART_RTS);
+    }
+    if (type == FlowControlCTS) {
+        // Enable CTS
+        MBED_ASSERT(uart_cts != (UARTName)NC);
+        obj_s->hw_flow_ctl = UART_HWCONTROL_CTS;
+        obj_s->pin_cts = txflow;
+        // Enable the pin for CTS function
+        pinmap_pinout(txflow, PinMap_UART_CTS);
+    }
+    if (type == FlowControlRTSCTS) {
+        // Enable CTS & RTS
+        MBED_ASSERT(uart_rts != (UARTName)NC);
+        MBED_ASSERT(uart_cts != (UARTName)NC);
+        obj_s->hw_flow_ctl = UART_HWCONTROL_RTS_CTS;
+        obj_s->pin_rts = rxflow;
+        obj_s->pin_cts = txflow;
+        // Enable the pin for CTS function
+        pinmap_pinout(txflow, PinMap_UART_CTS);
+        // Enable the pin for RTS function
+        pinmap_pinout(rxflow, PinMap_UART_RTS);
     }
 
-    int peripheral = (int)pinmap_merge(uart_rts, uart_cts);
-
-    int tx_flow_function = (int)pinmap_find_function(txflow, PinMap_UART_CTS);
-    int rx_flow_function = (int)pinmap_find_function(rxflow, PinMap_UART_RTS);
-
-    const serial_fc_pinmap_t explicit_uart_fc_pinmap = {peripheral, txflow, tx_flow_function, rxflow, rx_flow_function};
-
-    SERIAL_SET_FC_DIRECT(obj, type, &explicit_uart_fc_pinmap);
+    init_uart(obj);
 }
 
 #endif /* DEVICE_SERIAL_FC */

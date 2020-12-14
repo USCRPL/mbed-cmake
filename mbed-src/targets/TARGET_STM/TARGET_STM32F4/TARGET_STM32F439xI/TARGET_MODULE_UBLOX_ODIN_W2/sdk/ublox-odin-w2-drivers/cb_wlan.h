@@ -83,12 +83,10 @@ extern "C" {
 #define cbWLAN_RSNIE_SIZE 44
 #define cbWLAN_MDIE_SIZE 5
 
-#define cbWLAN_DEFAULT_HANDLE           ((cbWLAN_Handle)1)
-#define cbWLAN_INVALID_HANDLE           (cb_UINT32_MAX)
 /*===========================================================================
  * TYPES
  *=========================================================================*/
-typedef cb_uint32 cbWLAN_Handle;
+
 /**
  * Start parameters passed to WLAN driver.
  *
@@ -284,13 +282,12 @@ typedef enum {
  * @ingroup wlan
  */
 typedef enum {
-    cbWLAN_STATUS_DISCONNECTED_UNKNOWN = 0x00,
+    cbWLAN_STATUS_DISCONNECTED_UNKNOWN,
     cbWLAN_STATUS_DISCONNECTED_NO_BSSID_FOUND,
-    cbWLAN_STATUS_DISCONNECTED_ASSOC_FAILURE,
-    cbWLAN_STATUS_DISCONNECTED_AUTH_FAILURE,
-    cbWLAN_STATUS_DISCONNECTED_MIC_FAILURE,
+    cbWLAN_STATUS_DISCONNECTED_AUTH_TIMEOUT,
+    cbWLAN_STATUS_DISCONNECTED_MIC_FAILURE, 
     cbWLAN_STATUS_DISCONNECTED_ROAMING,
-} cbWLAN_StatusDisconnectedReason;
+} cbWLAN_StatusDisconnectedInfo;
 
 /**
  * IOCTL parameters @ref cbWLAN_ioctl
@@ -298,9 +295,7 @@ typedef enum {
  * @ingroup wlan
  */
 typedef enum {
-    cbWLAN_IOCTL_FIRST = 0,
-    cbWLAN_IOCTL_SET_AP_BEACON_INTERVAL = 9,                         //!< Beacon period in TUs
-    cbWLAN_IOCTL_GET_AP_BEACON_INTERVAL = 10,                        //!< Beacon period in TUs
+    cbWLAN_IOCTL_FIRST
 } cbWLAN_Ioctl;
 
 
@@ -315,26 +310,14 @@ typedef struct cbWLAN_StatusStartedInfo {
 } cbWLAN_StatusStartedInfo;
 
 /**
- * Disconnected parameters indicated from WLAN driver for status indication
- * @ref cbWLAN_STATUS_DISCONNECTED.
- *
- * @ingroup wlan
- */
-typedef struct cbWLAN_StatusDisconnectedInfo {
-    cbWLAN_Handle handle;                           /**< Handle returned by cbWLAN_connectXXX */
-    cbWLAN_StatusDisconnectedReason reason;
-} cbWLAN_StatusDisconnectedInfo;
-
-/**
- * Connected parameters indicated from WLAN driver for status indication
+ * Connected parameters indicated from WLAN driver for status indication 
  * @ref cbWLAN_STATUS_CONNECTED.
  *
  * @ingroup wlan
  */
 typedef struct cbWLAN_StatusConnectedInfo {
-    cbWLAN_Handle handle;                           /**< Handle returned by cbWLAN_connectXXX */
-    cbWLAN_MACAddress bssid;                        /**< BSSID of the BSS connected to. */
-    cbWLAN_Channel channel;                         /**< Operating channels of the BSS connected to. */
+    cbWLAN_MACAddress bssid;           /**< BSSID of the BSS connected to. */
+    cbWLAN_Channel channel;             /**< Operating channels of the BSS connected to. */
     cb_uint16 mobilityDomainId;
 } cbWLAN_StatusConnectedInfo;
 
@@ -400,43 +383,43 @@ cbRTSL_Status cbWLAN_init();
 cbRTSL_Status cbWLAN_stop(void);
 
 /**
-* Connect to access point in open mode (no encryption).
-* Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
-*
-* @param commonParams Connection parameters.
-* @return @ref cbWLAN_Handle if call successful, otherwise -1.
-*/
-cbWLAN_Handle cbWLAN_connectOpen(cbWLAN_CommonConnectParameters *commonParams);
+ * Connect to access point in open mode (no encryption).
+ * Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
+ *
+ * @param commonParams Connection parameters.
+ * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
+ */
+cbRTSL_Status cbWLAN_connectOpen(cbWLAN_CommonConnectParameters *commonParams);
 
 /**
-* Connect to access point in open mode with WEP encryption.
-* Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
-*
-* @param commonParams Connection parameters.
-* @param wepParams WEP specific connection parameters.
-* @return @ref cbWLAN_Handle if call successful, otherwise -1.
-*/
-cbWLAN_Handle cbWLAN_connectWEP(cbWLAN_CommonConnectParameters *commonParams, cbWLAN_WEPConnectParameters *wepParams);
+ * Connect to access point in open mode with WEP encryption.
+ * Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
+ *
+ * @param commonParams Connection parameters.
+ * @param wepParams WEP specific connection parameters.
+ * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
+ */
+cbRTSL_Status cbWLAN_connectWEP(cbWLAN_CommonConnectParameters *commonParams, cbWLAN_WEPConnectParameters *wepParams);
 
 /**
-* Connect to access point with WPA PSK authentication.
-* Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
-*
-* @param commonParams Connection parameters.
-* @param wpaParams WPA PSK specific connection parameters.
-* @return @ref cbWLAN_Handle if call successful, otherwise -1.
-*/
-cbWLAN_Handle cbWLAN_connectWPAPSK(cbWLAN_CommonConnectParameters *commonParams, cbWLAN_WPAPSKConnectParameters *wpaParams);
+ * Connect to access point with WPA PSK authentication.
+ * Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
+ *
+ * @param commonParams Connection parameters.
+ * @param wpaParams WPA PSK specific connection parameters.
+ * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
+ */
+cbRTSL_Status cbWLAN_connectWPAPSK(cbWLAN_CommonConnectParameters *commonParams, cbWLAN_WPAPSKConnectParameters *wpaParams);
 
 /**
-* Connect to access point with WPA Enterprise authentication.
-* Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
-*
-* @param commonParams Connection parameters.
-* @param enterpriseParams WPA Enterprise specific connection parameters.
-* @return @ref cbWLAN_Handle if call successful, otherwise -1.
-*/
-cbWLAN_Handle cbWLAN_connectEnterprise(cbWLAN_CommonConnectParameters *commonParams, cbWLAN_EnterpriseConnectParameters *enterpriseParams);
+ * Connect to access point with WPA Enterprise authentication.
+ * Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
+ *
+ * @param commonParams Connection parameters.
+ * @param enterpriseParams WPA Enterprise specific connection parameters.
+ * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
+ */
+cbRTSL_Status cbWLAN_connectEnterprise(cbWLAN_CommonConnectParameters *commonParams, cbWLAN_EnterpriseConnectParameters *enterpriseParams);
 
 /**
  * Disconnect from access point or stop ongoing connection attempt.
@@ -444,7 +427,7 @@ cbWLAN_Handle cbWLAN_connectEnterprise(cbWLAN_CommonConnectParameters *commonPar
  *
  * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
  */
-cbRTSL_Status cbWLAN_disconnect(cbWLAN_Handle handle);
+cbRTSL_Status cbWLAN_disconnect(void);
 
 /**
  * Initiate BSS scan.
@@ -474,13 +457,13 @@ cbRTSL_Status cbWLAN_scan(cbWLAN_ScanParameters *params, cbWLAN_scanIndication s
 cb_int16 cbWLAN_STA_getRSSI();
 
 /**
-* Start access point in open mode (no encryption).
-* Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
-*
-* @param commonParams Common Accesspoint parameters.
-* @return @ref cbWLAN_Handle if call successful, otherwise -1.
-*/
-cbWLAN_Handle cbWLAN_apStartOpen(cbWLAN_CommonApParameters *commonParams);
+ * Start access point in open mode (no encryption).
+ * Connection progress is reported as @ref cbWLAN_statusIndication callbacks.
+ *
+ * @param commonParams Common Accesspoint parameters.
+ * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
+ */
+cbRTSL_Status cbWLAN_apStartOpen(cbWLAN_CommonApParameters *commonParams);
 
 /**
 * Start access point with WPA PSK authentication.
@@ -488,16 +471,16 @@ cbWLAN_Handle cbWLAN_apStartOpen(cbWLAN_CommonApParameters *commonParams);
 *
 * @param commonParams Common Accesspoint parameters.
 * @param wpaParams WPA PSK specific parameters.
-* @return @ref cbWLAN_Handle if call successful, otherwise -1.
+* @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR.
 */
-cbWLAN_Handle cbWLAN_apStartWPAPSK(cbWLAN_CommonApParameters *commonParams, cbWLAN_WPAPSKApParameters *wpaParams);
+cbRTSL_Status cbWLAN_apStartWPAPSK(cbWLAN_CommonApParameters *commonParams, cbWLAN_WPAPSKApParameters *wpaParams);
 
 /**
  * Stop access point.
  *
  * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
  */
-cbRTSL_Status cbWLAN_apStop(cbWLAN_Handle handle);
+cbRTSL_Status cbWLAN_apStop(void);
 
 /**
  * Send an Ethernet data packet.
@@ -505,7 +488,7 @@ cbRTSL_Status cbWLAN_apStop(cbWLAN_Handle handle);
  *
  * @param txData Pointer to the port specific Ethernet data type containing transmit data
  */
-void cbWLAN_sendPacket(cbWLAN_Handle handle, void *txData);
+void cbWLAN_sendPacket(void *txData);
 
 /**
  * Register a status indication callback.
@@ -525,7 +508,7 @@ cbRTSL_Status cbWLAN_registerStatusCallback(cbWLAN_statusIndication statusIndica
  * @param callbackContext Context pointer, will be sent back in callback.
  * @return @ref cbSTATUS_OK if call successful, otherwise cbSTATUS_ERROR. 
  */
-cbRTSL_Status cbWLAN_registerPacketIndicationCallback(cbWLAN_Handle handle, cbWLAN_packetIndication packetIndication, void *callbackContext);
+cbRTSL_Status cbWLAN_registerPacketIndicationCallback(cbWLAN_packetIndication packetIndication, void *callbackContext);
 
 /**
  * Deregister the specified status indication callback.

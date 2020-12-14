@@ -19,6 +19,24 @@
 ; *
 ; *****************************************************************************/
 
+Stack_Size      EQU     0x00000400
+
+                AREA    STACK, NOINIT, READWRITE, ALIGN=3
+                EXPORT  __initial_sp
+
+Stack_Mem       SPACE   Stack_Size
+__initial_sp        EQU     0x10001800  ; Top of RAM from LPC11U
+
+
+Heap_Size       EQU     0x00000000
+
+                AREA    HEAP, NOINIT, READWRITE, ALIGN=3
+                EXPORT  __heap_base
+                EXPORT  __heap_limit
+
+__heap_base
+Heap_Mem        SPACE   Heap_Size
+__heap_limit
 
                 PRESERVE8
                 THUMB
@@ -27,9 +45,8 @@
 
                 AREA    RESET, DATA, READONLY
                 EXPORT  __Vectors
-                IMPORT  |Image$$ARM_LIB_STACK$$ZI$$Limit|
 
-__Vectors       DCD     |Image$$ARM_LIB_STACK$$ZI$$Limit| ; Top of Stack
+__Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     Reset_Handler             ; Reset Handler
                 DCD     NMI_Handler               ; NMI Handler
                 DCD     HardFault_Handler         ; Hard Fault Handler

@@ -1,6 +1,12 @@
+
+/** \addtogroup platform */
+/** @{*/
+/**
+ * \defgroup platform_version Version macros
+ * @{
+ */
 /* mbed Microcontroller Library
- * Copyright (c) 2018-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2018 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,51 +24,27 @@
 #ifndef MBED_VERSION_H
 #define MBED_VERSION_H
 
-/** \addtogroup platform-public-api */
-/** @{*/
-
-/**
- * \defgroup platform_version Version macros
- * @{
- */
+#define MBED_LIBRARY_VERSION 163
 
 /** MBED_MAJOR_VERSION
-  * Mbed OS major version
-  *
-  * @note 99 is default value for development version (master branch)
+  * Mbed 2 major version
   */
-#define MBED_MAJOR_VERSION 5
+#define MBED_MAJOR_VERSION 2
 
 /** MBED_MINOR_VERSION
-  * Mbed OS minor version
-  *
-  * @note 99 is default value for development version (master branch)
+  * Mbed 2 minor version
   */
-#define MBED_MINOR_VERSION 15
+#define MBED_MINOR_VERSION 0
 
 /** MBED_PATCH_VERSION
-  * Mbed OS patch version
-  *
-  * @note 99 is default value for development version (master branch)
+  * Mbed 2 patch version
   */
-#define MBED_PATCH_VERSION 6
+#define MBED_PATCH_VERSION 163
 
 #define MBED_ENCODE_VERSION(major, minor, patch) ((major)*10000 + (minor)*100 + (patch))
 
-/** MBED_VERSION
-  * Mbed OS 5 version (MMmmpp - M(Major); m(minor); p(patch))
-  *
-  * @note 999999 is default value for development version (master branch)
-  */
 #define MBED_VERSION MBED_ENCODE_VERSION(MBED_MAJOR_VERSION, MBED_MINOR_VERSION, MBED_PATCH_VERSION)
 
-/** MBED_VERSION_CHECK
-  * Macro can be used to check minimum Mbed OS version required for feature/library. If current version
-  * is less than required, it will assert.
-  *
-  * @note: Version of master branch will be 999999 as default, hence no assert/warning is provided for
-  * master branch code
-  */
 #define MBED_VERSION_CHECK(major, minor, patch) do { \
                                        MBED_STATIC_ASSERT((MBED_VERSION >= MBED_ENCODE_VERSION((major),(minor),(patch))), "Incompatible mbed-os version detected!!"); \
                                      } while(0)

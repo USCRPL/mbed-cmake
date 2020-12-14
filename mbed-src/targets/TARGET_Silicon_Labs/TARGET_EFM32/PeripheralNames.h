@@ -136,25 +136,6 @@ typedef enum {
 } UARTName;
 #endif
 
-#if DEVICE_CAN
-typedef enum {
-#ifdef CAN0_BASE
-    CAN_0 = (int)CAN0_BASE,
-#endif
-#ifdef CAN1_BASE
-    CAN_1 = (int)CAN1_BASE,
-#endif
-} CANName;
-#endif
-
-#if DEVICE_QSPI
-typedef enum {
-#ifdef QSPI0_BASE
-    QSPI_0 = QSPI0_BASE,
-#endif
-} QSPIName;
-#endif
-
 #ifdef __cplusplus
 }
 #endif

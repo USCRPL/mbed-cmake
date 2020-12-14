@@ -8,4 +8,4 @@
 \_/     \_/  \_____ /  \______) \___ /                   \____)  \_/     \_/  |_/       \_| \_/   \_/  \______)
 ```
 
-This is mbed-cmake Retro Edition, a version of mbed-cmake with Mbed OS 5.15.6 bundled.  Please see the master branch README for up-to-date documentation that covers all branches.
+This is mbed-cmake Paleo Edition, a version of mbed-cmake with Mbed 2 r163 bundled.  Please see the master branch README for up-to-date documentation that covers all branches.

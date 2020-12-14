@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#if DEVICE_TRNG
+#if defined(DEVICE_TRNG)
 #include "drivers/I2C.h"
 #include "platform/mbed_wait_api.h"
 

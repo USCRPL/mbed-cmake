@@ -46,12 +46,6 @@
  * Definitions
  ******************************************************************************/
 
-/*! @name Driver version */
-/*@{*/
-/*! @brief reset driver version 2.0.0. */
-#define FSL_RESET_DRIVER_VERSION (MAKE_VERSION(2, 0, 0))
-/*@}*/
-
 /*!
  * @brief Enumeration for peripheral reset control bits
  *
@@ -117,7 +111,7 @@ typedef enum _SYSCON_RSTn
     {                                              \
         kGINT_RST_SHIFT_RSTn, kGINT_RST_SHIFT_RSTn \
     } /* Reset bits for GINT peripheral. GINT0 & GINT1 share same slot */
-#define GPIO_RSTS_N                                    \
+#define GPIO_RSTS                                    \
     {                                                \
         kGPIO0_RST_SHIFT_RSTn, kGPIO1_RST_SHIFT_RSTn \
     } /* Reset bits for GPIO peripheral */

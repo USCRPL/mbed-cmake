@@ -42,21 +42,14 @@
 
 #include "object_owners.h"
 #include "pinmap_ex.h"
-#include "PeripheralPins.h"
 
-#include "nrfx_spi.h"
-
-#if 0
-#define DEBUG_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define DEBUG_PRINTF(...)
-#endif
+#include "nrf_drv_spi.h"
 
 /* Pre-allocate instances and share them globally. */
-static const nrfx_spi_t nordic_nrf5_spi_instance[3] = {
-    NRFX_SPI_INSTANCE(0),
-    NRFX_SPI_INSTANCE(1),
-    NRFX_SPI_INSTANCE(2)
+static const nrf_drv_spi_t nordic_nrf5_spi_instance[3] = {
+    NRF_DRV_SPI_INSTANCE(0),
+    NRF_DRV_SPI_INSTANCE(1),
+    NRF_DRV_SPI_INSTANCE(2)
 };
 
 /* Keep track of which instance has been initialized. */
@@ -64,7 +57,7 @@ static bool nordic_nrf5_spi_initialized[3] = { false, false, false };
 
 /* Forware declare interrupt handler. */
 #if DEVICE_SPI_ASYNCH
-static void nordic_nrf5_spi_event_handler(nrfx_spi_evt_t const *p_event, void *p_context);
+static void nordic_nrf5_spi_event_handler(nrf_drv_spi_evt_t const *p_event, void *p_context);
 #endif
 
 /* Forward declaration. These functions are implemented in the driver but not
@@ -105,19 +98,19 @@ static void spi_configure_driver_instance(spi_t *obj)
 
         /* Clean up and uninitialize peripheral if already initialized. */
         if (nordic_nrf5_spi_initialized[instance]) {
-            nrfx_spi_uninit(&nordic_nrf5_spi_instance[instance]);
+            nrf_drv_spi_uninit(&nordic_nrf5_spi_instance[instance]);
         }
 
 #if DEVICE_SPI_ASYNCH
         /* Set callback handler in asynchronous mode. */
         if (spi_inst->handler) {
-            nrfx_spi_init(&nordic_nrf5_spi_instance[instance], &(spi_inst->config), nordic_nrf5_spi_event_handler, obj);
+            nrf_drv_spi_init(&nordic_nrf5_spi_instance[instance], &(spi_inst->config), nordic_nrf5_spi_event_handler, obj);
         } else {
-            nrfx_spi_init(&nordic_nrf5_spi_instance[instance], &(spi_inst->config), NULL, NULL);
+            nrf_drv_spi_init(&nordic_nrf5_spi_instance[instance], &(spi_inst->config), NULL, NULL);
         }
 #else
         /* Set callback handler to NULL in synchronous mode. */
-        nrfx_spi_init(&nordic_nrf5_spi_instance[instance], &(spi_inst->config), NULL, NULL);
+        nrf_drv_spi_init(&nordic_nrf5_spi_instance[instance], &(spi_inst->config), NULL, NULL);
 #endif
 
         /* Mark instance as initialized. */
@@ -125,51 +118,6 @@ static void spi_configure_driver_instance(spi_t *obj)
 
         /* Claim ownership of peripheral. */
         object_owner_spi2c_set(instance, obj);
-    }
-}
-
-void spi_get_capabilities(PinName ssel, bool slave, spi_capabilities_t *cap)
-{
-    if (slave) {
-        cap->minimum_frequency = 200000;            // 200 kHz
-        cap->maximum_frequency = 2000000;           // 2 MHz
-        cap->word_length = 0x00000080;              // 8 bit symbols
-        cap->support_slave_mode = false;            // to be determined later based on ssel
-        cap->hw_cs_handle = false;                  // irrelevant in slave mode
-        cap->slave_delay_between_symbols_ns = 2500; // 2.5 us
-        cap->clk_modes = 0x0f;                      // all clock modes
-#if DEVICE_SPI_ASYNCH
-        cap->async_mode = true;
-#else
-        cap->async_mode = false;
-#endif
-    } else {
-        cap->minimum_frequency = 200000;          // 200 kHz
-        cap->maximum_frequency = 2000000;         // 2 MHz
-        cap->word_length = 0x00000080;            // 8 bit symbols
-        cap->support_slave_mode = false;          // to be determined later based on ssel
-        cap->hw_cs_handle = false;                // to be determined later based on ssel
-        cap->slave_delay_between_symbols_ns = 0;  // irrelevant in master mode
-        cap->clk_modes = 0x0f;                    // all clock modes
-#if DEVICE_SPI_ASYNCH
-        cap->async_mode = true;
-#else
-        cap->async_mode = false;
-#endif
-    }
-
-    // check if given ssel pin is in the cs pinmap
-    const PinMap *cs_pins = spi_master_cs_pinmap();
-    PinName pin = NC;
-    while (cs_pins->pin != NC) {
-        if (cs_pins->pin == ssel) {
-#if DEVICE_SPISLAVE
-            cap->support_slave_mode = true;
-#endif
-            cap->hw_cs_handle = true;
-            break;
-        }
-        cs_pins++;
     }
 }
 
@@ -192,7 +140,7 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk, PinName ssel
 
     /* Get instance based on requested pins. */
     spi_inst->instance = pin_instance_spi(mosi, miso, sclk);
-    MBED_ASSERT(spi_inst->instance < NRFX_SPI_ENABLED_COUNT);
+    MBED_ASSERT(spi_inst->instance < ENABLED_SPI_COUNT);
 
     /* Store chip select separately for manual enabling. */
     spi_inst->cs = ssel;
@@ -201,14 +149,14 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk, PinName ssel
     spi_inst->config.sck_pin        = sclk;
     spi_inst->config.mosi_pin       = mosi;
     spi_inst->config.miso_pin       = miso;
-    spi_inst->config.ss_pin         = NRFX_SPI_PIN_NOT_USED;
+    spi_inst->config.ss_pin         = NRF_DRV_SPI_PIN_NOT_USED;
 
     /* Use the default config. */
     spi_inst->config.irq_priority   = SPI_DEFAULT_CONFIG_IRQ_PRIORITY;
     spi_inst->config.orc            = SPI_FILL_CHAR;
-    spi_inst->config.frequency      = NRF_SPI_FREQ_4M;
-    spi_inst->config.mode           = NRF_SPI_MODE_0;
-    spi_inst->config.bit_order      = NRF_SPI_BIT_ORDER_MSB_FIRST;
+    spi_inst->config.frequency      = NRF_DRV_SPI_FREQ_1M;
+    spi_inst->config.mode           = NRF_DRV_SPI_MODE_0;
+    spi_inst->config.bit_order      = NRF_DRV_SPI_BIT_ORDER_MSB_FIRST;
 
 #if DEVICE_SPI_ASYNCH
     /* Set default values for asynchronous variables. */
@@ -236,7 +184,7 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk, PinName ssel
         /* Register interrupt handlers in driver with the NVIC. */
         NVIC_SetVector(SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0_IRQn, (uint32_t) SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0_IRQHandler);
         NVIC_SetVector(SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1_IRQn, (uint32_t) SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1_IRQHandler);
-        NVIC_SetVector(SPIM2_SPIS2_SPI2_IRQn, (uint32_t) SPIM2_SPIS2_SPI2_IRQHandler);
+        NVIC_SetVector(SPIM2_SPIS2_SPI2_IRQn,                  (uint32_t) SPIM2_SPIS2_SPI2_IRQHandler);
     }
 }
 
@@ -261,7 +209,7 @@ void spi_free(spi_t *obj)
     int instance = spi_inst->instance;
 
     /* Use driver uninit to free instance. */
-    nrfx_spi_uninit(&nordic_nrf5_spi_instance[instance]);
+    nrf_drv_spi_uninit(&nordic_nrf5_spi_instance[instance]);
 
     /* Mark instance as uninitialized. */
     nordic_nrf5_spi_initialized[instance] = false;
@@ -289,17 +237,17 @@ void spi_format(spi_t *obj, int bits, int mode, int slave)
     struct spi_s *spi_inst = obj;
 #endif
 
-    nrf_spi_mode_t new_mode = NRF_SPI_MODE_0;
+    nrf_drv_spi_mode_t new_mode = NRF_DRV_SPI_MODE_0;
 
     /* Convert Mbed HAL mode to Nordic mode. */
-    if (mode == 0) {
-        new_mode = NRF_SPI_MODE_0;
-    } else if (mode == 1) {
-        new_mode = NRF_SPI_MODE_1;
-    } else if (mode == 2) {
-        new_mode = NRF_SPI_MODE_2;
-    } else if (mode == 3) {
-        new_mode = NRF_SPI_MODE_3;
+    if(mode == 0) {
+        new_mode = NRF_DRV_SPI_MODE_0;
+    } else if(mode == 1) {
+        new_mode = NRF_DRV_SPI_MODE_1;
+    } else if(mode == 2) {
+        new_mode = NRF_DRV_SPI_MODE_2;
+    } else if(mode == 3) {
+        new_mode = NRF_DRV_SPI_MODE_3;
     }
 
     /* Check if configuration has changed. */
@@ -331,23 +279,23 @@ void spi_frequency(spi_t *obj, int hz)
     struct spi_s *spi_inst = obj;
 #endif
 
-    nrf_spi_frequency_t new_frequency = NRF_SPI_FREQ_1M;
+    nrf_drv_spi_frequency_t new_frequency = NRF_DRV_SPI_FREQ_1M;
 
     /* Convert frequency to Nordic enum type. */
     if (hz < 250000) {
-        new_frequency = NRF_SPI_FREQ_125K;
+        new_frequency = NRF_DRV_SPI_FREQ_125K;
     } else if (hz < 500000) {
-        new_frequency = NRF_SPI_FREQ_250K;
+        new_frequency = NRF_DRV_SPI_FREQ_250K;
     } else if (hz < 1000000) {
-        new_frequency = NRF_SPI_FREQ_500K;
+        new_frequency = NRF_DRV_SPI_FREQ_500K;
     } else if (hz < 2000000) {
-        new_frequency = NRF_SPI_FREQ_1M;
+        new_frequency = NRF_DRV_SPI_FREQ_1M;
     } else if (hz < 4000000) {
-        new_frequency = NRF_SPI_FREQ_2M;
+        new_frequency = NRF_DRV_SPI_FREQ_2M;
     } else if (hz < 8000000) {
-        new_frequency = NRF_SPI_FREQ_4M;
+        new_frequency = NRF_DRV_SPI_FREQ_4M;
     } else {
-        new_frequency = NRF_SPI_FREQ_8M;
+        new_frequency = NRF_DRV_SPI_FREQ_8M;
     }
 
     /* Check if configuration has changed. */
@@ -367,8 +315,6 @@ void spi_frequency(spi_t *obj, int hz)
  */
 int spi_master_write(spi_t *obj, int value)
 {
-    nrfx_err_t ret;
-    nrfx_spi_xfer_desc_t desc;
 #if DEVICE_SPI_ASYNCH
     struct spi_s *spi_inst = &obj->spi;
 #else
@@ -390,15 +336,7 @@ int spi_master_write(spi_t *obj, int value)
     }
 
     /* Transfer 1 byte. */
-    desc.p_tx_buffer = &tx_buff;
-    desc.p_rx_buffer = &rx_buff;
-    desc.tx_length = 1;
-    desc.rx_length = 1;
-    ret = nrfx_spi_xfer(&nordic_nrf5_spi_instance[instance], &desc, 0);
-
-    if (ret != NRFX_SUCCESS) {
-        DEBUG_PRINTF("%d error returned from nrf_spi_xfer\n\r");
-    }
+    nrf_drv_spi_transfer(&nordic_nrf5_spi_instance[instance], &tx_buff, 1, &rx_buff, 1);
 
     /* Manually set chip select pin if defined. */
     if (spi_inst->cs != NC) {
@@ -426,7 +364,6 @@ int spi_master_write(spi_t *obj, int value)
  */
 int spi_master_block_write(spi_t *obj, const char *tx_buffer, int tx_length, char *rx_buffer, int rx_length, char write_fill)
 {
-    nrfx_spi_xfer_desc_t desc;
 #if DEVICE_SPI_ASYNCH
     struct spi_s *spi_inst = &obj->spi;
 #else
@@ -458,34 +395,33 @@ int spi_master_block_write(spi_t *obj, const char *tx_buffer, int tx_length, cha
     int tx_offset = 0;
     int rx_offset = 0;
 
-    ret_code_t result = NRFX_SUCCESS;
+    ret_code_t result = NRF_SUCCESS;
 
     /* Loop until all data is sent and received. */
-    while (((tx_length > 0) || (rx_length > 0)) && (result == NRFX_SUCCESS)) {
+    while (((tx_length > 0) || (rx_length > 0)) && (result == NRF_SUCCESS)) {
 
         /* Check if tx_length is larger than 255 and if so, limit to 255. */
         int tx_actual_length = (tx_length > 255) ? 255 : tx_length;
 
         /* Set tx buffer pointer. Set to NULL if no data is going to be transmitted. */
-        const uint8_t *tx_actual_buffer = (tx_actual_length > 0) ?
-                                          (const uint8_t *)(tx_buffer + tx_offset) :
-                                          NULL;
+        const uint8_t * tx_actual_buffer = (tx_actual_length > 0) ?
+                                           (const uint8_t *)(tx_buffer + tx_offset) :
+                                           NULL;
 
         /* Check if rx_length is larger than 255 and if so, limit to 255. */
         int rx_actual_length = (rx_length > 255) ? 255 : rx_length;
 
         /* Set rx buffer pointer. Set to NULL if no data is going to be received. */
-        uint8_t *rx_actual_buffer = (rx_actual_length > 0) ?
-                                    (uint8_t *)(rx_buffer + rx_offset) :
-                                    NULL;
+        uint8_t * rx_actual_buffer = (rx_actual_length > 0) ?
+                                     (uint8_t *)(rx_buffer + rx_offset) :
+                                     NULL;
 
         /* Blocking transfer. */
-        desc.p_tx_buffer = tx_actual_buffer;
-        desc.p_rx_buffer = rx_actual_buffer;
-        desc.tx_length = tx_actual_length;
-        desc.rx_length = rx_actual_length;
-        result = nrfx_spi_xfer(&nordic_nrf5_spi_instance[instance],
-                               &desc, 0);
+        result = nrf_drv_spi_transfer(&nordic_nrf5_spi_instance[instance],
+                                      tx_actual_buffer,
+                                      tx_actual_length,
+                                      rx_actual_buffer,
+                                      rx_actual_length);
 
         /* Update loop variables. */
         tx_length -= tx_actual_length;
@@ -528,46 +464,6 @@ uint8_t spi_get_module(spi_t *obj)
 #endif
 
     return spi_inst->instance;
-}
-
-const PinMap *spi_master_mosi_pinmap()
-{
-    return PinMap_SPI_testing;
-}
-
-const PinMap *spi_master_miso_pinmap()
-{
-    return PinMap_SPI_testing;
-}
-
-const PinMap *spi_master_clk_pinmap()
-{
-    return PinMap_SPI_testing;
-}
-
-const PinMap *spi_master_cs_pinmap()
-{
-    return PinMap_SPI_testing;
-}
-
-const PinMap *spi_slave_mosi_pinmap()
-{
-    return PinMap_SPI_testing;
-}
-
-const PinMap *spi_slave_miso_pinmap()
-{
-    return PinMap_SPI_testing;
-}
-
-const PinMap *spi_slave_clk_pinmap()
-{
-    return PinMap_SPI_testing;
-}
-
-const PinMap *spi_slave_cs_pinmap()
-{
-    return PinMap_SPI_testing;
 }
 
 #if DEVICE_SPISLAVE
@@ -621,7 +517,6 @@ void spi_slave_write(spi_t *obj, int value)
 
 static ret_code_t spi_master_transfer_async_continue(spi_t *obj)
 {
-    nrfx_spi_xfer_desc_t desc;
     /* Remaining data to be transferred. */
     size_t tx_length = obj->tx_buff.length - obj->tx_buff.pos;
     size_t rx_length = obj->rx_buff.length - obj->rx_buff.pos;
@@ -636,18 +531,17 @@ static ret_code_t spi_master_transfer_async_continue(spi_t *obj)
         rx_length = 255;
     }
 
-    desc.p_tx_buffer = ((const uint8_t *)(obj->tx_buff.buffer) + obj->tx_buff.pos);
-    desc.p_rx_buffer = ((uint8_t *)(obj->rx_buff.buffer) + obj->rx_buff.pos);
-    desc.tx_length = tx_length;
-    desc.rx_length = rx_length;
+    ret_code_t result = nrf_drv_spi_transfer(&nordic_nrf5_spi_instance[obj->spi.instance],
+                                             ((const uint8_t *)(obj->tx_buff.buffer) + obj->tx_buff.pos),
+                                             tx_length,
+                                             ((uint8_t *)(obj->rx_buff.buffer) + obj->rx_buff.pos),
+                                             rx_length);
 
-    ret_code_t result = nrfx_spi_xfer(&nordic_nrf5_spi_instance[obj->spi.instance],
-                                      &desc, 0);
     return result;
 }
 
 /* Callback function for driver calls. This is called from ISR context. */
-static void nordic_nrf5_spi_event_handler(nrfx_spi_evt_t const *p_event, void *p_context)
+static void nordic_nrf5_spi_event_handler(nrf_drv_spi_evt_t const *p_event, void *p_context)
 {
     // Only safe to use with mbed-printf.
     //DEBUG_PRINTF("nordic_nrf5_twi_event_handler: %d %p\r\n", p_event->type, p_context);
@@ -658,11 +552,11 @@ static void nordic_nrf5_spi_event_handler(nrfx_spi_evt_t const *p_event, void *p
     spi_t *obj = (spi_t *) p_context;
     struct spi_s *spi_inst = &obj->spi;
 
-    if (p_event->type == NRFX_SPI_EVENT_DONE) {
+    if (p_event->type == NRF_DRV_SPI_EVENT_DONE) {
 
         /* Update buffers with new positions. */
-        obj->tx_buff.pos += p_event->xfer_desc.tx_length;
-        obj->rx_buff.pos += p_event->xfer_desc.rx_length;
+        obj->tx_buff.pos += p_event->data.done.tx_length;
+        obj->rx_buff.pos += p_event->data.done.rx_length;
 
         /* Setup a new transfer if more data is pending. */
         if ((obj->tx_buff.pos < obj->tx_buff.length) || (obj->rx_buff.pos < obj->tx_buff.length)) {
@@ -671,7 +565,7 @@ static void nordic_nrf5_spi_event_handler(nrfx_spi_evt_t const *p_event, void *p
             ret_code_t result = spi_master_transfer_async_continue(obj);
 
             /* Abort if transfer wasn't accepted. */
-            if (result != NRFX_SUCCESS) {
+            if (result != NRF_SUCCESS) {
 
                 /* Signal callback handler that transfer failed. */
                 signal_error = true;
@@ -708,7 +602,7 @@ static void nordic_nrf5_spi_event_handler(nrfx_spi_evt_t const *p_event, void *p
             callback();
         }
 
-        /* Transfer failed, signal error if mask is set. */
+    /* Transfer failed, signal error if mask is set. */
     } else if (signal_error) {
 
         /* Signal error if event mask matches and event handler is set. */
@@ -767,7 +661,7 @@ void spi_master_transfer(spi_t *obj,
     struct buffer_s *buffer_pointer;
 
     buffer_pointer = &obj->tx_buff;
-    buffer_pointer->buffer = (void *) tx;
+    buffer_pointer->buffer = (void*) tx;
     buffer_pointer->length = tx_length;
     buffer_pointer->pos    = 0;
     buffer_pointer->width  = 8;
@@ -801,7 +695,7 @@ void spi_master_transfer(spi_t *obj,
     ret_code_t result = spi_master_transfer_async_continue(obj);
 
     /* Signal error if event mask matches and event handler is set. */
-    if ((result != NRFX_SUCCESS) && (mask & SPI_EVENT_ERROR) && handler) {
+    if ((result != NRF_SUCCESS) && (mask & SPI_EVENT_ERROR) && handler) {
 
         /* Cast handler to callback function pointer. */
         void (*callback)(void) = (void (*)(void)) handler;
@@ -857,7 +751,7 @@ void spi_abort_asynch(spi_t *obj)
     int instance = obj->spi.instance;
 
     /* Abort transfer. */
-    nrfx_spi_abort(&nordic_nrf5_spi_instance[instance]);
+    nrf_drv_spi_abort(&nordic_nrf5_spi_instance[instance]);
 
     /* Force reconfiguration. */
     object_owner_spi2c_set(instance, NULL);

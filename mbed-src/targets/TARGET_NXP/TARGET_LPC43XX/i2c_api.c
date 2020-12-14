@@ -16,9 +16,6 @@
  * Ported to NXP LPC43XX by Micromint USA <support@micromint.com>
  */
 #include "i2c_api.h"
-
-#if DEVICE_I2C
-
 #include "cmsis.h"
 #include "pinmap.h"
 #include "mbed_error.h"
@@ -402,25 +399,3 @@ void i2c_slave_address(i2c_t *obj, int idx, uint32_t address, uint32_t mask) {
         *((uint32_t *) addr) = mask & 0xFE;
     }
 }
-
-const PinMap *i2c_master_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_master_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
-}
-
-const PinMap *i2c_slave_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_slave_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
-}
-
-#endif  // #if DEVICE_I2C

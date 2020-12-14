@@ -3,8 +3,6 @@
  * Copyright (c) 2016, STMicroelectronics
  * All rights reserved.
  *
- * SPDX-License-Identifier: BSD-3-Clause-Clear
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
@@ -29,7 +27,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************
  */
- 
 #ifndef MBED_PINNAMES_H
 #define MBED_PINNAMES_H
 
@@ -41,7 +38,7 @@ extern "C" {
 #endif
 
 typedef enum {
-	PA_0  = 0x00,
+    PA_0  = 0x00,
     PA_1  = 0x01,
     PA_2  = 0x02,
     PA_3  = 0x03,
@@ -171,14 +168,12 @@ typedef enum {
     // Grove connector namings
     D38         = PC_6,
     D39         = PC_7,
-    D20         = PB_4,
-    D19         = PB_3,
-    A6          = PA_6,
-    A7          = PA_7,
     A4          = PA_4,
     A5          = PA_5,
-    RXD         = PB_7,
+    A6          = PA_6,
+    A7          = PA_7,
     TXD         = PB_6,
+    RXD         = PB_7,
     I2C_SCL     = PB_8,
     I2C_SDA     = PB_9,
 
@@ -194,6 +189,7 @@ typedef enum {
     STDIO_UART_RX = PD_9,
 #endif
 
+
     // Quectel UG96 cellular modem
     MDMTXD  = PA_2,
     MDMRXD  = PA_3,
@@ -204,6 +200,12 @@ typedef enum {
     MDMDTR  = PC_5,
     M_POWR  = PE_9,
 
+    /*
+        MDMDCD = NC, // Data Carrier Detect
+        MDMDSR = NC, // Data Set Ready
+        MDMRI  = NC, // Ring Indicator
+    */
+
     // Internal control signals
     RGB_POWR     = PE_8,
     GRO_POWR     = PB_10,
@@ -211,13 +213,12 @@ typedef enum {
     RESET_MODULE = PD_5,
 
     // Generic signals namings
-    LED1        = PB_11,
-    LED2        = LED1,
-    LED3        = LED1,
-    LED4        = LED1,
-    LED_RED     = LED1,
+    LED1        = PB_11,  // LD1 = GREEN
+    LED2        = PB_12,  // Blue
+    LED3        = PB_13, // Red
+    LED4        = PB_14,
+    LED_RED     = LED2,
     USER_BUTTON = PC_13,
-
     // Standardized button names
     BUTTON1 = PC_13,
     SERIAL_TX   = STDIO_UART_TX, // Virtual Com Port
@@ -229,6 +230,7 @@ typedef enum {
     SPI_SCK     = PC_10,
     SPI_CS      = PD_0,
     PWM_OUT     = D39,
+
 
     // Not connected
     NC = (int)0xFFFFFFFF

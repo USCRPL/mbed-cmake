@@ -97,12 +97,6 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
 }
 
 //******************************************************************************
-void serial_free(serial_t *obj)
-{
-    serial_irq_ids[obj->index];
-}
-
-//******************************************************************************
 void serial_baud(serial_t *obj, int baudrate)
 {
     uint32_t idiv = 0, ddiv = 0, div = 0;
@@ -401,24 +395,4 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
 
     // Enable hardware flow control
     obj->uart->ctrl |= MXC_F_UART_CTRL_HW_FLOW_CTRL_EN;
-}
-
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
 }

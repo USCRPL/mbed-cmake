@@ -140,12 +140,7 @@ typedef enum {
     USB_OTG_HS_ULPI_NXT = PC_3,
 
     // Not connected
-    NC = (int)0xFFFFFFFF,
-
-    // Standard but not supported pins
-    USBTX = NC,
-    USBRX = NC
-
+    NC = (int)0xFFFFFFFF
 } PinName;
 
 #ifdef __cplusplus

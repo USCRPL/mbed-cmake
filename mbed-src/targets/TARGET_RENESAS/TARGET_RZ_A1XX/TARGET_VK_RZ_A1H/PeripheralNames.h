@@ -54,9 +54,7 @@ typedef enum {
     PWM_TIOC0A = 0x20,
     PWM_TIOC0C,
     PWM_TIOC1A,
-    PWM_TIOC1B,
     PWM_TIOC2A,
-    PWM_TIOC2B,
     PWM_TIOC3A,
     PWM_TIOC3C,
     PWM_TIOC4A,
@@ -96,11 +94,6 @@ typedef enum {
     CAN_3, 
     CAN_4,
 } CANName;
-
-typedef enum {
-    SDHI_0 = 0,
-    SDHI_1
-} SDHIName;
 
 
 #define STDIO_UART_TX     USBTX

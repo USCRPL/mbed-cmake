@@ -34,9 +34,6 @@
 #include "PortNames.h"
 #include "PeripheralNames.h"
 #include "PinNames.h"
-#include "stm32f4xx_ll_usart.h"
-#include "stm32f4xx_ll_tim.h"
-#include "stm32f4xx_ll_pwr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,7 +76,7 @@ struct spi_s {
     PinName pin_mosi;
     PinName pin_sclk;
     PinName pin_ssel;
-#if DEVICE_SPI_ASYNCH
+#ifdef DEVICE_SPI_ASYNCH
     uint32_t event;
     uint8_t transfer_type;
 #endif
@@ -97,8 +94,6 @@ struct i2c_s {
     int hz;
     PinName sda;
     PinName scl;
-    int sda_func;
-    int scl_func;
     IRQn_Type event_i2cIRQ;
     IRQn_Type error_i2cIRQ;
     uint8_t XferOperation;
@@ -146,25 +141,9 @@ struct can_s {
 };
 #endif
 
-#if DEVICE_QSPI
-struct qspi_s {
-#if defined(OCTOSPI1)
-    OSPI_HandleTypeDef handle;
-#else
-    QSPI_HandleTypeDef handle;
-#endif
-    QSPIName qspi;
-    PinName io0;
-    PinName io1;
-    PinName io2;
-    PinName io3;
-    PinName sclk;
-    PinName ssel;
-};
-#endif
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+

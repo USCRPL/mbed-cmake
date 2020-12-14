@@ -266,7 +266,7 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
                     (parity == ParityForced1) || (parity == ParityForced0));
         data_bits -= 5;
     
-        int parity_enable = 0, parity_select = 0;
+        int parity_enable, parity_select;
         switch (parity) {
             case ParityNone: parity_enable = 0; parity_select = 0; break;
             case ParityOdd : parity_enable = 1; parity_select = 0; break;
@@ -274,7 +274,7 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
             case ParityForced1: parity_enable = 1; parity_select = 2; break;
             case ParityForced0: parity_enable = 1; parity_select = 3; break;
             default:
-                break;
+                return;
         }
         
         obj->uart->LCR = data_bits       << 0
@@ -483,38 +483,6 @@ void serial_break_clear(serial_t *obj) {
     else {
         obj->mini_uart->CTL &= ~TXBRKEN;
     }
-}
-
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-#if !DEVICE_SERIAL_FC
-    static const PinMap PinMap_UART_CTS[] = {
-        {NC, NC, 0}
-    };
-#endif
-
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-#if !DEVICE_SERIAL_FC
-    static const PinMap PinMap_UART_RTS[] = {
-        {NC, NC, 0}
-    };
-#endif
-
-    return PinMap_UART_RTS;
 }
 
 

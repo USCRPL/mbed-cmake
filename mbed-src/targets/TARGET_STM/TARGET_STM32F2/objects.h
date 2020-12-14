@@ -34,9 +34,6 @@
 #include "PortNames.h"
 #include "PeripheralNames.h"
 #include "PinNames.h"
-#include "stm32f2xx_ll_usart.h"
-#include "stm32f2xx_ll_tim.h"
-#include "stm32f2xx_ll_pwr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,7 +94,7 @@ struct spi_s {
     PinName pin_mosi;
     PinName pin_sclk;
     PinName pin_ssel;
-#if DEVICE_SPI_ASYNCH
+#ifdef DEVICE_SPI_ASYNCH
     uint32_t event;
     uint8_t transfer_type;
 #endif
@@ -140,17 +137,13 @@ struct pwmout_s {
     uint8_t inverted;
 };
 
-#if DEVICE_CAN
+#ifdef DEVICE_CAN
 struct can_s {
     CAN_HandleTypeDef CanHandle;
     int index;
     int hz;
 };
 #endif
-
-struct trng_s {
-    RNG_HandleTypeDef handle;
-};
 
 #if DEVICE_FLASH
 struct flash_s {

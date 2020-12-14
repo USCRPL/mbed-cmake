@@ -38,9 +38,6 @@
 extern "C" {
 #endif
 
-/* If this macro is defined, then constexpr utility functions for pin-map seach can be used. */
-#define STATIC_PINMAP_READY 1
-
 typedef enum {
     ALT0  = 0x100,
     ALT1  = 0x200,
@@ -187,7 +184,7 @@ typedef enum {
     SPI_CS      = PB_6,
     PWM_OUT     = PB_3,
 
-    /**** USB FS pins ****/
+    /**** USB pins ****/
     USB_OTG_FS_DM = PA_11,
     USB_OTG_FS_DP = PA_12,
     USB_OTG_FS_ID = PA_10,

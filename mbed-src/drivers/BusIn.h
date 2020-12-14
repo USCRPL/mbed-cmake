@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,15 +22,12 @@
 #include "platform/NonCopyable.h"
 
 namespace mbed {
-/**
- * \defgroup drivers_BusIn BusIn class
- * \ingroup drivers-public-api-gpio
- * @{
- */
+/** \addtogroup drivers */
 
 /** A digital input bus, used for reading the state of a collection of pins
  *
  * @note Synchronization level: Thread safe
+ * @ingroup drivers
  */
 class BusIn : private NonCopyable<BusIn> {
 
@@ -110,7 +106,6 @@ public:
      */
     DigitalIn &operator[](int index);
 
-#if !defined(DOXYGEN_ONLY)
 protected:
     DigitalIn *_pin[16];
 
@@ -125,10 +120,7 @@ protected:
 private:
     virtual void lock();
     virtual void unlock();
-#endif
 };
-
-/** @}*/
 
 } // namespace mbed
 

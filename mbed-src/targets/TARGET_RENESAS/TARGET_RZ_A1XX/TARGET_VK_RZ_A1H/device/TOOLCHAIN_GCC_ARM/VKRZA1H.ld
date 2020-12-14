@@ -1,7 +1,7 @@
 /* Linker script for mbed VK_RZ_A1H */
 
 /* Linker script to configure memory regions. */
-
+/*
 #ifdef RUN_FROM_SDRAM
 MEMORY
 {
@@ -11,7 +11,7 @@ MEMORY
   SRAM (rwx) : ORIGIN = 0x200A0000, LENGTH = 0x00960000
 }
 REGION_ALIAS("SFLASH", RAM);
-/*TTBOFFSET = 1M;*/
+TTBOFFSET = 1M;
 
 #elif defined (RUN_FROM_SRAM)
 MEMORY
@@ -22,30 +22,19 @@ MEMORY
   SDRAM  (rwx) : ORIGIN = 0x08000000, LENGTH = 0x02000000
 }
 REGION_ALIAS("SFLASH", RAM);
-/*TTBOFFSET = 1M;*/
+TTBOFFSET = 1M;
 #else
-
-#if !defined(MBED_APP_START)
-  #define MBED_APP_START 0x18020000
-#endif
-
-#if !defined(MBED_APP_SIZE)
-  #define MBED_APP_SIZE 0x1FE0000
-#endif
-
-  #define SFLASH_ADDR         MBED_APP_START
-  #define SFLASH_SIZE         MBED_APP_SIZE
-
+*/
 MEMORY
 {
   ROM   (rx)  : ORIGIN = 0x00000000, LENGTH = 0x02000000
-  SFLASH (rx) : ORIGIN = SFLASH_ADDR, LENGTH = SFLASH_SIZE 
+  SFLASH (rx) : ORIGIN = 0x18020000, LENGTH = 0x01FE0000 
   L_TTB (rw)  : ORIGIN = 0x20000000, LENGTH = 0x00004000 
   RAM (rwx) : ORIGIN = 0x20020000, LENGTH = 0x008E0000
   RAM_NC (rwx) : ORIGIN = 0x20900000, LENGTH = 0x00100000
   SDRAM  (rwx) : ORIGIN = 0x08000000, LENGTH = 0x02000000
 }
-#endif
+/*#endif*/
 
 /* Linker script to place sections and symbol values. Should be used together
  * with other linker script that defines memory regions FLASH and RAM.
@@ -125,7 +114,7 @@ SECTIONS
 
     .copy.table :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __copy_table_start__ = .;
         LONG (__etext)
         LONG (__data_start__)
@@ -133,15 +122,12 @@ SECTIONS
         LONG (__etext2)
         LONG (__nc_data_start)
         LONG (__nc_data_end - __nc_data_start)
-        LONG (LOADADDR(.ram_code))
-        LONG (ADDR(.ram_code))
-        LONG (SIZEOF(.ram_code))
         __copy_table_end__ = .;
     } > SFLASH
 
     .zero.table :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __zero_table_start__ = .;
         LONG (__bss_start__)
         LONG (__bss_end__ - __bss_start__)
@@ -150,21 +136,7 @@ SECTIONS
         __zero_table_end__ = .;
     } > SFLASH
 
-    .ram_code : ALIGN( 0x8 ) {
-        __ram_code_load  = .;
-        __ram_code_start = LOADADDR(.ram_code) + ( __ram_code_load - ADDR(.ram_code) );
-
-        *(RAM_CODE)
-
-        *(RAM_CONST)
-
-        . = ALIGN( 0x8 );
-        __ram_code_end = LOADADDR(.ram_code) + ( . - ADDR(.ram_code) );
-    } > RAM AT > SFLASH
-
-    Load$$SEC_RAM_CODE$$Base    = LOADADDR(.ram_code);
-    Image$$SEC_RAM_CODE$$Base   = ADDR(.ram_code);
-    Load$$SEC_RAM_CODE$$Length  = SIZEOF(.ram_code);
+    __etext = .;
         
     .ttb :
     {
@@ -172,8 +144,6 @@ SECTIONS
         . += 0x00004000;
         Image$$TTB$$ZI$$Limit = .;
     } > L_TTB
-
-    __etext = Load$$SEC_RAM_CODE$$Base + SIZEOF(.ram_code);
 
     .data : AT (__etext)
     {
@@ -183,13 +153,13 @@ SECTIONS
         *(.data*)
         Image$$RW_DATA$$Limit = .;
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* preinit data */
         PROVIDE (__preinit_array_start = .);
         KEEP(*(.preinit_array))
         PROVIDE (__preinit_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* init data */
         PROVIDE (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
@@ -197,14 +167,14 @@ SECTIONS
         PROVIDE (__init_array_end = .);
 
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* finit data */
         PROVIDE (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
         KEEP(*(.fini_array))
         PROVIDE (__fini_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* All data end */
         __data_end__ = .;
 
@@ -253,7 +223,7 @@ SECTIONS
         __nc_data_start = .;
         *(NC_DATA)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         __nc_data_end = .;
         Image$$RW_DATA_NC$$Limit = .;
     } > RAM_NC
@@ -264,7 +234,7 @@ SECTIONS
         __nc_bss_start = .;
         *(NC_BSS)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         __nc_bss_end = .;
         Image$$ZI_DATA_NC$$Limit = .;
     } > RAM_NC

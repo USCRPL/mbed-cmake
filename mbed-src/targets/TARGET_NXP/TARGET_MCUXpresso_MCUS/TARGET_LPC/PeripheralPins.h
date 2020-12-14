@@ -50,14 +50,4 @@ extern const PinMap PinMap_SPI_SSEL[];
 /************PWM***************/
 extern const PinMap PinMap_PWM[];
 
-#if DEVICE_QSPI
-/************QSPI***************/
-extern const PinMap PinMap_QSPI_DATA0[];
-extern const PinMap PinMap_QSPI_DATA1[];
-extern const PinMap PinMap_QSPI_DATA2[];
-extern const PinMap PinMap_QSPI_DATA3[];
-extern const PinMap PinMap_QSPI_SCLK[];
-extern const PinMap PinMap_QSPI_SSEL[];
-#endif
-
 #endif

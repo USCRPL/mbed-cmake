@@ -35,20 +35,14 @@
 #include "stm32f4xx_hal.h"
 #include "PeripheralPins.h"
 
-#if STATIC_PINMAP_READY
-#define ANALOGOUT_INIT_DIRECT analogout_init_direct
-void analogout_init_direct(dac_t *obj, const PinMap *pinmap)
-#else
-#define ANALOGOUT_INIT_DIRECT _analogout_init_direct
-static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
-#endif
+void analogout_init(dac_t *obj, PinName pin)
 {
     DAC_ChannelConfTypeDef sConfig = {0};
 
     // Get the peripheral name (DAC_1, ...) from the pin and assign it to the object
-    obj->dac = (DACName)pinmap->peripheral;
+    obj->dac = (DACName)pinmap_peripheral(pin, PinMap_DAC);
     // Get the functions (dac channel) from the pin and assign it to the object
-    uint32_t function = (uint32_t)pinmap->function;
+    uint32_t function = pinmap_function(pin, PinMap_DAC);
     MBED_ASSERT(function != (uint32_t)NC);
 
     // Save the channel for the write and read functions
@@ -71,8 +65,7 @@ static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
     }
 
     // Configure GPIO
-    pin_function(pinmap->pin, pinmap->function);
-    pin_mode(pinmap->pin, PullNone);
+    pinmap_pinout(pin, PinMap_DAC);
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
@@ -95,23 +88,8 @@ static void _analogout_init_direct(dac_t *obj, const PinMap *pinmap)
     analogout_write_u16(obj, 0);
 }
 
-void analogout_init(dac_t *obj, PinName pin)
-{
-    int peripheral = (int)pinmap_peripheral(pin, PinMap_DAC);
-    int function = (int)pinmap_find_function(pin, PinMap_DAC);
-
-    const PinMap static_pinmap = {pin, peripheral, function};
-
-    ANALOGOUT_INIT_DIRECT(obj, &static_pinmap);
-}
-
 void analogout_free(dac_t *obj)
 {
-}
-
-const PinMap *analogout_pinmap()
-{
-    return PinMap_DAC;
 }
 
 #endif // DEVICE_ANALOGOUT

@@ -216,13 +216,13 @@ void SystemInit(void)
     while (NRF_CLOCK->EVENTS_LFCLKSTARTED == 0) {
         // Do nothing.
     }
-    NRF_NVMC->ICACHECNF=0x01;
+
     /**
      * Mbed HAL specific code section.
      *
      * The ITM has to be initialized before the SoftDevice which weren't guaranteed using the normal API.
      */
-#if DEVICE_ITM
+#if defined (DEVICE_ITM)
         /* Enable SWO trace functionality */
         CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
         NRF_CLOCK->TRACECONFIG |= CLOCK_TRACECONFIG_TRACEMUX_Serial << CLOCK_TRACECONFIG_TRACEMUX_Pos;

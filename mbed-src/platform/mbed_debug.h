@@ -1,6 +1,13 @@
+
+/** \addtogroup platform */
+/** @{*/
+/**
+ * \defgroup platform_debug Debug functions
+ * @{
+ */
+
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,22 +27,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #endif
-#include "platform/mbed_toolchain.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** \addtogroup platform-public-api */
-/** @{*/
-
-/**
- * \defgroup platform_debug Debug functions
- * @{
- */
-
-static inline void debug(const char *format, ...) MBED_PRINTF(1, 2);
-static inline void debug_if(int condition, const char *format, ...) MBED_PRINTF(2, 3);
 
 /** Output a debug message
  *

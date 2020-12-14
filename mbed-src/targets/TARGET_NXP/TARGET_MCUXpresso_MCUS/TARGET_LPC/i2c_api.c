@@ -26,17 +26,12 @@
 /* Array of I2C peripheral base address. */
 static I2C_Type *const i2c_addrs[] = I2C_BASE_PTRS;
 
-#if STATIC_PINMAP_READY
-#define I2C_INIT_DIRECT i2c_init_direct
-void i2c_init_direct(i2c_t *obj, const i2c_pinmap_t *pinmap)
-#else
-#define I2C_INIT_DIRECT _i2c_init_direct
-static void _i2c_init_direct(i2c_t *obj, const i2c_pinmap_t *pinmap)
-#endif
+void i2c_init(i2c_t *obj, PinName sda, PinName scl)
 {
-    obj->instance = (uint32_t) pinmap->peripheral;
+    uint32_t i2c_sda = pinmap_peripheral(sda, PinMap_I2C_SDA);
+    uint32_t i2c_scl = pinmap_peripheral(scl, PinMap_I2C_SCL);
+    obj->instance = pinmap_merge(i2c_sda, i2c_scl);
     obj->next_repeated_start = 0;
-    obj->issue_start = 0;
     MBED_ASSERT((int)obj->instance != NC);
 
     i2c_master_config_t master_config;
@@ -74,13 +69,13 @@ static void _i2c_init_direct(i2c_t *obj, const i2c_pinmap_t *pinmap)
             CLOCK_AttachClk(kFRO12M_to_FLEXCOMM7);
             RESET_PeripheralReset(kFC7_RST_SHIFT_RSTn);
             break;
-#if (FSL_FEATURE_SOC_I2C_COUNT > 8U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 8U)
         case 8:
             CLOCK_AttachClk(kFRO12M_to_FLEXCOMM8);
             RESET_PeripheralReset(kFC8_RST_SHIFT_RSTn);
             break;
 #endif
-#if (FSL_FEATURE_SOC_I2C_COUNT > 9U)
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 9U)
         case 9:
             CLOCK_AttachClk(kFRO12M_to_FLEXCOMM9);
             RESET_PeripheralReset(kFC9_RST_SHIFT_RSTn);
@@ -91,30 +86,29 @@ static void _i2c_init_direct(i2c_t *obj, const i2c_pinmap_t *pinmap)
     I2C_MasterGetDefaultConfig(&master_config);
     I2C_MasterInit(i2c_addrs[obj->instance], &master_config, 12000000);
 
-    pin_function(pinmap->sda_pin, pinmap->sda_function);
-    pin_mode(pinmap->sda_pin, PullNone);
-    pin_function(pinmap->scl_pin, pinmap->scl_function);
-    pin_mode(pinmap->scl_pin, PullNone);
-}
-
-void i2c_init(i2c_t *obj, PinName sda, PinName scl)
-{
-    uint32_t i2c_sda = pinmap_peripheral(sda, PinMap_I2C_SDA);
-    uint32_t i2c_scl = pinmap_peripheral(scl, PinMap_I2C_SCL);
-
-    int peripheral = (int)pinmap_merge(i2c_sda, i2c_scl);
-
-    int sda_function = (int)pinmap_find_function(sda, PinMap_I2C_SDA);
-    int scl_function = (int)pinmap_find_function(scl, PinMap_I2C_SCL);
-
-    const i2c_pinmap_t explicit_i2c_pinmap = {peripheral, sda, sda_function, scl, scl_function};
-
-    I2C_INIT_DIRECT(obj, &explicit_i2c_pinmap);
+    pinmap_pinout(sda, PinMap_I2C_SDA);
+    pinmap_pinout(scl, PinMap_I2C_SCL);
 }
 
 int i2c_start(i2c_t *obj)
 {
-    obj->issue_start = 1;
+    I2C_Type *base = i2c_addrs[obj->instance];
+    uint32_t status;
+
+    do {
+        status = I2C_GetStatusFlags(base);
+    } while ((status & I2C_STAT_MSTPENDING_MASK) == 0);
+
+    /* Clear controller state. */
+    I2C_MasterClearStatusFlags(base, I2C_STAT_MSTARBLOSS_MASK | I2C_STAT_MSTSTSTPERR_MASK);
+
+    /* Start the transfer */
+    base->MSTDAT = 0;
+    base->MSTCTL = I2C_MSTCTL_MSTSTART_MASK;
+
+    do {
+        status = I2C_GetStatusFlags(base);
+    } while ((status & I2C_STAT_MSTPENDING_MASK) == 0);
 
     return 0;
 }
@@ -136,8 +130,6 @@ int i2c_stop(i2c_t *obj)
     do {
         status = I2C_GetStatusFlags(base);
     } while ((status & I2C_STAT_MSTPENDING_MASK) == 0);
-
-    obj->issue_start = 0;
 
     return 0;
 }
@@ -244,24 +236,12 @@ int i2c_byte_write(i2c_t *obj, int data)
     // write the data
     base->MSTDAT = data;
 
-    do {
-        status = I2C_GetStatusFlags(base);
-    } while ((status & I2C_STAT_MSTPENDING_MASK) == 0);
-
-    /* Clear controller state. */
-    I2C_MasterClearStatusFlags(base, I2C_STAT_MSTARBLOSS_MASK | I2C_STAT_MSTSTSTPERR_MASK);
-
-    if (obj->issue_start) {
-        base->MSTCTL = I2C_MSTCTL_MSTSTART_MASK;
-        /* Clear the flag */
-        obj->issue_start = 0;
-    } else {
-        base->MSTCTL = I2C_MSTCTL_MSTCONTINUE_MASK;
-    }
+    base->MSTCTL = I2C_MSTCTL_MSTCONTINUE_MASK;
 
     do {
         status = I2C_GetStatusFlags(base);
     } while ((status & I2C_STAT_MSTPENDING_MASK) == 0);
+
 
     /* Check if arbitration lost */
     if (status & I2C_STAT_MSTARBLOSS_MASK) {
@@ -275,26 +255,6 @@ int i2c_byte_write(i2c_t *obj, int data)
     }
 
     return ret_value;
-}
-
-const PinMap *i2c_master_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_master_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
-}
-
-const PinMap *i2c_slave_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_slave_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
 }
 
 

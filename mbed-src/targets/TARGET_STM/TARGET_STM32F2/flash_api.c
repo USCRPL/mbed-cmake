@@ -1,7 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
- * Copyright (c) 2017 STMicroelectronics
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -215,13 +213,6 @@ static uint32_t GetSectorSize(uint32_t Sector)
         sectorsize = 128 * 1024;
     }
     return sectorsize;
-}
-
-uint8_t flash_get_erase_value(const flash_t *obj)
-{
-    (void)obj;
-
-    return 0xFF;
 }
 
 #endif

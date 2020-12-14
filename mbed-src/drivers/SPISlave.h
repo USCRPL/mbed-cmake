@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,29 +19,26 @@
 #include "platform/platform.h"
 #include "platform/NonCopyable.h"
 
-#if DEVICE_SPISLAVE || defined(DOXYGEN_ONLY)
+#if defined (DEVICE_SPISLAVE) || defined(DOXYGEN_ONLY)
 
 #include "hal/spi_api.h"
 
 namespace mbed {
-/**
- * \defgroup drivers_SPISlave SPISlave class
- * \ingroup drivers-public-api-spi
- * @{
- */
+/** \addtogroup drivers */
 
-/** A SPI slave, used for communicating with a SPI master device.
+/** A SPI slave, used for communicating with a SPI Master device
  *
- * The default format is set to 8 bits, mode 0 and a clock frequency of 1MHz.
+ * The default format is set to 8-bits, mode 0, and a clock frequency of 1MHz
  *
  * @note Synchronization level: Not protected
  *
- * Example of how to reply to a SPI master as slave:
+ * Example:
  * @code
+ * // Reply to a SPI master as slave
  *
  * #include "mbed.h"
  *
- * SPISlave device(SPI_MOSI, SPI_MISO, SPI_SCLK, SPI_CS);
+ * SPISlave device(p5, p6, p7, p8); // mosi, miso, sclk, ssel
  *
  * int main() {
  *     device.reply(0x00);              // Prime SPI with first reply
@@ -55,35 +51,27 @@ namespace mbed {
  *     }
  * }
  * @endcode
+ * @ingroup drivers
  */
 class SPISlave : private NonCopyable<SPISlave> {
 
 public:
 
-    /** Create a SPI slave connected to the specified pins.
+    /** Create a SPI slave connected to the specified pins
      *
-     *  @note Either mosi or miso can be specified as NC if not used.
+     *  mosi or miso can be specified as NC if not used
      *
-     *  @param mosi SPI Master Out, Slave In pin.
-     *  @param miso SPI Master In, Slave Out pin.
-     *  @param sclk SPI Clock pin.
-     *  @param ssel SPI Chip Select pin.
+     *  @param mosi SPI Master Out, Slave In pin
+     *  @param miso SPI Master In, Slave Out pin
+     *  @param sclk SPI Clock pin
+     *  @param ssel SPI chip select pin
      */
     SPISlave(PinName mosi, PinName miso, PinName sclk, PinName ssel);
 
-    /** Create a SPI slave connected to the specified pins.
+    /** Configure the data transmission format
      *
-     *  @note Either mosi or miso can be specified as NC if not used.
-     *
-     *  @param static_pinmap reference to structure which holds static pinmap.
-     */
-    SPISlave(const spi_pinmap_t &pinmap);
-    SPISlave(const spi_pinmap_t &&) = delete; // prevent passing of temporary objects
-
-    /** Configure the data transmission format.
-     *
-     *  @param bits Number of bits per SPI frame (4 - 16).
-     *  @param mode Clock polarity and phase mode (0 - 3).
+     *  @param bits Number of bits per SPI frame (4 - 16)
+     *  @param mode Clock polarity and phase mode (0 - 3)
      *
      * @code
      * mode | POL PHA
@@ -96,50 +84,41 @@ public:
      */
     void format(int bits, int mode = 0);
 
-    /** Set the SPI bus clock frequency.
+    /** Set the spi bus clock frequency
      *
-     *  @param hz Clock frequency in hz (default = 1MHz).
+     *  @param hz SCLK frequency in hz (default = 1MHz)
      */
     void frequency(int hz = 1000000);
 
-    /** Polls the SPI to see if data has been received.
+    /** Polls the SPI to see if data has been received
      *
-     *  @return Presence of received data.
-     *  @retval 0 No data waiting.
-     *  @retval 1 Data waiting.
+     *  @returns
+     *    0 if no data,
+     *    1 otherwise
      */
     int receive(void);
 
-    /** Retrieve data from receive buffer as slave.
+    /** Retrieve  data from receive buffer as slave
      *
-     *  @return The data in the receive buffer.
+     *  @returns
+     *    the data in the receive buffer
      */
     int read(void);
 
     /** Fill the transmission buffer with the value to be written out
      *  as slave on the next received message from the master.
      *
-     *  @param value The data to be transmitted next.
+     *  @param value the data to be transmitted next
      */
     void reply(int value);
 
-#if !defined(DOXYGEN_ONLY)
-
 protected:
-    /* Internal SPI object identifying the resources */
     spi_t _spi;
 
-    /* How many bits in an SPI frame */
     int _bits;
-    /* Clock phase and polarity */
     int _mode;
-    /* Clock frequency */
     int _hz;
-
-#endif //!defined(DOXYGEN_ONLY)
 };
-
-/** @}*/
 
 } // namespace mbed
 

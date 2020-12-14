@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2017-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2017 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,16 +19,16 @@
 typedef int FILEHANDLE;
 
 #include <cstdio>
-#include "platform/Callback.h"
+#include "Callback.h"
 #include "platform/mbed_poll.h"
 #include "platform/platform.h"
 #include "platform/NonCopyable.h"
 
 namespace mbed {
-
+/** \addtogroup platform */
+/** @{*/
 /**
  * \defgroup platform_FileHandle FileHandle functions
- * \ingroup platform-public-api-file
  * @{
  */
 
@@ -37,7 +36,7 @@ namespace mbed {
 /** Class FileHandle
  *
  *  An abstract interface that represents operations on a file-like
- *  object. The core functions are read, write and seek, but only
+ *  object. The core functions are read, write, and seek, but only
  *  a subset of these operations can be provided.
  *
  *  @note to create a file, @see File
@@ -51,7 +50,7 @@ public:
      *
      *  Devices acting as FileHandles should follow POSIX semantics:
      *
-     *  * if no data is available, and nonblocking set, return -EAGAIN
+     *  * if no data is available, and non-blocking set return -EAGAIN
      *  * if no data is available, and blocking set, wait until some data is available
      *  * If any data is available, call returns immediately
      *
@@ -66,8 +65,8 @@ public:
      *  Devices acting as FileHandles should follow POSIX semantics:
      *
      * * if blocking, block until all data is written
-     * * if no data can be written, and nonblocking set, return -EAGAIN
-     * * if some data can be written, and nonblocking set, write partial
+     * * if no data can be written, and non-blocking set, return -EAGAIN
+     * * if some data can be written, and non-blocking set, write partial
      *
      *  @param buffer   The buffer to write from
      *  @param size     The number of bytes to write
@@ -138,21 +137,6 @@ public:
      */
     virtual off_t size();
 
-    /** Truncate or extend a file.
-     *
-     * The file's length is set to the specified value. The seek pointer is
-     * not changed. If the file is extended, the extended area appears as if
-     * it were zero-filled.
-     *
-     *  @param length   The requested new length for the file
-     *
-     *  @return         Zero on success, negative error code on failure
-     */
-    virtual int truncate(off_t length)
-    {
-        return -EINVAL;
-    }
-
     /** Move the file position to a given offset from a given location.
      *
      *  @param offset The offset from whence to move to
@@ -197,11 +181,11 @@ public:
         return size();
     }
 
-    /** Set blocking or nonblocking mode of the file operation like read/write.
-     *  Definition depends on the subclass implementing FileHandle.
+    /** Set blocking or non-blocking mode of the file operation like read/write.
+     *  Definition depends upon the subclass implementing FileHandle.
      *  The default is blocking.
      *
-     *  @param blocking     true for blocking mode, false for nonblocking mode.
+     *  @param blocking     true for blocking mode, false for non-blocking mode.
      *
      *  @return             0 on success
      *  @return             Negative error code on failure
@@ -211,55 +195,19 @@ public:
         return blocking ? 0 : -ENOTTY;
     }
 
-    /** Check current blocking or nonblocking mode for file operations.
+    /** Check current blocking or non-blocking mode for file operations.
      *
-     *  @return             true for blocking mode, false for nonblocking mode.
+     *  @return             true for blocking mode, false for non-blocking mode.
      */
     virtual bool is_blocking() const
     {
         return true;
     }
 
-    /** Enable or disable input
-     *
-     * Control enabling of device for input. This is primarily intended
-     * for temporary power-saving; the overall ability of the device to operate for
-     * input and/or output may be fixed at creation time, but this call can
-     * allow input to be temporarily disabled to permit power saving without
-     * losing device state.
-     *
-     *  @param enabled      true to enable input, false to disable.
-     *
-     *  @return             0 on success
-     *  @return             Negative error code on failure
-     */
-    virtual int enable_input(bool enabled)
-    {
-        return -EINVAL;
-    }
-
-    /** Enable or disable output
-     *
-     * Control enabling of device for output. This is primarily intended
-     * for temporary power-saving; the overall ability of the device to operate for
-     * input and/or output may be fixed at creation time, but this call can
-     * allow output to be temporarily disabled to permit power saving without
-     * losing device state.
-     *
-     *  @param enabled      true to enable output, false to disable.
-     *
-     *  @return             0 on success
-     *  @return             Negative error code on failure
-     */
-    virtual int enable_output(bool enabled)
-    {
-        return -EINVAL;
-    }
-
     /** Check for poll event flags
-     * You can use or ignore the input parameter. You can return all events
-     * or check just the events listed in events.
-     * Call is nonblocking - returns instantaneous state of events.
+     * The input parameter can be used or ignored - the could always return all events,
+     * or could check just the events listed in events.
+     * Call is non-blocking - returns instantaneous state of events.
      * Whenever an event occurs, the derived class should call the sigio() callback).
      *
      * @param events        bitmask of poll events we're interested in - POLLIN/POLLOUT etc.
@@ -272,7 +220,7 @@ public:
         return POLLIN | POLLOUT;
     }
 
-    /** Definition depends on the subclass implementing FileHandle.
+    /** Definition depends upon the subclass implementing FileHandle.
      *  For example, if the FileHandle is of type Stream, writable() could return
      *  true when there is ample buffer space available for write() calls.
      *
@@ -283,7 +231,7 @@ public:
         return poll(POLLOUT) & POLLOUT;
     }
 
-    /** Definition depends on the subclass implementing FileHandle.
+    /** Definition depends upon the subclass implementing FileHandle.
      *  For example, if the FileHandle is of type Stream, readable() could return
      *  true when there is something available to read.
      *
@@ -302,11 +250,11 @@ public:
      *  The callback may be called in an interrupt context and should not
      *  perform expensive operations.
      *
-     *  Note! This is not intended as an attach-like asynchronous API, but rather
-     *  as a building block for constructing such functionality.
+     *  Note! This is not intended as an attach-like asynchronous api, but rather
+     *  as a building block for constructing  such functionality.
      *
      *  The exact timing of when the registered function
-     *  is called is not guaranteed and is susceptible to change. It should be used
+     *  is called is not guaranteed and susceptible to change. It should be used
      *  as a cue to make read/write/poll calls to find the current state.
      *
      *  @param func     Function to call on state change
@@ -318,6 +266,9 @@ public:
 };
 
 /**@}*/
+
+/**@}*/
+
 
 } // namespace mbed
 

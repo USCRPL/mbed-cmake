@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +18,18 @@
 
 #include "platform/platform.h"
 
-#if DEVICE_PORTINOUT || defined(DOXYGEN_ONLY)
+#if defined (DEVICE_PORTINOUT) || defined(DOXYGEN_ONLY)
 
 #include "hal/port_api.h"
+#include "platform/mbed_critical.h"
 
 namespace mbed {
-/**
- * \defgroup drivers_PortInOut PortInOut class
- * \ingroup drivers-public-api-gpio
- * @{
- */
+/** \addtogroup drivers */
 
 /** A multiple pin digital in/out used to set/read multiple bi-directional pins
  *
  * @note Synchronization level: Interrupt safe
+ * @ingroup drivers
  */
 class PortInOut {
 public:
@@ -42,7 +39,12 @@ public:
      *  @param port Port to connect to (Port0-Port5)
      *  @param mask A bitmask to identify which bits in the port should be included (0 - ignore)
      */
-    PortInOut(PortName port, int mask = 0xFFFFFFFF);
+    PortInOut(PortName port, int mask = 0xFFFFFFFF)
+    {
+        core_util_critical_section_enter();
+        port_init(&_port, port, mask, PIN_INPUT);
+        core_util_critical_section_exit();
+    }
 
     /** Write the value to the output port
      *
@@ -65,17 +67,32 @@ public:
 
     /** Set as an output
      */
-    void output();
+    void output()
+    {
+        core_util_critical_section_enter();
+        port_dir(&_port, PIN_OUTPUT);
+        core_util_critical_section_exit();
+    }
 
     /** Set as an input
      */
-    void input();
+    void input()
+    {
+        core_util_critical_section_enter();
+        port_dir(&_port, PIN_INPUT);
+        core_util_critical_section_exit();
+    }
 
     /** Set the input pin mode
      *
      *  @param mode PullUp, PullDown, PullNone, OpenDrain
      */
-    void mode(PinMode mode);
+    void mode(PinMode mode)
+    {
+        core_util_critical_section_enter();
+        port_mode(&_port, mode);
+        core_util_critical_section_exit();
+    }
 
     /** A shorthand for write()
      * \sa PortInOut::write()
@@ -106,8 +123,6 @@ public:
 private:
     port_t _port;
 };
-
-/** @}*/
 
 } // namespace mbed
 

@@ -38,13 +38,6 @@ extern "C" {
 #endif
 
 typedef enum {
-    ALT0  = 0x100,
-    ALT1  = 0x200,
-    ALT2  = 0x300,
-    ALT3  = 0x400
-} ALTx;
-
-typedef enum {
     PA_0  = 0x00,
     PA_1  = 0x01,
     PA_2  = 0x02,
@@ -53,7 +46,6 @@ typedef enum {
     PA_5  = 0x05,
     PA_6  = 0x06,
     PA_7  = 0x07,
-    PA_7_ALT0 = 0x07 | ALT0,
     PA_8  = 0x08,
     PA_9  = 0x09,
     PA_10 = 0x0A,
@@ -64,9 +56,7 @@ typedef enum {
     PA_15 = 0x0F,
 
     PB_0  = 0x10,
-    PB_0_ALT0 = 0x10 | ALT0,
     PB_1  = 0x11,
-    PB_1_ALT0 = 0x11 | ALT0,
     PB_2  = 0x12,
     PB_3  = 0x13,
     PB_4  = 0x14,

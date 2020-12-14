@@ -16,7 +16,6 @@
 #include "pinmap.h"
 #include "fsl_clock_config.h"
 #include "fsl_clock.h"
-#include "fsl_xbara.h"
 #include "lpm.h"
 
 #define LPSPI_CLOCK_SOURCE_DIVIDER (7U)
@@ -102,13 +101,13 @@ void BOARD_ConfigMPU(void)
      * this suggestion is referred from chapter 2.2.1 Memory regions,
      * types and attributes in Cortex-M7 Devices, Generic User Guide */
 #if defined(SDRAM_IS_SHAREABLE)
-    /* Region 7 setting: Memory with Normal type, shareable, outer/inner write back, write/read allocate */
+    /* Region 7 setting: Memory with Normal type, not shareable, outer/inner write back */
     MPU->RBAR = ARM_MPU_RBAR(7, 0x80000000U);
-    MPU->RASR = ARM_MPU_RASR(0, ARM_MPU_AP_FULL, 1, 1, 1, 1, 0, ARM_MPU_REGION_SIZE_32MB);
+    MPU->RASR = ARM_MPU_RASR(0, ARM_MPU_AP_FULL, 0, 1, 1, 1, 0, ARM_MPU_REGION_SIZE_32MB);
 #else
-    /* Region 7 setting: Memory with Normal type, not shareable, outer/inner write back, write/read allocate */
+    /* Region 7 setting: Memory with Normal type, not shareable, outer/inner write back */
     MPU->RBAR = ARM_MPU_RBAR(7, 0x80000000U);
-    MPU->RASR = ARM_MPU_RASR(0, ARM_MPU_AP_FULL, 1, 0, 1, 1, 0, ARM_MPU_REGION_SIZE_32MB);
+    MPU->RASR = ARM_MPU_RASR(0, ARM_MPU_AP_FULL, 0, 0, 1, 1, 0, ARM_MPU_REGION_SIZE_32MB);
 #endif
 
     /* Region 8 setting, set last 2MB of SDRAM can't be accessed by cache, glocal variables which are not expected to be
@@ -218,35 +217,9 @@ uint32_t i2c_get_clock()
     return ((CLOCK_GetFreq(kCLOCK_Usb1PllClk) / 8) / (LPI2C_CLOCK_SOURCE_DIVIDER + 1U));
 }
 
-void pwm_setup(uint32_t instance)
+void pwm_setup_clock()
 {
-    /* Use default clock settings */
-    /* Set the PWM Fault inputs to a low value */
-    XBARA_Init(XBARA1);
-
-    XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm1234Fault2);
-    XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm1234Fault3);
-
-    switch (instance) {
-        case 1:
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm1Fault0);
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm1Fault1);
-            break;
-        case 2:
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm2Fault0);
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm2Fault1);
-            break;
-        case 3:
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm3Fault0);
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm3Fault1);
-            break;
-        case 4:
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm4Fault0);
-            XBARA_SetSignalsConnection(XBARA1, kXBARA1_InputLogicHigh, kXBARA1_OutputFlexpwm4Fault1);
-            break;
-        default:
-            break;
-    }
+    /* Use default settings */
 }
 
 uint32_t pwm_get_clock()

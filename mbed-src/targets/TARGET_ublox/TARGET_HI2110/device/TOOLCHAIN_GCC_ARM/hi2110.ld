@@ -4,13 +4,6 @@
 OUTPUT_FORMAT("elf32-littlearm")
 OUTPUT_ARCH(arm)
 ENTRY(Reset_Handler)
-
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
-STACK_SIZE = MBED_BOOT_STACK_SIZE;
-
 MEMORY
 {
     FLASH_VECTORS : ORIGIN = 0, LENGTH = 192
@@ -31,7 +24,7 @@ SECTIONS
     /* Code and const data */
     .text :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         *(.text)
         *(.text*)
 
@@ -84,20 +77,20 @@ SECTIONS
         *(.data)
         *(.data*)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* preinit data */
         PROVIDE_HIDDEN (__preinit_array_start = .);
         KEEP(*(.preinit_array))
         PROVIDE_HIDDEN (__preinit_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* init data */
         PROVIDE_HIDDEN (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array))
         PROVIDE_HIDDEN (__init_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* finit data */
         PROVIDE_HIDDEN (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
@@ -112,12 +105,12 @@ SECTIONS
     /* Uninitialised data */
     .bss (NOLOAD):
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_start__ = .;
         *(.bss)
         *(.bss*)
         *(COMMON)
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_end__ = .;
     } > RAM
     
@@ -125,7 +118,7 @@ SECTIONS
     
     .resume (NOLOAD):
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         *(preserve)
     } > RAM
 
@@ -158,7 +151,7 @@ SECTIONS
     /* Set stack top to end of RAM, and stack limit move down by
      * size of stack_dummy section */
     __StackTop = ORIGIN(RAM) + LENGTH(RAM); /* Remember that LENGTH(RAM) is already reduced by the IPC block */
-    __StackLimit = __StackTop - STACK_SIZE;
+    __StackLimit = __StackTop - SIZEOF(.stack_dummy);
     PROVIDE(__stack = __StackTop);
 
     /* Check if data + heap + stack exceeds RAM limit */
@@ -168,7 +161,7 @@ SECTIONS
     /* The size of this section (256 bytes) is already taken off the size of RAM so there is no danger of the heap overflowing into it */
     .ipc_mailbox (NOLOAD):
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __ipc_mailbox_start__ = .;
         *(.ipc_mailbox)
         *(.ipc_mailbox*)

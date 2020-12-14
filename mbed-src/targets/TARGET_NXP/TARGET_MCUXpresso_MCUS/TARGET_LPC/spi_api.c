@@ -28,80 +28,6 @@
 
 /* Array of SPI peripheral base address. */
 static SPI_Type *const spi_address[] = SPI_BASE_PTRS;
-static int baud_rate = 0;
-
-#if STATIC_PINMAP_READY
-#define SPI_INIT_DIRECT spi_init_direct
-void spi_init_direct(spi_t *obj, const spi_pinmap_t *pinmap)
-#else
-#define SPI_INIT_DIRECT _spi_init_direct
-static void _spi_init_direct(spi_t *obj, const spi_pinmap_t *pinmap)
-#endif
-{
-    obj->instance = pinmap->peripheral;
-    MBED_ASSERT((int)obj->instance != NC);
-    obj->ssel_num = 0;
-
-    switch (obj->instance) {
-        case 0:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM0);
-            RESET_PeripheralReset(kFC0_RST_SHIFT_RSTn);
-            break;
-        case 1:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM1);
-            RESET_PeripheralReset(kFC1_RST_SHIFT_RSTn);
-            break;
-        case 2:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
-            RESET_PeripheralReset(kFC2_RST_SHIFT_RSTn);
-            break;
-        case 3:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM3);
-            RESET_PeripheralReset(kFC3_RST_SHIFT_RSTn);
-            break;
-        case 4:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM4);
-            RESET_PeripheralReset(kFC4_RST_SHIFT_RSTn);
-            break;
-        case 5:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM5);
-            RESET_PeripheralReset(kFC5_RST_SHIFT_RSTn);
-            break;
-        case 6:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM6);
-            RESET_PeripheralReset(kFC6_RST_SHIFT_RSTn);
-            break;
-        case 7:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM7);
-            RESET_PeripheralReset(kFC7_RST_SHIFT_RSTn);
-            break;
-#if (FSL_FEATURE_SOC_SPI_COUNT > 8U)
-        case 8:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM8);
-            RESET_PeripheralReset(kFC8_RST_SHIFT_RSTn);
-            break;
-#endif
-#if (FSL_FEATURE_SOC_SPI_COUNT > 9U)
-        case 9:
-            CLOCK_AttachClk(kFRO12M_to_FLEXCOMM9);
-            RESET_PeripheralReset(kFC9_RST_SHIFT_RSTn);
-            break;
-#endif
-    }
-
-    // pin out the spi pins
-    pin_function(pinmap->mosi_pin, pinmap->mosi_function);
-    pin_mode(pinmap->mosi_pin, PullNone);
-    pin_function(pinmap->miso_pin, pinmap->miso_function);
-    pin_mode(pinmap->miso_pin, PullNone);
-    pin_function(pinmap->sclk_pin, pinmap->sclk_function);
-    pin_mode(pinmap->sclk_pin, PullNone);
-    if (pinmap->ssel_pin != NC) {
-        pin_function(pinmap->ssel_pin, pinmap->ssel_function);
-        pin_mode(pinmap->ssel_pin, PullNone);
-        obj->ssel_num = pinmap->ssel_function >> SSELNUM_SHIFT;
-    }
-}
 
 void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk, PinName ssel)
 {
@@ -113,17 +39,16 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk, PinName ssel
     uint32_t spi_data = pinmap_merge(spi_mosi, spi_miso);
     uint32_t spi_cntl = pinmap_merge(spi_sclk, spi_ssel);
 
-    int peripheral = (int)pinmap_merge(spi_data, spi_cntl);
+    obj->instance = pinmap_merge(spi_data, spi_cntl);
+    MBED_ASSERT((int)obj->instance != NC);
 
     // pin out the spi pins
-    int mosi_function = (int)pinmap_find_function(mosi, PinMap_SPI_MOSI);
-    int miso_function = (int)pinmap_find_function(miso, PinMap_SPI_MISO);
-    int sclk_function = (int)pinmap_find_function(sclk, PinMap_SPI_SCLK);
-    int ssel_function = (int)pinmap_find_function(ssel, PinMap_SPI_SSEL);
-
-    const spi_pinmap_t explicit_spi_pinmap = {peripheral, mosi, mosi_function, miso, miso_function, sclk, sclk_function, ssel, ssel_function};
-
-    SPI_INIT_DIRECT(obj, &explicit_spi_pinmap);
+    pinmap_pinout(mosi, PinMap_SPI_MOSI);
+    pinmap_pinout(miso, PinMap_SPI_MISO);
+    pinmap_pinout(sclk, PinMap_SPI_SCLK);
+    if (ssel != NC) {
+        pinmap_pinout(ssel, PinMap_SPI_SSEL);
+    }
 }
 
 void spi_free(spi_t *obj)
@@ -155,17 +80,61 @@ void spi_format(spi_t *obj, int bits, int mode, int slave)
         master_config.polarity = (mode & 0x2) ? kSPI_ClockPolarityActiveLow : kSPI_ClockPolarityActiveHigh;
         master_config.phase = (mode & 0x1) ? kSPI_ClockPhaseSecondEdge : kSPI_ClockPhaseFirstEdge;
         master_config.direction = kSPI_MsbFirst;
-        master_config.sselNum = obj->ssel_num;
-        if (baud_rate > 0) {
-            master_config.baudRate_Bps = baud_rate;
+
+        switch (obj->instance) {
+            case 0:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM0);
+                RESET_PeripheralReset(kFC0_RST_SHIFT_RSTn);
+                break;
+            case 1:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM1);
+                RESET_PeripheralReset(kFC1_RST_SHIFT_RSTn);
+                break;
+            case 2:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
+                RESET_PeripheralReset(kFC2_RST_SHIFT_RSTn);
+                break;
+            case 3:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM3);
+                RESET_PeripheralReset(kFC3_RST_SHIFT_RSTn);
+                break;
+            case 4:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM4);
+                RESET_PeripheralReset(kFC4_RST_SHIFT_RSTn);
+                break;
+            case 5:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM5);
+                RESET_PeripheralReset(kFC5_RST_SHIFT_RSTn);
+                break;
+            case 6:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM6);
+                RESET_PeripheralReset(kFC6_RST_SHIFT_RSTn);
+                break;
+            case 7:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM7);
+                RESET_PeripheralReset(kFC7_RST_SHIFT_RSTn);
+                break;
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 8U)
+            case 8:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM8);
+                RESET_PeripheralReset(kFC8_RST_SHIFT_RSTn);
+                break;
+#endif
+#if (FSL_FEATURE_SOC_FLEXCOMM_COUNT > 9U)
+            case 9:
+                CLOCK_AttachClk(kFRO12M_to_FLEXCOMM9);
+                RESET_PeripheralReset(kFC9_RST_SHIFT_RSTn);
+                break;
+#endif
+
         }
+
         SPI_MasterInit(spi_address[obj->instance], &master_config, 12000000);
     }
 }
 
 void spi_frequency(spi_t *obj, int hz)
 {
-    baud_rate = hz;
     SPI_MasterSetBaud(spi_address[obj->instance], (uint32_t)hz, 12000000);
 }
 
@@ -217,46 +186,6 @@ int spi_slave_read(spi_t *obj)
 void spi_slave_write(spi_t *obj, int value)
 {
     SPI_WriteData(spi_address[obj->instance], (uint16_t)value, 0);
-}
-
-const PinMap *spi_master_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_master_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_master_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_master_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
-}
-
-const PinMap *spi_slave_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_slave_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_slave_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_slave_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
 }
 
 #endif

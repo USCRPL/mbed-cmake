@@ -18,29 +18,21 @@
 #include "mbed_critical.h"
 
 #if DEVICE_FLASH
-#include <string.h>
 #include "iodefine.h"
 #include "spibsc_iobitmask.h"
 #include "spibsc.h"
 #include "mbed_drv_cfg.h"
 
 /* ---- serial flash command ---- */
-#if (FLASH_SIZE > 0x1000000)
-#define SPIBSC_OUTPUT_ADDR           SPIBSC_OUTPUT_ADDR_32
-#define SFLASHCMD_SECTOR_ERASE       (0x21u)    /* SE4B   4-byte address(1bit)             */
-#define SFLASHCMD_PAGE_PROGRAM       (0x12u)    /* PP4B   4-byte address(1bit), data(1bit) */
-#else
-#define SPIBSC_OUTPUT_ADDR           SPIBSC_OUTPUT_ADDR_24
 #define SFLASHCMD_SECTOR_ERASE       (0x20u)    /* SE     3-byte address(1bit)             */
 #define SFLASHCMD_PAGE_PROGRAM       (0x02u)    /* PP     3-byte address(1bit), data(1bit) */
-#endif
 #define SFLASHCMD_READ_STATUS_REG    (0x05u)    /* RDSR                         data(1bit) */
 #define SFLASHCMD_WRITE_ENABLE       (0x06u)    /* WREN                                    */
 /* ---- serial flash register definitions ---- */
 #define STREG_BUSY_BIT               (0x01u)    /* SR.[0]BUSY Erase/Write In Progress (RO) */
 
 /* Definition of the base address for the MMU translation table */
-#if defined(__CC_ARM) || defined(__ARMCC_VERSION) || defined(__GNUC__)
+#if defined(__CC_ARM) || defined(__GNUC__)
 extern uint32_t Image$$TTB$$ZI$$Base;
 #define TTB         ((uint32_t)&Image$$TTB$$ZI$$Base)   /* using linker symbol */
 #elif defined(__ICCARM__)
@@ -82,6 +74,10 @@ typedef struct {
     uint32_t smwdr[2];  /* write data */
 } st_spibsc_spimd_reg_t;
 
+/*  SPI Multi-I/O bus address space address definitions */
+#define SPIBSC_ADDR_START  (0x18000000uL)
+#define SPIBSC_ADDR_END    (0x1BFFFFFFuL)
+
 typedef struct {
     uint32_t b0             : 1 ;       /* bit 0        : -         (0)                                   */
     uint32_t b1             : 1 ;       /* bit 1        : -         (1)                                   */
@@ -100,10 +96,9 @@ typedef struct {
     uint32_t base_addr      : 12;       /* bit 31-20    : PA[31:20] PA(physical address) bits:bit31-20    */
 } mmu_ttbl_desc_section_t;
 
-static mmu_ttbl_desc_section_t desc_tbl[(FLASH_SIZE >> 20)];
+static mmu_ttbl_desc_section_t desc_tbl[(SPIBSC_ADDR_END >> 20) - (SPIBSC_ADDR_START >> 20) + 1];
 static volatile struct st_spibsc*  SPIBSC = &SPIBSC0;
 static st_spibsc_spimd_reg_t spimd_reg;
-static uint8_t write_tmp_buf[FLASH_PAGE_SIZE];
 
 #if defined(__ICCARM__)
 #define RAM_CODE_SEC    __ramfunc
@@ -121,7 +116,7 @@ static RAM_CODE_SEC int32_t read_register(uint8_t cmd, uint8_t * status);
 static RAM_CODE_SEC int32_t data_send(uint32_t bit_width, uint32_t spbssl_level, const uint8_t * buf, int32_t size);
 static RAM_CODE_SEC void spi_mode(void);
 static RAM_CODE_SEC void ex_mode(void);
-static RAM_CODE_SEC void clear_spimd_reg(volatile st_spibsc_spimd_reg_t * regset);
+static RAM_CODE_SEC void clear_spimd_reg(st_spibsc_spimd_reg_t * regset);
 static RAM_CODE_SEC int32_t spibsc_transfer(st_spibsc_spimd_reg_t * regset);
 static RAM_CODE_SEC uint32_t RegRead_32(volatile uint32_t * ioreg, uint32_t shift, uint32_t mask);
 static RAM_CODE_SEC void RegWwrite_32(volatile uint32_t * ioreg, uint32_t write_value, uint32_t shift, uint32_t mask);
@@ -141,12 +136,24 @@ int32_t flash_free(flash_t *obj)
 
 int32_t flash_erase_sector(flash_t *obj, uint32_t address)
 {
-    return _sector_erase(address - FLASH_BASE);
+    int32_t ret;
+
+    core_util_critical_section_enter();
+    ret = _sector_erase(address - FLASH_BASE);
+    core_util_critical_section_exit();
+
+    return ret;
 }
 
 int32_t flash_program_page(flash_t *obj, uint32_t address, const uint8_t *data, uint32_t size)
 {
-    return _page_program(address - FLASH_BASE, data, size);
+    int32_t ret;
+
+    core_util_critical_section_enter();
+    ret = _page_program(address - FLASH_BASE, data, size);
+    core_util_critical_section_exit();
+
+    return ret;
 }
 
 uint32_t flash_get_sector_size(const flash_t *obj, uint32_t address)
@@ -160,7 +167,7 @@ uint32_t flash_get_sector_size(const flash_t *obj, uint32_t address)
 
 uint32_t flash_get_page_size(const flash_t *obj)
 {
-    return 8;
+    return 1;
 }
 
 uint32_t flash_get_start_address(const flash_t *obj)
@@ -177,14 +184,12 @@ int32_t _sector_erase(uint32_t addr)
 {
     int32_t ret;
 
-    core_util_critical_section_enter();
     spi_mode();
 
     /* ---- Write enable   ---- */
     ret = write_enable();      /* WREN Command */
     if (ret != 0) {
         ex_mode();
-        core_util_critical_section_exit();
         return ret;
     }
 
@@ -197,7 +202,7 @@ int32_t _sector_erase(uint32_t addr)
     spimd_reg.cmd    = SFLASHCMD_SECTOR_ERASE;
 
     /* ---- address ---- */
-    spimd_reg.ade    = SPIBSC_OUTPUT_ADDR;
+    spimd_reg.ade    = SPIBSC_OUTPUT_ADDR_24;
     spimd_reg.addre  = SPIBSC_SDR_TRANS;       /* SDR */
     spimd_reg.adb    = SPIBSC_1BIT;
     spimd_reg.addr   = addr;
@@ -205,14 +210,12 @@ int32_t _sector_erase(uint32_t addr)
     ret = spibsc_transfer(&spimd_reg);
     if (ret != 0) {
         ex_mode();
-        core_util_critical_section_exit();
         return ret;
     }
 
     ret = busy_wait();
 
     ex_mode();
-    core_util_critical_section_exit();
     return ret;
 }
 
@@ -222,6 +225,8 @@ int32_t _page_program(uint32_t addr, const uint8_t * buf, int32_t size)
     int32_t program_size;
     int32_t remainder;
     int32_t idx = 0;
+
+    spi_mode();
 
     while (size > 0) {
         if (size > FLASH_PAGE_SIZE) {
@@ -234,15 +239,10 @@ int32_t _page_program(uint32_t addr, const uint8_t * buf, int32_t size)
             program_size = remainder;
         }
 
-        core_util_critical_section_enter();
-        memcpy(write_tmp_buf, &buf[idx], program_size);
-        spi_mode();
-
         /* ---- Write enable   ---- */
         ret = write_enable();      /* WREN Command */
         if (ret != 0) {
             ex_mode();
-            core_util_critical_section_exit();
             return ret;
         }
 
@@ -256,7 +256,7 @@ int32_t _page_program(uint32_t addr, const uint8_t * buf, int32_t size)
         spimd_reg.cmd    = SFLASHCMD_PAGE_PROGRAM;
 
         /* ---- address ---- */
-        spimd_reg.ade    = SPIBSC_OUTPUT_ADDR;
+        spimd_reg.ade    = SPIBSC_OUTPUT_ADDR_24;
         spimd_reg.addre  = SPIBSC_SDR_TRANS;       /* SDR */
         spimd_reg.adb    = SPIBSC_1BIT;
         spimd_reg.addr   = addr;
@@ -267,33 +267,28 @@ int32_t _page_program(uint32_t addr, const uint8_t * buf, int32_t size)
         ret = spibsc_transfer(&spimd_reg);         /* Command,Address */
         if (ret != 0) {
             ex_mode();
-            core_util_critical_section_exit();
             return ret;
         }
 
         /* ----------- 2. Data ---------------*/
-        ret = data_send(SPIBSC_1BIT, SPIBSC_SPISSL_NEGATE, write_tmp_buf, program_size);
+        ret = data_send(SPIBSC_1BIT, SPIBSC_SPISSL_NEGATE, &buf[idx], program_size);
         if (ret != 0) {
             ex_mode();
-            core_util_critical_section_exit();
             return ret;
         }
 
         ret = busy_wait();
         if (ret != 0) {
             ex_mode();
-            core_util_critical_section_exit();
             return ret;
         }
-
-        ex_mode();
-        core_util_critical_section_exit();
 
         addr += program_size;
         idx  += program_size;
         size -= program_size;
     }
 
+    ex_mode();
     return ret;
 }
 
@@ -474,7 +469,7 @@ static void ex_mode(void)
     (void)dummy_read_32;
 }
 
-static void clear_spimd_reg(volatile st_spibsc_spimd_reg_t * regset)
+static void clear_spimd_reg(st_spibsc_spimd_reg_t * regset)
 {
     /* ---- command ---- */
     regset->cde    = SPIBSC_OUTPUT_DISABLE;
@@ -691,16 +686,16 @@ static void change_mmu_ttbl_spibsc(uint32_t type)
     mmu_ttbl_desc_section_t * table = (mmu_ttbl_desc_section_t *)TTB;
 
     /* ==== Modify SPI Multi-I/O bus space settings in the MMU translation table ==== */
-    for (index = (FLASH_BASE >> 20); index < ((FLASH_BASE + FLASH_SIZE) >> 20); index++) {
+    for (index = (SPIBSC_ADDR_START >> 20); index <= (SPIBSC_ADDR_END >> 20); index++) {
         /* Modify memory attribute descriptor */
         if (type == 0) {         /* Spi */
             desc = table[index];
-            desc_tbl[index - (FLASH_BASE >> 20)] = desc;
+            desc_tbl[index - (SPIBSC_ADDR_START >> 20)] = desc;
             desc.AP1_0 = 0x0u;   /* AP[2:0] = b'000 (No access) */
             desc.AP2   = 0x0u;
             desc.XN    = 0x1u;   /* XN = 1 (Execute never) */
         } else {                 /* Xip */
-            desc = desc_tbl[index - (FLASH_BASE >> 20)];
+            desc = desc_tbl[index - (SPIBSC_ADDR_START >> 20)];
         }
         /* Write descriptor back to translation table */
         table[index] = desc;
@@ -751,12 +746,4 @@ static void cache_control(void)
     __DSB();     // ensure completion of the invalidation
     __ISB();     // ensure instruction fetch path sees new I cache state
 }
-
-uint8_t flash_get_erase_value(const flash_t *obj)
-{
-    (void)obj;
-
-    return 0xFF;
-}
-
 #endif

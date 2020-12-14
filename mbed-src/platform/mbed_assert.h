@@ -1,6 +1,12 @@
+
+/** \addtogroup platform */
+/** @{*/
+/**
+ * \defgroup platform_Assert Assert macros
+ * @{
+ */
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,29 +23,21 @@
 #ifndef MBED_ASSERT_H
 #define MBED_ASSERT_H
 
-#include "platform/mbed_toolchain.h"
+#include "mbed_preprocessor.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** \addtogroup platform-public-api */
-/** @{*/
-
-/**
- * \defgroup platform_Assert Assert macros
- * @{
- */
-
-/** Internal mbed assert function which is invoked when MBED_ASSERT macro fails.
+/** Internal mbed assert function which is invoked when MBED_ASSERT macro failes.
  *  This function is active only if NDEBUG is not defined prior to including this
  *  assert header file.
  *  In case of MBED_ASSERT failing condition, error() is called with the assertation message.
- *  @param expr Expression to be checked.
+ *  @param expr Expresion to be checked.
  *  @param file File where assertation failed.
  *  @param line Failing assertation line number.
  */
-MBED_NORETURN void mbed_assert_internal(const char *expr, const char *file, int line);
+void mbed_assert_internal(const char *expr, const char *file, int line);
 
 #ifdef __cplusplus
 }
@@ -124,14 +122,8 @@ do {                                                     \
  *  };
  *  @endcode
  */
-#if defined(__cplusplus) && (__cplusplus >= 201103L || __cpp_static_assert >= 200410L)
-#define MBED_STRUCT_STATIC_ASSERT(expr, msg) static_assert(expr, msg)
-#elif !defined(__cplusplus) && __STDC_VERSION__ >= 201112L
-#define MBED_STRUCT_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
-#else
-#include <stdbool.h>
-#define MBED_STRUCT_STATIC_ASSERT(expr, msg) bool : (expr) ? 0 : -1
-#endif
+#define MBED_STRUCT_STATIC_ASSERT(expr, msg) int : (expr) ? 0 : -1
+
 
 #endif
 

@@ -18,6 +18,7 @@
 #define RTW_EMAC_H
 
 #include "EMAC.h"
+#include "rtos/Semaphore.h"
 #include "rtos/Mutex.h"
 #include "netif.h"
 #include "EMACMemoryManager.h"

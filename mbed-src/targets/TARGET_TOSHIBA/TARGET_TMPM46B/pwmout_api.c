@@ -37,7 +37,7 @@ static const uint32_t prescale_tbl[] = {
     2, 8, 32, 64, 128, 256, 512
 };
 
-#define CLOCK_FREQUENCY                         (SystemCoreClock)  // Input source clock
+#define CLOCK_FREQUENCY                         (48000000)  // Input source clock
 
 void pwmout_init(pwmout_t *obj, PinName pin)
 {
@@ -108,8 +108,8 @@ void pwmout_write(pwmout_t *obj, float value)
     }
     TMRB_SetFlipFlop(obj->channel, &FFStruct);
 
-    if (obj->period > 0.560) {
-        value = 1; // TMPM46B duty cycle should be < 560ms, above 560ms fixed 50% duty cycle
+    if (obj->period > 0.7) {
+        value = 1; //TMPM46B duty cycle should be < 700ms, above 700ms fixed 50% duty cycle
     }
     // Store the new leading_timing value
     obj->leading_timing = obj->trailing_timing - (uint16_t)(obj->trailing_timing * value);
@@ -138,17 +138,17 @@ void pwmout_period_ms(pwmout_t *obj, int ms)
 // Set the PWM period, keeping the duty cycle the same.
 void pwmout_period_us(pwmout_t *obj, int us)
 {
-    float seconds       = 0;
-    uint32_t cycles     = 0;
-    int ClkDiv          = 0;
-    int i               = 0;
-    float duty_cycle    = 0;
-    uint32_t clk_freq   = 0;
+    float seconds = 0;
+    uint32_t cycles = 0;
+    int ClkDiv = 0;
+    int i = 0;
+    float duty_cycle = 0;
+    uint32_t clk_freq = 0;
 
     seconds = (float)((us) / 1000000.0f);
     obj->period = seconds;
 
-    if (obj->period > 0.560) {
+    if (obj->period > 0.7) {
         clk_freq = (CLOCK_FREQUENCY / 2);
     } else {
         clk_freq = CLOCK_FREQUENCY;
@@ -204,15 +204,10 @@ void pwmout_pulsewidth_ms(pwmout_t *obj, int ms)
 
 void pwmout_pulsewidth_us(pwmout_t *obj, int us)
 {
-    float seconds   = 0;
-    float value     = 0;
+    float seconds = 0;
+    float value = 0;
 
     seconds = (float)(us / 1000000.0f);
     value = (((seconds / obj->period) * 100.0f) / 100.0f);
     pwmout_write(obj, value);
-}
-
-const PinMap *pwmout_pinmap()
-{
-    return PinMap_PWM;
 }

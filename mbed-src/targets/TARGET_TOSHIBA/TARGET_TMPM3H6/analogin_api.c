@@ -89,8 +89,3 @@ float analogin_read(analogin_t *obj)
 
     return result;
 }
-
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
-}

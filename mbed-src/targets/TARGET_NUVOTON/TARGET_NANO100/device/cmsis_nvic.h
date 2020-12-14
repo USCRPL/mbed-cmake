@@ -23,25 +23,17 @@
 #define NVIC_USER_IRQ_NUMBER 32
 #define NVIC_NUM_VECTORS     (NVIC_USER_IRQ_OFFSET + NVIC_USER_IRQ_NUMBER)
 
-/* Avoid optimization error on e.g. ARMC6
- *
- * If NVIC_FLASH_VECTOR_ADDRESS is directly defined as 0, the compiler would see it
- * as NULL, and deliberately optimize NVIC_GetVector to an undefined instruction -
- * trapping because we're accessing an array at NULL.
- *
- * A suggested solution by Arm is to define NVIC_FLASH_VECTOR_ADDRESS as a symbol
- * instead to avoid such unwanted optimization.
- */
-#if defined(__ARMCC_VERSION)
-extern uint32_t Image$$ER_IROM1$$Base;
-#define NVIC_FLASH_VECTOR_ADDRESS   ((uint32_t) &Image$$ER_IROM1$$Base)
+#if defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#   define NVIC_RAM_VECTOR_ADDRESS  ((uint32_t) &Image$$ER_IRAMVEC$$ZI$$Base)
 #elif defined(__ICCARM__)
-#pragma section = "ROMVEC"
-#define NVIC_FLASH_VECTOR_ADDRESS   ((uint32_t) __section_begin("ROMVEC"))
+#   pragma section = "IRAMVEC"
+#   define NVIC_RAM_VECTOR_ADDRESS  ((uint32_t) __section_begin("IRAMVEC"))
 #elif defined(__GNUC__)
-extern uint32_t __vector_table;
-#define NVIC_FLASH_VECTOR_ADDRESS   ((uint32_t) &__vector_table)
+#   define NVIC_RAM_VECTOR_ADDRESS  ((uint32_t) &__start_vector_table__)
 #endif
+
+
+#define NVIC_FLASH_VECTOR_ADDRESS 0
 
 #ifdef __cplusplus
 extern "C" {

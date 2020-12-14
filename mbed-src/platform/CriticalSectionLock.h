@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2017-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * PackageLicenseDeclared: Apache-2.0
+ * Copyright (c) 2017 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@
 #ifndef MBED_CRITICALSECTIONLOCK_H
 #define MBED_CRITICALSECTIONLOCK_H
 
+#include "platform/mbed_critical.h"
 #include "platform/mbed_toolchain.h"
 
 namespace mbed {
-/** \addtogroup platform-public-api */
+
+/** \addtogroup platform */
 /** @{*/
 /**
  * \defgroup platform_CriticalSectionLock CriticalSectionLock functions
@@ -55,9 +57,15 @@ namespace mbed {
   */
 class CriticalSectionLock {
 public:
-    CriticalSectionLock();
+    CriticalSectionLock()
+    {
+        core_util_critical_section_enter();
+    }
 
-    ~CriticalSectionLock();
+    ~CriticalSectionLock()
+    {
+        core_util_critical_section_exit();
+    }
 
     /** Mark the start of a critical section
      *  @deprecated This function is inconsistent with RAII and is being removed in the future. Replaced by static function CriticalSectionLock::enable.
@@ -66,7 +74,10 @@ public:
     MBED_DEPRECATED_SINCE("mbed-os-5.8",
                           "This function is inconsistent with RAII and is being removed in the future."
                           "Replaced by static function CriticalSectionLock::enable.")
-    void lock();
+    void lock()
+    {
+        core_util_critical_section_enter();
+    }
 
     /** Mark the end of a critical section
      *  @deprecated This function is inconsistent with RAII and is being removed in the future. Replaced by static function CriticalSectionLock::enable.
@@ -75,15 +86,24 @@ public:
     MBED_DEPRECATED_SINCE("mbed-os-5.8",
                           "This function is inconsistent with RAII and is being removed in the future."
                           "Replaced by static function CriticalSectionLock::disable.")
-    void unlock();
+    void unlock()
+    {
+        core_util_critical_section_exit();
+    }
 
     /** Mark the start of a critical section
      */
-    static void enable();
+    static void enable()
+    {
+        core_util_critical_section_enter();
+    }
 
     /** Mark the end of a critical section
      */
-    static void disable();
+    static void disable()
+    {
+        core_util_critical_section_exit();
+    }
 };
 
 /**@}*/

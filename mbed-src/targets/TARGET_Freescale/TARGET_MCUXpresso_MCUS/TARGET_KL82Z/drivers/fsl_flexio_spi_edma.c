@@ -198,7 +198,7 @@ static void FLEXIO_SPI_EDMAConfig(FLEXIO_SPI_Type *base,
     /* Configure DMA channel. */
     if (xfer->txData)
     {
-        xferConfig.srcOffset = bytesPerFrame;
+        xferConfig.srcOffset = 1;
         xferConfig.srcAddr = (uint32_t)(xfer->txData);
     }
     else
@@ -210,9 +210,6 @@ static void FLEXIO_SPI_EDMAConfig(FLEXIO_SPI_Type *base,
 
     xferConfig.majorLoopCounts = (xfer->dataSize / xferConfig.minorLoopBytes);
 
-    /* Store the initially configured eDMA minor byte transfer count into the FLEXIO SPI handle */
-    handle->nbytes = xferConfig.minorLoopBytes;
-
     if (handle->txHandle)
     {
         EDMA_SubmitTransfer(handle->txHandle, &xferConfig);
@@ -222,16 +219,9 @@ static void FLEXIO_SPI_EDMAConfig(FLEXIO_SPI_Type *base,
     if (xfer->rxData)
     {
         xferConfig.srcAddr = FLEXIO_SPI_GetRxDataRegisterAddress(base, direction);
-        if (bytesPerFrame == 2U)
-        {
-            if (direction == kFLEXIO_SPI_LsbFirst)
-            {
-                xferConfig.srcAddr -= 1U;
-            }
-        }
         xferConfig.srcOffset = 0;
         xferConfig.destAddr = (uint32_t)(xfer->rxData);
-        xferConfig.destOffset = bytesPerFrame;
+        xferConfig.destOffset = 1;
         EDMA_SubmitTransfer(handle->rxHandle, &xferConfig);
         handle->rxInProgress = true;
         FLEXIO_SPI_EnableDMA(base, kFLEXIO_SPI_RxDmaEnable, true);
@@ -359,15 +349,11 @@ status_t FLEXIO_SPI_MasterTransferGetCountEDMA(FLEXIO_SPI_Type *base,
 
     if (handle->rxInProgress)
     {
-        *count = (handle->transferSize -
-                  (uint32_t)handle->nbytes *
-                      EDMA_GetRemainingMajorLoopCount(handle->rxHandle->base, handle->rxHandle->channel));
+        *count = (handle->transferSize - EDMA_GetRemainingBytes(handle->rxHandle->base, handle->rxHandle->channel));
     }
     else
     {
-        *count = (handle->transferSize -
-                  (uint32_t)handle->nbytes *
-                      EDMA_GetRemainingMajorLoopCount(handle->txHandle->base, handle->txHandle->channel));
+        *count = (handle->transferSize - EDMA_GetRemainingBytes(handle->txHandle->base, handle->txHandle->channel));
     }
 
     return kStatus_Success;

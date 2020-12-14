@@ -145,9 +145,4 @@ void pwmout_pulsewidth_us(pwmout_t* obj, int us)
     base->CONTROLS[obj->pwm_name & 0xF].CnV = value;
 }
 
-const PinMap *pwmout_pinmap()
-{
-    return PinMap_PWM;
-}
-
 #endif

@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +16,16 @@
 #ifndef MBED_TICKER_H
 #define MBED_TICKER_H
 
-#include <mstd_utility>
 #include "drivers/TimerEvent.h"
 #include "platform/Callback.h"
 #include "platform/mbed_toolchain.h"
 #include "platform/NonCopyable.h"
+#include "platform/mbed_power_mgmt.h"
 #include "hal/lp_ticker_api.h"
+#include "platform/mbed_critical.h"
 
 namespace mbed {
-/**
- * \defgroup drivers_Ticker Ticker class
- * \ingroup drivers-public-api-ticker
- * @{
- */
+/** \addtogroup drivers */
 
 /** A Ticker is used to call a function at a recurring interval
  *
@@ -39,7 +35,7 @@ namespace mbed {
  *
  * Example:
  * @code
- * // Toggle the blinking LED after 5 seconds
+ * // Toggle the blinking led after 5 seconds
  *
  * #include "mbed.h"
  *
@@ -65,32 +61,31 @@ namespace mbed {
  *     }
  * }
  * @endcode
+ * @ingroup drivers
  */
 class Ticker : public TimerEvent, private NonCopyable<Ticker> {
 
 public:
-    Ticker();
+    Ticker() : TimerEvent(), _function(0), _lock_deepsleep(true)
+    {
+    }
 
-    // When low power ticker is in use, then do not disable deep sleep.
-    Ticker(const ticker_data_t *data);
+    // When low power ticker is in use, then do not disable deep-sleep.
+    Ticker(const ticker_data_t *data) : TimerEvent(data), _function(0), _lock_deepsleep(true)
+    {
+#if DEVICE_LPTICKER
+        _lock_deepsleep = (data != get_lp_ticker_data());
+#endif
+    }
 
     /** Attach a function to be called by the Ticker, specifying the interval in seconds
      *
-     *  The method forwards its arguments to attach_us() rather than copying them which
-     *  may not be trivial depending on the callback copied.
-     *  The function is forcibly inlined to not use floating-point operations. This is
-     *  possible given attach_us() expects an integer value for the callback interval.
      *  @param func pointer to the function to be called
      *  @param t the time between calls in seconds
      */
-#if defined(__ICCARM__)
-    MBED_FORCEINLINE template <typename F>
-#else
-    template <typename F> MBED_FORCEINLINE
-#endif
-    void attach(F &&func, float t)
+    void attach(Callback<void()> func, float t)
     {
-        attach_us(std::forward<F>(func), t * 1000000.0f);
+        attach_us(func, t * 1000000.0f);
     }
 
     /** Attach a member function to be called by the Ticker, specifying the interval in seconds
@@ -111,23 +106,33 @@ public:
         attach(callback(obj, method), t);
     }
 
-    /** Attach a function to be called by the Ticker, specifying the interval in microseconds
+    /** Attach a function to be called by the Ticker, specifying the interval in micro-seconds
      *
      *  @param func pointer to the function to be called
      *  @param t the time between calls in micro-seconds
      *
-     *  @note setting @a t to a value shorter than it takes to process the ticker callback
-     *  causes the system to hang. Ticker callback is called constantly with no time
+     *  @note setting @a t to a value shorter that it takes to process the ticker callback
+     *  will cause the system to hang. Ticker callback will be called constantly with no time
      *  for threads scheduling.
      *
      */
-    void attach_us(Callback<void()> func, us_timestamp_t t);
+    void attach_us(Callback<void()> func, us_timestamp_t t)
+    {
+        core_util_critical_section_enter();
+        // lock only for the initial callback setup and this is not low power ticker
+        if (!_function && _lock_deepsleep) {
+            sleep_manager_lock_deep_sleep();
+        }
+        _function = func;
+        setup(t);
+        core_util_critical_section_exit();
+    }
 
-    /** Attach a member function to be called by the Ticker, specifying the interval in microseconds
+    /** Attach a member function to be called by the Ticker, specifying the interval in micro-seconds
      *
      *  @param obj pointer to the object to call the member function on
      *  @param method pointer to the member function to be called
-     *  @param t the time between calls in microseconds
+     *  @param t the time between calls in micro-seconds
      *  @deprecated
      *      The attach_us function does not support cv-qualifiers. Replaced by
      *      attach_us(callback(obj, method), t).
@@ -150,19 +155,15 @@ public:
      */
     void detach();
 
-#if !defined(DOXYGEN_ONLY)
 protected:
     void setup(us_timestamp_t t);
     virtual void handler();
 
 protected:
-    us_timestamp_t         _delay;  /**< Time delay (in microseconds) for resetting the multishot callback. */
+    us_timestamp_t         _delay;  /**< Time delay (in microseconds) for re-setting the multi-shot callback. */
     Callback<void()>    _function;  /**< Callback. */
-    bool          _lock_deepsleep;  /**< Flag which indicates if deep sleep should be disabled. */
-#endif
+    bool          _lock_deepsleep;  /**< Flag which indicates if deep-sleep should be disabled. */
 };
-
-/** @}*/
 
 } // namespace mbed
 

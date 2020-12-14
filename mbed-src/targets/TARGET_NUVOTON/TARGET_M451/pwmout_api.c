@@ -67,41 +67,38 @@ void pwmout_init(pwmout_t* obj, PinName pin)
     const struct nu_modinit_s *modinit = get_modinit(obj->pwm, pwm_modinit_tab);
     MBED_ASSERT(modinit != NULL);
     MBED_ASSERT(modinit->modname == obj->pwm);
-
-    obj->pin = pin;
-
-    // Wire pinout
-    pinmap_pinout(pin, PinMap_PWM);
-
-    // NOTE: Channels 0/1/2/3/4/5 share a clock source.
-    if ((((struct nu_pwm_var *) modinit->var)->en_msk & 0x3F) == 0) {
-        // Select clock source of paired channels
-        CLK_SetModuleClock(modinit->clkidx, modinit->clksrc, modinit->clkdiv);
-
-        // Enable clock of paired channels
-        CLK_EnableModuleClock(modinit->clkidx);
-    }
-
+    
     // NOTE: All channels (identified by PWMName) share a PWM module. This reset will also affect other channels of the same PWM module.
     if (! ((struct nu_pwm_var *) modinit->var)->en_msk) {
         // Reset this module if no channel enabled
         SYS_ResetModule(modinit->rsetidx);
     }
-
+    
     PWM_T *pwm_base = (PWM_T *) NU_MODBASE(obj->pwm);
     uint32_t chn =  NU_MODSUBINDEX(obj->pwm);
-
+        
+    // NOTE: Channels 0/1/2/3/4/5 share a clock source.
+    if ((((struct nu_pwm_var *) modinit->var)->en_msk & 0x3F) == 0) {
+        // Select clock source of paired channels
+        CLK_SetModuleClock(modinit->clkidx, modinit->clksrc, modinit->clkdiv);
+        // Enable clock of paired channels
+        CLK_EnableModuleClock(modinit->clkidx);
+    }
+    
+    // Wire pinout
+    pinmap_pinout(pin, PinMap_PWM);
+    
     // Default: period = 10 ms, pulse width = 0 ms
     obj->period_us = 1000 * 10;
     obj->pulsewidth_us = 0;
     pwmout_config(obj);
-
+    
     // Enable output of the specified PWM channel
     PWM_EnableOutput(pwm_base, 1 << chn);
     PWM_Start(pwm_base, 1 << chn);
-
+    
     ((struct nu_pwm_var *) modinit->var)->en_msk |= 1 << chn;
-
+    
     // Mark this module to be inited.
     int i = modinit - pwm_modinit_tab;
     pwm_modinit_mask |= 1 << i;
@@ -126,10 +123,6 @@ void pwmout_free(pwmout_t* obj)
     // Mark this module to be deinited.
     int i = modinit - pwm_modinit_tab;
     pwm_modinit_mask &= ~(1 << i);
-
-    // Free up pins
-    gpio_set(obj->pin);
-    obj->pin = NC;
 }
 
 void pwmout_write(pwmout_t* obj, float value)
@@ -186,11 +179,6 @@ static void pwmout_config(pwmout_t* obj)
     // NOTE: Support period < 1s
     //PWM_ConfigOutputChannel(pwm_base, chn, 1000 * 1000 / obj->period_us, obj->pulsewidth_us * 100 / obj->period_us);
     PWM_ConfigOutputChannel2(pwm_base, chn, 1000 * 1000, obj->pulsewidth_us * 100 / obj->period_us, obj->period_us);
-}
-
-const PinMap *pwmout_pinmap()
-{
-    return PinMap_PWM;
 }
 
 #endif

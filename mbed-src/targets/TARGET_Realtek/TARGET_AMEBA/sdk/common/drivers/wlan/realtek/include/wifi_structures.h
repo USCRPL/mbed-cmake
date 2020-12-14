@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-  ******************************************************************************
+ ******************************************************************************
   * @file    wifi_structures.h
   * @author
   * @version
@@ -23,12 +23,6 @@
 #ifndef _WIFI_STRUCTURES_H
 #define _WIFI_STRUCTURES_H
 
-/** @addtogroup nic NIC
- *  @ingroup    wlan
- *  @brief      NIC functions
- *  @{
- */
-
 //#include <freertos/freertos_service.h>
 #include "wifi_constants.h"
 #include "dlist.h"
@@ -36,7 +30,7 @@
 extern "C" {
 #endif
 
-#if defined(__IAR_SYSTEMS_ICC__) || defined (__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__)
 #pragma pack(1)
 #endif
 
@@ -47,11 +41,11 @@ typedef struct rtw_ssid {
     unsigned char len;     /**< SSID length */
     unsigned char val[33]; /**< SSID name (AP name)  */
 } rtw_ssid_t;
-#if defined(__IAR_SYSTEMS_ICC__) || defined (__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__)
 #pragma pack()
 #endif
 
-#if defined(__IAR_SYSTEMS_ICC__) || defined (__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__)
 #pragma pack(1)
 #endif
 
@@ -61,15 +55,14 @@ typedef struct rtw_ssid {
 typedef struct rtw_mac {
     unsigned char octet[6]; /**< Unique 6-byte MAC address */
 } rtw_mac_t;
-#if defined(__IAR_SYSTEMS_ICC__) || defined (__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__)
 #pragma pack()
 #endif
 
 /**
   * @brief  The structure is used to describe the setting about SSID,
   *			security type, password and default channel, used to start AP mode.
-  * @note  The data length of string pointed by ssid should not exceed 32, 
-  *        and the data length of string pointed by password should not exceed 64.
+  * @note  The data length of string pointed by ssid and password should not exceed 32.
   */
 typedef struct rtw_ap_info {
 	rtw_ssid_t 			ssid;
@@ -82,8 +75,7 @@ typedef struct rtw_ap_info {
 /**
   * @brief  The structure is used to describe the station mode setting about SSID, 
   *			security type and password, used when connecting to an AP.
-  * @note  The data length of string pointed by ssid should not exceed 32, 
-  *        and the data length of string pointed by password should not exceed 64.
+  * @note  The data length of string pointed by ssid and password should not exceed 32.
   */
 typedef struct rtw_network_info {
 	rtw_ssid_t 			ssid;
@@ -94,7 +86,7 @@ typedef struct rtw_network_info {
 	int					key_id;
 }rtw_network_info_t;
 
-#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__)
 #pragma pack(1)
 #endif
 
@@ -111,7 +103,7 @@ typedef struct rtw_scan_result {
     unsigned int                      channel;          /**< Radio channel that the AP beacon was received on                          */
     rtw_802_11_band_t       band;             /**< Radio band                                                                */                                        
 } rtw_scan_result_t;
-#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__)
 #pragma pack()
 #endif
 
@@ -125,7 +117,7 @@ typedef struct rtw_scan_handler_result {
 
 } rtw_scan_handler_result_t;
 
-#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__)
 #pragma pack(1)
 #endif
 
@@ -140,7 +132,7 @@ typedef struct rtw_wifi_setting {
 	unsigned char 		password[65];
 	unsigned char		key_idx;
 }rtw_wifi_setting_t;
-#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__) || defined(__CC_ARM) || (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__)
 #pragma pack()
 #endif
 
@@ -218,32 +210,7 @@ typedef struct ieee80211_frame_info{
 	unsigned char bssid[6];
 	unsigned char encrypt;
 	signed char rssi;
-#if CONFIG_UNSUPPORT_PLCPHDR_RPT
-	rtw_rx_type_t type;
-#endif
 }ieee80211_frame_info_t;
-
-#if CONFIG_UNSUPPORT_PLCPHDR_RPT
-typedef struct rtw_rx_info {
-	uint16_t length;	//length without FCS
-	uint8_t filter;		// 2: 2T rate pkt; 3: LDPC pkt
-	signed char rssi;	//-128~-1
-}rtw_rx_info_t;
-
-struct rtw_plcp_info {
-	struct rtw_plcp_info *prev;
-	struct rtw_plcp_info *next;
-	uint16_t length;	//length without FCS
-	uint8_t filter;		// 1: HT-20 pkt; 2: HT-40 and not LDPC pkt; 3: LDPC pkt
-	signed char rssi;	//-128~-1
-};
-
-struct rtw_rx_buffer {
-	struct rtw_plcp_info *head;
-	struct rtw_plcp_info *tail;
-};
-
-#endif
 
 typedef struct {
 	char filter_id;
@@ -260,7 +227,5 @@ typedef struct rtw_mac_filter_list{
 #ifdef	__cplusplus
 }
 #endif
-
-/*\@}*/
 
 #endif /* _WIFI_STRUCTURES_H */

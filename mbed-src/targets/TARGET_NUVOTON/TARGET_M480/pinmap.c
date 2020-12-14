@@ -17,7 +17,6 @@
 #include "mbed_assert.h"
 #include "pinmap.h"
 #include "PortNames.h"
-#include "PeripheralNames.h"
 #include "mbed_error.h"
 
 /**
@@ -48,67 +47,27 @@ void pin_mode(PinName pin, PinMode mode)
     uint32_t mode_intern = GPIO_MODE_INPUT;
 
     switch (mode) {
-        case InputOnly:
-            mode_intern = GPIO_MODE_INPUT;
-            break;
+    case PullUp:
+        mode_intern = GPIO_MODE_INPUT;
+        break;
 
-        case PushPullOutput:
-            mode_intern = GPIO_MODE_OUTPUT;
-            break;
+    case PullDown:
+    case PullNone:
+        // NOTE: Not support
+        return;
 
-        case OpenDrain:
-            mode_intern = GPIO_MODE_OPEN_DRAIN;
-            break;
+    case PushPull:
+        mode_intern = GPIO_MODE_OUTPUT;
+        break;
 
-        case QuasiBidirectional:
-            mode_intern = GPIO_MODE_QUASI;
-            break;
+    case OpenDrain:
+        mode_intern = GPIO_MODE_OPEN_DRAIN;
+        break;
 
-        default:
-            /* H/W doesn't support separate configuration for input pull mode/direction.
-             * We expect upper layer would have translated input pull mode/direction
-             * to I/O mode */
-            return;
+    case Quasi:
+        mode_intern = GPIO_MODE_QUASI;
+        break;
     }
 
     GPIO_SetMode(gpio_base, 1 << pin_index, mode_intern);
-
-    /* Invalid combinations of PinMode/PinDirection
-     *
-     * We assume developer would avoid the following combinations of PinMode/PinDirection
-     * which are invalid:
-     * 1. InputOnly/PIN_OUTPUT
-     * 2. PushPullOutput/PIN_INPUT
-     */
-}
-
-/* List of pins excluded from testing */
-const PinList *pinmap_restricted_pins()
-{
-    static const PinName pins[] = {
-        USBTX, USBRX,   // Dedicated to USB VCOM
-#if defined(TARGET_NUMAKER_IOT_M487)
-        A2, A3,         // Dedicated to on-board ESP8266 WiFi module RTS/CTS
-#endif
-    };
-    static const PinList pin_list = {
-        sizeof(pins) / sizeof(pins[0]),
-        pins
-    };
-    return &pin_list;
-}
-
-/* List of peripherals excluded from testing */
-const PeripheralList *pinmap_restricted_peripherals()
-{
-    static const int perifs[] = {
-        STDIO_UART          // Dedicated to USB VCOM
-    };
-
-    static const PeripheralList peripheral_list = {
-        sizeof(perifs) / sizeof(perifs[0]),
-        perifs
-    };
-
-    return &peripheral_list;
 }

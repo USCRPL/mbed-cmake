@@ -24,23 +24,24 @@
  *
  * There's only one CRYPTO/CRPT module and we have the following policy for configuring its secure attribute:
  *
- * 1. mbedtls H/W support can be enabled on either secure target or non-secure target, but not both.
- * 2. On secure target, if mbedtls H/W support is enabled, CRYPTO/CRPT must configure to secure.
- * 3. On non-secure target, if mbedtls H/W support is enabled, CRYPTO/CRPT must configure to non-secure.
+ * 1. TRNG or mbedtls H/W support can be enabled on either secure target or non-secure target, but not both.
+ * 2. TRNG and mbedtls H/W supports cannot be enabled on different targets.
+ * 3. On secure target, if TRNG or mbedtls H/W support is enabled, CRYPTO/CRPT must configure to secure.
+ * 4. On non-secure target, if TRNG or mbedtls H/W support is enabled, CRYPTO/CRPT must configure to non-secure.
  */
-#if defined(MBEDTLS_CONFIG_HW_SUPPORT)
+#if DEVICE_TRNG || defined(MBEDTLS_CONFIG_HW_SUPPORT)
     #if defined(__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3U)
         #if defined(SCU_INIT_PNSSET1_VAL) && (SCU_INIT_PNSSET1_VAL & (1 << 18))
-            #error("CRYPTO/CRPT must configure to secure for secure target which supports mbedtls H/W")
+            #error("CRYPTO/CRPT must configure to secure for secure target which supports TRNG or mbedtls H/W")
         #endif
     #else
         #if (! defined(SCU_INIT_PNSSET1_VAL)) || (! (SCU_INIT_PNSSET1_VAL & (1 << 18)))
-            #error("CRYPTO/CRPT must configure to non-secure for non-secure target which supports mbedtls H/W")
+            #error("CRYPTO/CRPT must configure to non-secure for non-secure target which supports TRNG or mbedtls H/W")
         #endif
     #endif
 #endif
 
-#if defined(MBEDTLS_CONFIG_HW_SUPPORT)
+#if DEVICE_TRNG || defined(MBEDTLS_CONFIG_HW_SUPPORT)
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,32 +66,25 @@ void crypto_uninit(void);
 void crypto_zeroize(void *v, size_t n);
 void crypto_zeroize32(uint32_t *v, size_t n);
 
-/* Acquire/release ownership of crypto sub-module
- * 
- * \note            "acquire" is blocking until ownership is acquired
- *
- * \note            "acquire"/"release" must be paired.
- *
- * \note            Recursive "acquire" is allowed because the underlying synchronization
- *                  primitive mutex supports it.
- */
-void crypto_aes_acquire(void);
+/* Acquire/release ownership of AES H/W */
+/* NOTE: If "acquire" succeeds, "release" must be done to pair it. */
+bool crypto_aes_acquire(void);
 void crypto_aes_release(void);
-void crypto_des_acquire(void);
-void crypto_des_release(void);
-void crypto_ecc_acquire(void);
-void crypto_ecc_release(void);
 
-/* Acquire/release ownership of crypto sub-module
- * 
- * \return          false if crytpo sub-module is held by another thread or
- *                  another mbedtls context.
- *                  true if successful
- *
- * \note            Successful "try_acquire" and "release" must be paired.
- */
-bool crypto_sha_try_acquire(void);
+/* Acquire/release ownership of DES H/W */
+/* NOTE: If "acquire" succeeds, "release" must be done to pair it. */
+bool crypto_des_acquire(void);
+void crypto_des_release(void);
+
+/* Acquire/release ownership of SHA H/W */
+/* NOTE: If "acquire" succeeds, "release" must be done to pair it. */
+bool crypto_sha_acquire(void);
 void crypto_sha_release(void);
+
+/* Acquire/release ownership of ECC H/W */
+/* NOTE: If "acquire" succeeds, "release" must be done to pair it. */
+bool crypto_ecc_acquire(void);
+void crypto_ecc_release(void);
 
 /* Flow control between crypto/xxx start and crypto/xxx ISR 
  *
@@ -131,6 +125,6 @@ bool crypto_dma_buffs_overlap(const void *in_buff, size_t in_buff_size, const vo
 }
 #endif
 
-#endif  /* defined(MBEDTLS_CONFIG_HW_SUPPORT) */
+#endif  /* #if DEVICE_TRNG || defined(MBEDTLS_CONFIG_HW_SUPPORT) */
 
 #endif

@@ -253,9 +253,8 @@ void serial_clear(serial_t *obj)
     struct serial_s *obj_s = SERIAL_S(obj);
     UART_HandleTypeDef *huart = &uart_handlers[obj_s->index];
 
-    /* Clear RXNE and error flags */
-    volatile uint32_t tmpval __attribute__((unused)) = huart->Instance->DR; 
-    HAL_UART_ErrorCallback(huart);
+    huart->TxXferCount = 0;
+    huart->RxXferCount = 0;
 }
 
 void serial_break_set(serial_t *obj)
@@ -527,6 +526,13 @@ uint8_t serial_rx_active(serial_t *obj)
     return (((HAL_UART_GetState(huart) & HAL_UART_STATE_BUSY_RX) == HAL_UART_STATE_BUSY_RX) ? 1 : 0);
 }
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) != RESET) {
+        __HAL_UART_CLEAR_FLAG(huart, UART_FLAG_TC);
+    }
+}
+
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     if (__HAL_UART_GET_FLAG(huart, UART_FLAG_PE) != RESET) {
@@ -553,7 +559,7 @@ int serial_irq_handler_asynch(serial_t *obj)
 
     volatile int return_event = 0;
     uint8_t *buf = (uint8_t *)(obj->rx_buff.buffer);
-    size_t i = 0;
+    uint8_t i = 0;
 
     // TX PART:
     if (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) != RESET) {
@@ -632,6 +638,9 @@ void serial_tx_abort_asynch(serial_t *obj)
     __HAL_UART_DISABLE_IT(huart, UART_IT_TC);
     __HAL_UART_DISABLE_IT(huart, UART_IT_TXE);
 
+    // clear flags
+    __HAL_UART_CLEAR_FLAG(huart, UART_FLAG_TC);
+
     // reset states
     huart->TxXferCount = 0;
     // update handle state
@@ -660,7 +669,7 @@ void serial_rx_abort_asynch(serial_t *obj)
 
     // clear flags
     __HAL_UART_CLEAR_FLAG(huart, UART_FLAG_RXNE);
-    volatile uint32_t tmpval __attribute__((unused)) = huart->Instance->DR; // Clear Rx empty flags
+    volatile uint32_t tmpval __attribute__((unused)) = huart->Instance->DR; // Clear error flags
 
     // reset states
     huart->RxXferCount = 0;
@@ -687,13 +696,13 @@ void serial_set_flow_control(serial_t *obj, FlowControl type, PinName rxflow, Pi
 {
     struct serial_s *obj_s = SERIAL_S(obj);
 
-    // Checked used UART name (UART_1, UART_2, ...)
+    // Determine the UART to use (UART_1, UART_2, ...)
     UARTName uart_rts = (UARTName)pinmap_peripheral(rxflow, PinMap_UART_RTS);
     UARTName uart_cts = (UARTName)pinmap_peripheral(txflow, PinMap_UART_CTS);
-    if (((UARTName)pinmap_merge(uart_rts, obj_s->uart) == (UARTName)NC) || ((UARTName)pinmap_merge(uart_cts, obj_s->uart) == (UARTName)NC)) {
-        MBED_ASSERT(0);
-        return;
-    }
+
+    // Get the peripheral name (UART_1, UART_2, ...) from the pin and assign it to the object
+    obj_s->uart = (UARTName)pinmap_merge(uart_cts, uart_rts);
+    MBED_ASSERT(obj_s->uart != (UARTName)NC);
 
     if (type == FlowControlNone) {
         // Disable hardware flow control

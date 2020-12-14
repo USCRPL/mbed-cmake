@@ -105,9 +105,6 @@ uint16_t adc_read(analogin_t *obj)
     ADC_ChannelConfTypeDef sConfig = {0};
 
     // Configure ADC channel
-    sConfig.Rank         = ADC_REGULAR_RANK_1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_48CYCLES;
-
     switch (obj->channel) {
         case 0:
             sConfig.Channel = ADC_CHANNEL_0;
@@ -159,11 +156,9 @@ uint16_t adc_read(analogin_t *obj)
             break;
         case 16:
             sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-            sConfig.SamplingTime = ADC_SAMPLETIME_384CYCLES;
             break;
         case 17:
             sConfig.Channel = ADC_CHANNEL_VREFINT;
-            sConfig.SamplingTime = ADC_SAMPLETIME_384CYCLES;
             break;
         case 18:
             sConfig.Channel = ADC_CHANNEL_18;
@@ -221,22 +216,19 @@ uint16_t adc_read(analogin_t *obj)
             return 0;
     }
 
+    sConfig.Rank         = ADC_REGULAR_RANK_1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_16CYCLES;
+
     HAL_ADC_ConfigChannel(&obj->handle, &sConfig);
 
     HAL_ADC_Start(&obj->handle); // Start conversion
 
     // Wait end of conversion and get value
-    uint16_t adcValue = 0;
     if (HAL_ADC_PollForConversion(&obj->handle, 10) == HAL_OK) {
-        adcValue = (uint16_t)HAL_ADC_GetValue(&obj->handle);
+        return (uint16_t)HAL_ADC_GetValue(&obj->handle);
+    } else {
+        return 0;
     }
-    LL_ADC_SetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE((&obj->handle)->Instance), LL_ADC_PATH_INTERNAL_NONE);
-    return adcValue;
-}
-
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
 }
 
 #endif

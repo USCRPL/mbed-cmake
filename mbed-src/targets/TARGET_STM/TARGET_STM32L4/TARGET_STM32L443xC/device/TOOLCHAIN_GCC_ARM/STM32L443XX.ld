@@ -6,18 +6,11 @@
   #define MBED_APP_SIZE 256k
 #endif
 
-#if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x400
-#endif
-
-STACK_SIZE = MBED_BOOT_STACK_SIZE;
-
 /* Linker script to configure memory regions. */
-/* 0x18C resevered for vectors; 8-byte aligned = 0x190 (0x18C + 0x4)*/
 MEMORY
 {
   FLASH (rx)   : ORIGIN = MBED_APP_START, LENGTH = MBED_APP_SIZE
-  SRAM2 (rwx)  : ORIGIN = 0x10000190, LENGTH = 16k - (0x18C+0x4)
+  SRAM2 (rwx)  : ORIGIN = 0x1000018C, LENGTH = 16k - 0x18C
   SRAM1 (rwx)  : ORIGIN = 0x20000000, LENGTH = 48k
 }
 
@@ -93,35 +86,6 @@ SECTIONS
     __etext = .;
     _sidata = .;
 
-    /* .stack section doesn't contains any symbols. It is only
-     * used for linker to reserve space for the isr stack section
-     * WARNING: .stack should come immediately after the last secure memory
-     * section.  This provides stack overflow detection. */
-    .stack (NOLOAD):
-    {
-        __StackLimit = .;
-        *(.stack*);
-        . += STACK_SIZE - (. - __StackLimit);
-    } > SRAM2
-
-    /* Set stack top to end of RAM, and stack limit move down by
-     * size of stack_dummy section */
-    __StackTop = ADDR(.stack) + SIZEOF(.stack);
-    _estack = __StackTop;
-    __StackLimit = ADDR(.stack);
-    PROVIDE(__stack = __StackTop);
-
-    /* Place holder for additional heap */
-    .heap_0 (COPY):
-    {
-        __mbed_sbrk_start_0 = .;
-        . += (ORIGIN(SRAM2) + LENGTH(SRAM2) - .);
-        __mbed_krbs_start_0 = .;
-    } > SRAM2
-
-    /* Check if heap exceeds SRAM2 */
-    ASSERT(__mbed_krbs_start_0 <= (ORIGIN(SRAM2)+LENGTH(SRAM2)), "Heap is too big for SRAM2")
-
     .data : AT (__etext)
     {
         __data_start__ = .;
@@ -129,13 +93,13 @@ SECTIONS
         *(vtable)
         *(.data*)
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* preinit data */
         PROVIDE_HIDDEN (__preinit_array_start = .);
         KEEP(*(.preinit_array))
         PROVIDE_HIDDEN (__preinit_array_end = .);
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* init data */
         PROVIDE_HIDDEN (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
@@ -143,7 +107,7 @@ SECTIONS
         PROVIDE_HIDDEN (__init_array_end = .);
 
 
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* finit data */
         PROVIDE_HIDDEN (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
@@ -151,43 +115,48 @@ SECTIONS
         PROVIDE_HIDDEN (__fini_array_end = .);
 
         KEEP(*(.jcr*))
-        . = ALIGN(8);
+        . = ALIGN(4);
         /* All data end */
         __data_end__ = .;
         _edata = .;
 
     } > SRAM1
 
-    /* Check if bss exceeds SRAM1 */
-    ASSERT(__data_end__ <= (ORIGIN(SRAM1)+LENGTH(SRAM1)), ".data is too big for SRAM1")
-
     .bss :
     {
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_start__ = .;
         _sbss = .;
         *(.bss*)
         *(COMMON)
-        . = ALIGN(8);
+        . = ALIGN(4);
         __bss_end__ = .;
         _ebss = .;
     } > SRAM1
 
-    /* Check if bss exceeds SRAM1 */
-    ASSERT(__bss_end__ <= (ORIGIN(SRAM1)+LENGTH(SRAM1)), "BSS is too big for SRAM1")
-
-    /* Placeholder for default single heap */
     .heap (COPY):
     {
         __end__ = .;
         end = __end__;
-        __mbed_sbrk_start = .;
         *(.heap*)
-        . += (ORIGIN(SRAM1) + LENGTH(SRAM1) - .);
-        __mbed_krbs_start = .;
         __HeapLimit = .;
     } > SRAM1
 
-    /* Check if heap exceeds SRAM1 */
-    ASSERT(__HeapLimit <= (ORIGIN(SRAM1)+LENGTH(SRAM1)), "Heap is too big for SRAM1")
+    /* .stack_dummy section doesn't contains any symbols. It is only
+     * used for linker to calculate size of stack sections, and assign
+     * values to stack symbols later */
+    .stack_dummy (COPY):
+    {
+        *(.stack*)
+    } > SRAM1
+
+    /* Set stack top to end of RAM, and stack limit move down by
+     * size of stack_dummy section */
+    __StackTop = ORIGIN(SRAM1) + LENGTH(SRAM1);
+    _estack = __StackTop;
+    __StackLimit = __StackTop - SIZEOF(.stack_dummy);
+    PROVIDE(__stack = __StackTop);
+
+    /* Check if data + heap + stack exceeds RAM limit */
+    ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
 }
