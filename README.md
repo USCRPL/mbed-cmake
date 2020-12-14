@@ -58,8 +58,11 @@ target_link_libraries(max31856 mbed-os)
 ```
 
 ## Bundled Mbed
-This repository includes Mbed OS 6.1.0 stable. 
-You should be able to use a different version of Mbed by simply replacing the `mbed-src` folder, just be sure to copy CMakeLists.txt into the new mbed-src folder.  Note that unignore rules in the .mbedignore is currently an mbed-cmake extension and this functionality will be lost if you replace mbed-src.  We submitted a PR to upstream, but it was denied.
+This repository includes Mbed OS 6.5.0 stable in the master branch. 
+
+If you need an older OS version, Mbed 5.15.6 is available in the "retro" branch of this project, and Mbed 2 r163 is available by pulling the "paleo" branch.
+
+If you need a different version from those three, you should be able to use a different version of Mbed by simply replacing the `mbed-src` folder -- just be sure to copy CMakeLists.txt into the new mbed-src folder.  We also recommend keeping the `tools` folder from the bundled mbed version, as it's guaranteed to be compatible with the mbed-cmake python scripts, and it also includes our own unignore rules mbedignore patch.
 
 ## Limitations
 - Currently Mbed-cmake only supports the GNU Arm Embedded (`-t GCC_ARM`) and ARMClang (`-t ARMC6`) toolchains.  
