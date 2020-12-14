@@ -15,29 +15,27 @@
  * limitations under the License.
  */
 #include "drivers/Ticker.h"
-#include "drivers/LowPowerTicker.h"
 
-#include "hal/us_ticker_api.h"
-#include "hal/lp_ticker_api.h"
-#include "platform/CriticalSectionLock.h"
+#include "drivers/TimerEvent.h"
+#include "platform/FunctionPointer.h"
+#include "hal/ticker_api.h"
+#include "platform/mbed_critical.h"
 #include "platform/mbed_power_mgmt.h"
-
-using namespace std::chrono;
 
 namespace mbed {
 
-TickerBase::TickerBase(const ticker_data_t *data) : TickerBase(data, !data->interface->runs_in_deep_sleep)
+Ticker::Ticker() : TimerEvent(), _delay(0), _function(0), _lock_deepsleep(true)
 {
 }
 
 // When low power ticker is in use, then do not disable deep sleep.
-TickerBase::TickerBase(const ticker_data_t *data, bool lock_deepsleep) : TimerEvent(data),  _lock_deepsleep(lock_deepsleep)
+Ticker::Ticker(const ticker_data_t *data) : TimerEvent(data), _delay(0), _function(0), _lock_deepsleep(!data->interface->runs_in_deep_sleep)
 {
 }
 
-void TickerBase::detach()
+void Ticker::detach()
 {
-    CriticalSectionLock lock;
+    core_util_critical_section_enter();
     remove();
     // unlocked only if we were attached (we locked it) and this is not low power ticker
     if (_function && _lock_deepsleep) {
@@ -45,70 +43,36 @@ void TickerBase::detach()
     }
 
     _function = 0;
+    core_util_critical_section_exit();
 }
 
-void TickerBase::setup(microseconds t)
+void Ticker::setup(us_timestamp_t t)
 {
+    core_util_critical_section_enter();
     remove();
     _delay = t;
-    insert_absolute(_ticker_data.now() + t);
+    insert_absolute(_delay + ticker_read_us(_ticker_data));
+    core_util_critical_section_exit();
 }
 
-void TickerBase::setup_absolute(TickerDataClock::time_point t)
+void Ticker::handler()
 {
-    remove();
-    insert_absolute(t);
-}
-
-void TickerBase::handler()
-{
-    insert_absolute(get_time_point(event) + _delay);
+    insert_absolute(event.timestamp + _delay);
     if (_function) {
         _function();
     }
 }
 
-void TickerBase::attach(Callback<void()> func, microseconds t)
+void Ticker::attach_us(Callback<void()> func, us_timestamp_t t)
 {
-    CriticalSectionLock lock;
+    core_util_critical_section_enter();
     // lock only for the initial callback setup and this is not low power ticker
     if (!_function && _lock_deepsleep) {
         sleep_manager_lock_deep_sleep();
     }
     _function = func;
     setup(t);
+    core_util_critical_section_exit();
 }
-
-void TickerBase::attach_us(Callback<void()> func, us_timestamp_t t)
-{
-    CriticalSectionLock lock;
-    // lock only for the initial callback setup and this is not low power ticker
-    if (!_function && _lock_deepsleep) {
-        sleep_manager_lock_deep_sleep();
-    }
-    _function = func;
-    setup(microseconds{t});
-}
-
-void TickerBase::attach_absolute(Callback<void()> func, TickerDataClock::time_point abs_time)
-{
-    CriticalSectionLock lock;
-    // lock only for the initial callback setup and this is not low power ticker
-    if (!_function && _lock_deepsleep) {
-        sleep_manager_lock_deep_sleep();
-    }
-    _function = func;
-    setup_absolute(abs_time);
-}
-
-Ticker::Ticker() : TickerBase(get_us_ticker_data(), true)
-{
-}
-
-#if DEVICE_LPTICKER
-LowPowerTicker::LowPowerTicker() : TickerBase(get_lp_ticker_data(), false)
-{
-}
-#endif
 
 } // namespace mbed

@@ -1,30 +1,32 @@
 /***************************************************************************//**
- * @file
+ * @file em_aes.h
  * @brief Advanced encryption standard (AES) accelerator peripheral API.
+ * @version 5.3.3
  *******************************************************************************
  * # License
- * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2016 Silicon Laboratories, Inc. http://www.silabs.com</b>
  *******************************************************************************
- *
- * SPDX-License-Identifier: Zlib
- *
- * The licensor of this software is Silicon Laboratories Inc.
- *
- * This software is provided 'as-is', without any express or implied
- * warranty. In no event will the authors be held liable for any damages
- * arising from the use of this software.
  *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
+ *    claim that you wrote the original software.
  * 2. Altered source versions must be plainly marked as such, and must not be
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
+ *
+ * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Labs has no
+ * obligation to support this Software. Silicon Labs is providing the
+ * Software "AS IS", with no express or implied warranties of any kind,
+ * including, but not limited to, any implied warranties of merchantability
+ * or fitness for any particular purpose or warranties against infringement
+ * of any proprietary rights of a third party.
+ *
+ * Silicon Labs will not be liable for any consequential, incidental, or
+ * special damages, or any other relief, or for any claim by any third party,
+ * arising from your use of this Software.
  *
  ******************************************************************************/
 
@@ -60,26 +62,26 @@ extern "C" {
  *
  *   The following input/output notations should be noted:
  *
- *   @li Input/output data (plaintext, ciphertext, key, and so on) are treated as
- *     byte arrays, starting with the most significant byte, i.e., 32 bytes of
+ *   @li Input/output data (plaintext, ciphertext, key etc) are treated as
+ *     byte arrays, starting with most significant byte. Ie, 32 bytes of
  *     plaintext (B0...B31) is located in memory in the same order, with B0 at
  *     the lower address and B31 at the higher address.
  *
- *   @li Byte arrays must always be a multiple of AES block size, i.e., a multiple
+ *   @li Byte arrays must always be a multiple of AES block size, ie a multiple
  *     of 16. Padding, if required, is done at the end of the byte array.
  *
  *   @li Byte arrays should be word (32 bit) aligned for performance
- *     considerations, since the array is accessed with a 32 bit access type.
- *     Cortex-M supports unaligned accesses with a performance penalty.
+ *     considerations, since the array is accessed with 32 bit access type.
+ *     The Cortex-M supports unaligned accesses, but with a performance penalty.
  *
- *   @li It is possible to specify the same output buffer as an input buffer
- *     as long as they point to the same address. In that case, the provided input
- *     buffer is replaced with the encrypted/decrypted output. Notice that
+ *   @li It is possible to specify the same output buffer as input buffer
+ *     as long as they point to the same address. In that case the provided input
+ *     buffer is replaced with the encrypted/decrypted output. Notice that the
  *     buffers must be exactly overlapping. If partly overlapping, the
- *     behavior is undefined.
+ *     behaviour is undefined.
  *
- *   Use a cipher mode according to its requirements to avoid
- *   breaking security. See a specific cipher mode
+ *   It is up to the user to use a cipher mode according to its requirements
+ *   in order to not break security. Please refer to specific cipher mode
  *   theory for details.
  *
  *   References:
@@ -89,7 +91,7 @@ extern "C" {
  *      NIST Special Publication 800-38A, 2001 Edition,
  *      http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
  *
- *  The following example shows how to perform an AES-128 CBC encryption:
+ *  E.g. the following example shows how to perform an AES-128 CBC encryption:
  *
  *  Enable clocks:
  *  @include em_aes_clock_enable.c
@@ -106,10 +108,10 @@ extern "C" {
 
 /**
  * @brief
- *   An AES counter modification function pointer.
+ *   AES counter modification function pointer.
  * @details
  *   Parameters:
- *   @li ctr - Ptr to byte array (16 bytes) holding a counter to be modified.
+ *   @li ctr - Ptr to byte array (16 bytes) holding counter to be modified.
  */
 typedef void (*AES_CtrFuncPtr_TypeDef)(uint8_t *ctr);
 
@@ -192,7 +194,7 @@ void AES_ECB256(uint8_t *out,
  *   Clear one or more pending AES interrupts.
  *
  * @param[in] flags
- *   A pending AES interrupt source to clear. Use a bitwise logic OR combination of
+ *   Pending AES interrupt source to clear. Use a bitwise logic OR combination of
  *   valid interrupt flags for the AES module (AES_IF_nnn).
  ******************************************************************************/
 __STATIC_INLINE void AES_IntClear(uint32_t flags)
@@ -205,7 +207,7 @@ __STATIC_INLINE void AES_IntClear(uint32_t flags)
  *   Disable one or more AES interrupts.
  *
  * @param[in] flags
- *   An AES interrupt sources to disable. Use a bitwise logic OR combination of
+ *   AES interrupt sources to disable. Use a bitwise logic OR combination of
  *   valid interrupt flags for the AES module (AES_IF_nnn).
  ******************************************************************************/
 __STATIC_INLINE void AES_IntDisable(uint32_t flags)
@@ -218,9 +220,9 @@ __STATIC_INLINE void AES_IntDisable(uint32_t flags)
  *   Enable one or more AES interrupts.
  *
  * @note
- *   Depending on use, a pending interrupt may already be set prior to
+ *   Depending on the use, a pending interrupt may already be set prior to
  *   enabling the interrupt. Consider using AES_IntClear() prior to enabling
- *   if a pending interrupt should be ignored.
+ *   if such a pending interrupt should be ignored.
  *
  * @param[in] flags
  *   AES interrupt sources to enable. Use a bitwise logic OR combination of
@@ -236,7 +238,7 @@ __STATIC_INLINE void AES_IntEnable(uint32_t flags)
  *   Get pending AES interrupt flags.
  *
  * @note
- *   This function does not clear event bits.
+ *   The event bits are not cleared by the use of this function.
  *
  * @return
  *   AES interrupt sources pending. A bitwise logic OR combination of valid
@@ -253,10 +255,10 @@ __STATIC_INLINE uint32_t AES_IntGet(void)
  *   Useful for handling more interrupt sources in the same interrupt handler.
  *
  * @note
- *   This function does not clear interrupt flags.
+ *   Interrupt flags are not cleared by the use of this function.
  *
  * @return
- *   Pending and enabled AES interrupt sources.
+ *   Pending and enabled AES interrupt sources
  *   The return value is the bitwise AND of
  *   - the enabled interrupt sources in AES_IEN and
  *   - the pending interrupt flags AES_IF
@@ -271,10 +273,10 @@ __STATIC_INLINE uint32_t AES_IntGetEnabled(void)
 
 /***************************************************************************//**
  * @brief
- *   Set one or more pending AES interrupts from software.
+ *   Set one or more pending AES interrupts from SW.
  *
  * @param[in] flags
- *   AES interrupt sources to set as pending. Use a bitwise logic OR combination
+ *   AES interrupt sources to set to pending. Use a bitwise logic OR combination
  *   of valid interrupt flags for the AES module (AES_IF_nnn).
  ******************************************************************************/
 __STATIC_INLINE void AES_IntSet(uint32_t flags)

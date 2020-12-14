@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017 ARM Limited
- * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +24,7 @@
 #include "rtos_idle.h"
 #include "rtos_handlers.h"
 #include "platform/mbed_critical.h"
-#include "platform/internal/mbed_os_timer.h"
+#include "platform/source/mbed_os_timer.h"
 
 #if !MBED_CONF_RTOS_PRESENT
 /* If the RTOS is not present, we call mbed_thread.cpp to do the work */
@@ -35,14 +34,7 @@
 
 namespace rtos {
 
-constexpr bool Kernel::Clock::is_steady;
-
 uint64_t Kernel::get_ms_count()
-{
-    return impl::get_tick_count();
-
-}
-uint64_t Kernel::impl::get_tick_count()
 {
 #if MBED_CONF_RTOS_PRESENT
     // CMSIS-RTOS 2.1.0 and 2.1.1 differ in the time type. We assume

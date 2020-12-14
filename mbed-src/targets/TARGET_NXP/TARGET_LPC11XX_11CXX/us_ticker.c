@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +23,6 @@
 int us_ticker_inited = 0;
 
 void us_ticker_init(void) {
-    // First, disabled interrupt
-    US_TICKER_TIMER->MCR &= ~1;
-    
     if (us_ticker_inited) return;
     us_ticker_inited = 1;
     

@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2018 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,18 +50,18 @@ void us_ticker_init(void)
 {
     /* Common for ticker/timer. */
     uint32_t busClock;
+    /* Structure to initialize PIT. */
+    pit_config_t pitConfig;
 
     us_ticker_setup_clock();
+
+    PIT_GetDefaultConfig(&pitConfig);
+    PIT_Init(PIT, &pitConfig);
 
     busClock = us_ticker_get_clock();
 
     /* Let the timer to count if re-init. */
     if (!us_ticker_inited) {
-        /* Structure to initialize PIT. */
-        pit_config_t pitConfig;
-
-        PIT_GetDefaultConfig(&pitConfig);
-        PIT_Init(PIT, &pitConfig);
 
         PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, busClock / 1000000 - 1);
         PIT_SetTimerPeriod(PIT, kPIT_Chnl_1, 0xFFFFFFFF);

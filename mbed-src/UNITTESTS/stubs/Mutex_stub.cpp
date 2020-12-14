@@ -27,7 +27,7 @@ rtos::Mutex::~Mutex()
     return;
 }
 
-osStatus rtos::Mutex::lock()
+osStatus rtos::Mutex::lock(uint32_t millisec)
 {
     return osOK;
 }

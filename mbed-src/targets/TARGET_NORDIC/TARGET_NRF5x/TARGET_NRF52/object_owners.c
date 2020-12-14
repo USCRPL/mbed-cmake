@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-#include "sdk_config.h"
 #include "object_owners.h"
 
 #include "nrf.h"
@@ -23,13 +22,9 @@
 
 #include <stdio.h>
 
-#if NRFX_SPIM_ENABLED
-#define SPI2C_INSTANCES SPIM_COUNT
-#elif NRFX_SPI_ENABLED
 #define SPI2C_INSTANCES SPI_COUNT
-#endif
 
-static void * nordic_spi2c_owners[SPI2C_INSTANCES] = { NULL };
+static void * nordic_spi2c_owners[SPI2C_INSTANCES] = { NULL, NULL, NULL };
 
 /**
  * Brief       Set instance owner for the SPI/I2C peripheral.

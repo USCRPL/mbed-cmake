@@ -53,13 +53,6 @@ def get_cmake_tool():
 
     return _get_program(["cmake"])
 
-def get_valgrind_tool():
-    """
-    Get Valgrind program
-    """
-
-    return _get_program(["valgrind"])
-
 def get_cxx_tool():
     """
     Get C++ compiler

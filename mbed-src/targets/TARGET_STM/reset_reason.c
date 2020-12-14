@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2017 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +28,7 @@ reset_reason_t hal_reset_reason_get(void)
 #endif
 
 #ifdef RCC_FLAG_LPWR1RST
-    if ((__HAL_RCC_GET_FLAG(RCC_FLAG_LPWR1RST)) || (__HAL_RCC_GET_FLAG(RCC_FLAG_LPWR2RST))) {
+    if ((__HAL_RCC_GET_FLAG(RCC_FLAG_LPWR1RST))||(__HAL_RCC_GET_FLAG(RCC_FLAG_LPWR2RST))) {
         return RESET_REASON_WAKE_LOW_POWER;
     }
 #endif

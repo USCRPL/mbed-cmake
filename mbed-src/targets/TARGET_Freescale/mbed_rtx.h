@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2016 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +19,19 @@
 
 #include <stdint.h>
 
-#if defined(TARGET_MCU_K22F)
+#if defined(TARGET_K20D50M)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x10008000UL)
+#endif
+
+#elif defined(TARGET_TEENSY3_1)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20008000UL)
+#endif
+
+#elif defined(TARGET_MCU_K22F)
 
 #ifndef INITIAL_SP
 #define INITIAL_SP              (0x20010000UL)
@@ -44,7 +55,19 @@
 #define INITIAL_SP              (0x20006000UL)
 #endif
 
+#elif defined(TARGET_KL05Z)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20000C00UL)
+#endif
+
 #elif defined(TARGET_KL25Z)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20003000UL)
+#endif
+
+#elif defined(TARGET_KL26Z)
 
 #ifndef INITIAL_SP
 #define INITIAL_SP              (0x20003000UL)
@@ -54,6 +77,12 @@
 
 #ifndef INITIAL_SP
 #define INITIAL_SP              (0x20006000UL)
+#endif
+
+#elif defined(TARGET_KL82Z)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20012000UL)
 #endif
 
 #elif defined(TARGET_K64F)
@@ -68,6 +97,12 @@
 #define INITIAL_SP              (0x20030000UL)
 #endif
 
+#elif defined(TARGET_KW24D)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20008000UL)
+#endif
+
 #elif defined(TARGET_KW41Z)
 
 #ifndef INITIAL_SP
@@ -75,6 +110,12 @@
 #endif
 
 #elif defined(TARGET_K82F)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20030000UL)
+#endif
+
+#elif defined(TARGET_RO359B)
 
 #ifndef INITIAL_SP
 #define INITIAL_SP              (0x20030000UL)

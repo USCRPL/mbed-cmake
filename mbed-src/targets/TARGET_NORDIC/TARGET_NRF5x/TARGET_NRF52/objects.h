@@ -43,11 +43,7 @@
 #include "PortNames.h"
 #include "PeripheralNames.h"
 #include "PinNames.h"
-#if NRFX_SPIM_ENABLED && DEVICE_SPI
-#include "nrfx_spim.h"
-#elif DEVICE_SPI
 #include "nrfx_spi.h"
-#endif
 #include "nrf_twi.h"
 
 #include "nrf_pwm.h"
@@ -56,9 +52,9 @@
 extern "C" {
 #endif
 
-#include "nrf_uarte.h"
+#include "nrf_uart.h"
 
-#if MBED_CONF_CRYPTOCELL310_PRESENT
+#if defined(FEATURE_CRYPTOCELL310)
 #include "objects_cryptocell.h"
 #else
 struct trng_s {
@@ -72,9 +68,9 @@ struct serial_s {
     uint32_t            rx;
     uint32_t            cts;
     uint32_t            rts;
-    nrf_uarte_hwfc_t     hwfc;
-    nrf_uarte_parity_t   parity;
-    nrf_uarte_baudrate_t baudrate;
+    nrf_uart_hwfc_t     hwfc;
+    nrf_uart_parity_t   parity;
+    nrf_uart_baudrate_t baudrate;
     uint32_t            context;
     uint32_t            handler;
     uint32_t            mask;
@@ -94,11 +90,7 @@ struct serial_s {
 struct spi_s {
     int instance;
     PinName cs;
-#if NRFX_SPIM_ENABLED && DEVICE_SPI
-    nrfx_spim_config_t config;
-#elif DEVICE_SPI
     nrfx_spi_config_t config;
-#endif
     bool update;
 
 #if DEVICE_SPI_ASYNCH
@@ -135,12 +127,6 @@ struct i2c_s {
     uint32_t handler;
     uint32_t mask;
     uint32_t event;
-#endif
-
-#if DEVICE_I2CSLAVE
-    bool was_slave;
-    bool is_slave;
-    uint8_t slave_addr;
 #endif
 };
 

@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +38,7 @@ static gpio_irq_handler irq_handler;
 static GPIO_Type * const gpio_addrs[] = GPIO_BASE_PTRS;
 
 /* Array of PORT IRQ number. */
-static const IRQn_Type gpio_low_irqs[] = GPIO_COMBINED_LOW_IRQS;
-static const IRQn_Type gpio_high_irqs[] = GPIO_COMBINED_HIGH_IRQS;
+static const IRQn_Type gpio_irqs[] = GPIO_COMBINED_IRQS;
 
 static void handle_interrupt_in(PortName port, int ch_base)
 {
@@ -119,6 +117,8 @@ void gpio5_irq(void)
 
 int gpio_irq_init(gpio_irq_t *obj, PinName pin, gpio_irq_handler handler, uint32_t id)
 {
+    uint32_t int_index;
+
     if (pin == NC) {
         return -1;
     }
@@ -156,13 +156,13 @@ int gpio_irq_init(gpio_irq_t *obj, PinName pin, gpio_irq_handler handler, uint32
             break;
     }
 
+    int_index = 2 * obj->port;
     if (obj->pin > 15) {
-        NVIC_SetVector(gpio_high_irqs[obj->port], vector);
-        NVIC_EnableIRQ(gpio_high_irqs[obj->port]);
-    } else {
-        NVIC_SetVector(gpio_low_irqs[obj->port], vector);
-        NVIC_EnableIRQ(gpio_low_irqs[obj->port]);
+        int_index -= 1;
     }
+
+    NVIC_SetVector(gpio_irqs[int_index], vector);
+    NVIC_EnableIRQ(gpio_irqs[int_index]);
 
     obj->ch = ch_base + obj->pin;
     channel_ids[obj->ch] = id;
@@ -243,20 +243,12 @@ void gpio_irq_set(gpio_irq_t *obj, gpio_irq_event event, uint32_t enable)
 
 void gpio_irq_enable(gpio_irq_t *obj)
 {
-    if (obj->pin > 15) {
-        NVIC_EnableIRQ(gpio_high_irqs[obj->port]);
-    } else {
-        NVIC_EnableIRQ(gpio_low_irqs[obj->port]);
-    }
+    NVIC_EnableIRQ(gpio_irqs[obj->port]);
 }
 
 void gpio_irq_disable(gpio_irq_t *obj)
 {
-    if (obj->pin > 15) {
-        NVIC_DisableIRQ(gpio_high_irqs[obj->port]);
-    } else {
-        NVIC_DisableIRQ(gpio_low_irqs[obj->port]);
-    }
+    NVIC_DisableIRQ(gpio_irqs[obj->port]);
 }
 
 #endif

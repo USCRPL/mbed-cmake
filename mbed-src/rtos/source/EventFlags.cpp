@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2017 ARM Limited
- * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +21,10 @@
  */
 #include "rtos/EventFlags.h"
 #include "rtos/ThisThread.h"
-#include "platform/internal/mbed_os_timer.h"
+#include "mbed_os_timer.h"
 #include <string.h>
 #include "platform/mbed_error.h"
 #include "platform/mbed_assert.h"
-
-using std::milli;
-using std::chrono::duration;
 
 namespace rtos {
 
@@ -85,32 +81,12 @@ uint32_t EventFlags::get() const
 
 uint32_t EventFlags::wait_all(uint32_t flags, uint32_t millisec, bool clear)
 {
-    return wait_all_for(flags, duration<uint32_t, milli>(millisec), clear);
-}
-
-uint32_t EventFlags::wait_all_for(uint32_t flags, Kernel::Clock::duration_u32 rel_time, bool clear)
-{
-    return wait_for(flags, osFlagsWaitAll, rel_time, clear);
-}
-
-uint32_t EventFlags::wait_all_until(uint32_t flags, Kernel::Clock::time_point abs_time, bool clear)
-{
-    return wait_until(flags, osFlagsWaitAll, abs_time, clear);
+    return wait(flags, osFlagsWaitAll, millisec, clear);
 }
 
 uint32_t EventFlags::wait_any(uint32_t flags, uint32_t millisec, bool clear)
 {
-    return wait_any_for(flags, duration<uint32_t, milli>(millisec), clear);
-}
-
-uint32_t EventFlags::wait_any_for(uint32_t flags, Kernel::Clock::duration_u32 rel_time, bool clear)
-{
-    return wait_for(flags, osFlagsWaitAny, rel_time, clear);
-}
-
-uint32_t EventFlags::wait_any_until(uint32_t flags, Kernel::Clock::time_point abs_time, bool clear)
-{
-    return wait_until(flags, osFlagsWaitAny, abs_time, clear);
+    return wait(flags, osFlagsWaitAny, millisec, clear);
 }
 
 EventFlags::~EventFlags()
@@ -120,14 +96,14 @@ EventFlags::~EventFlags()
 #endif
 }
 
-uint32_t EventFlags::wait_for(uint32_t flags, uint32_t opt, Kernel::Clock::duration_u32 rel_time, bool clear)
+uint32_t EventFlags::wait(uint32_t flags, uint32_t opt, uint32_t millisec, bool clear)
 {
     if (clear == false) {
         opt |= osFlagsNoClear;
     }
 
 #if MBED_CONF_RTOS_PRESENT
-    return osEventFlagsWait(_id, flags, opt, rel_time.count());
+    return osEventFlagsWait(_id, flags, opt, millisec);
 #else
     rtos::internal::flags_check_capture check;
     check.flags = &_flags;
@@ -135,32 +111,15 @@ uint32_t EventFlags::wait_for(uint32_t flags, uint32_t opt, Kernel::Clock::durat
     check.flags_wanted = flags;
     check.result = 0;
     check.match = false;
-    mbed::internal::do_timed_sleep_relative_or_forever(rel_time, rtos::internal::non_rtos_check_flags, &check);
+    mbed::internal::do_timed_sleep_relative_or_forever(millisec, rtos::internal::non_rtos_check_flags, &check);
     if (check.match) {
         return check.result;
-    } else if (rel_time == rel_time.zero()) {
+    } else if (millisec == 0) {
         return osErrorResource;
     } else {
         return osErrorTimeout;
     }
 #endif
 }
-
-uint32_t EventFlags::wait_until(uint32_t flags, uint32_t opt, Kernel::Clock::time_point abs_time, bool clear)
-{
-    Kernel::Clock::time_point now = Kernel::Clock::now();
-
-    Kernel::Clock::duration_u32 rel_time;
-    if (now >= abs_time) {
-        rel_time = rel_time.zero();
-    } else if (abs_time - now > Kernel::wait_for_u32_max) {
-        // Documentation permits early return for big offsets
-        rel_time = Kernel::wait_for_u32_max;
-    } else {
-        rel_time = abs_time - now;
-    }
-    return wait_for(flags, opt, rel_time, clear);
-}
-
 
 }

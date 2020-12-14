@@ -15,10 +15,25 @@
  * limitations under the License.
  */
 
-#include "netsocket/SocketAddress.h"
+#include "SocketAddress.h"
+#include "NetworkInterface.h"
+#include "NetworkStack.h"
+#include <string.h>
+#include "mbed.h"
 
 
-SocketAddress::SocketAddress(const nsapi_addr_t &addr, uint16_t port)
+static bool ipv6_is_valid(const char *addr)
+{
+    return false;
+}
+
+static int ipv6_scan_chunk(uint16_t *shorts, const char *chunk)
+{
+    return 0;
+}
+
+
+SocketAddress::SocketAddress(nsapi_addr_t addr, uint16_t port)
 {
 }
 
@@ -34,6 +49,10 @@ SocketAddress::SocketAddress(const SocketAddress &addr)
 {
 }
 
+SocketAddress::~SocketAddress()
+{
+}
+
 bool SocketAddress::set_ip_address(const char *addr)
 {
     return false;
@@ -43,13 +62,40 @@ void SocketAddress::set_ip_bytes(const void *bytes, nsapi_version_t version)
 {
 }
 
-void SocketAddress::set_addr(const nsapi_addr_t &addr)
+void SocketAddress::set_addr(nsapi_addr_t addr)
+{
+}
+
+void SocketAddress::set_port(uint16_t port)
 {
 }
 
 const char *SocketAddress::get_ip_address() const
 {
     return NULL;
+}
+
+const void *SocketAddress::get_ip_bytes() const
+{
+    return NULL;
+}
+
+nsapi_version_t SocketAddress::get_ip_version() const
+{
+    nsapi_version_t ver = NSAPI_IPv6;
+    return ver;
+}
+
+nsapi_addr_t SocketAddress::get_addr() const
+{
+    nsapi_addr_t addr;
+    addr.version = NSAPI_IPv6;
+    return _addr;
+}
+
+uint16_t SocketAddress::get_port() const
+{
+    return 0;
 }
 
 SocketAddress::operator bool() const

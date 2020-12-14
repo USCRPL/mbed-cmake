@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "netsocket/ControlPlane_netif.h"
+#include "netsocket/cellular/ControlPlane_netif.h"
 #include <list>
 
 namespace mbed {

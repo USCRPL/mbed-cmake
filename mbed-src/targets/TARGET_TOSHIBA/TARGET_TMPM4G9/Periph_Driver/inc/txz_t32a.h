@@ -4,32 +4,10 @@
  * @brief   This file provides all the functions prototypes for T32A driver.
  * @version V1.0.0.7
  * $Date:: 2017-11-30 17:34:52 #$
- *
- * SPDX-License-Identifier: BSD-3-Clause
- *
- * Copyright(C) 2019, Toshiba Electronic Device Solutions Corporation
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Nuvoton Technology Corp. nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
  * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * DO NOT USE THIS SOFTWARE WITHOUT THE SOFTWARE LICENSE AGREEMENT.
+ * 
+ * (C)Copyright TOSHIBA MICROELECTRONICS CORPORATION 2017 All rights reserved
  *******************************************************************************
  */
 /*------------------------------------------------------------------------------*/
@@ -266,7 +244,7 @@ extern "C" {
  *  @brief    T32AxOUTA Control OCRx Macro Definition.
  *  @{
  */
-#define T32A_OCR_DISABLE                    ((uint32_t)0x00000000)    /*!< Nothing */
+#define T32A_OCR_DISABLE                    ((uint32_t)0x00000000)    /*!< Nothig */
 #define T32A_OCR_SET                    ((uint32_t)0x00000001)    /*!< Hi */
 #define T32A_OCR_CLR                    ((uint32_t)0x00000002)    /*!< Low */
 #define T32A_OCR_INVERSION              ((uint32_t)0x00000003)    /*!< inversion */
@@ -710,7 +688,7 @@ typedef enum
 /*----------------------------------*/
 /** 
  * @struct t32a_mode_t
- * @brief  TimerA Mode Setting structure definition.
+ * @brief  TimerA Mode Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -724,7 +702,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_runx_t
- * @brief  TimerA Run Control Setting structure definition.
+ * @brief  TimerA Run Control Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -742,7 +720,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_crx_t
- * @brief  Counter Register Control Setting structure definition.
+ * @brief  Counter Register Control Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -766,7 +744,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_outcrx0_t
- * @brief  TimerA Output Control Setting structure definition.
+ * @brief  TimerA Output Control Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -778,7 +756,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_outcrx1_t
- * @brief  T32AxOUTA Control Setting structure definition.
+ * @brief  T32AxOUTA Control Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -796,7 +774,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_capcrx_t
- * @brief  Capture Control Setting structure definition.
+ * @brief  Capture Control Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -810,7 +788,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_rgx0_t
- * @brief  T32A Timer Register x0 Setting structure definition.
+ * @brief  T32A Timer Register x0 Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -822,7 +800,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_rgx1_t
- * @brief  T32A Timer Register x1 Setting structure definition.
+ * @brief  T32A Timer Register x1 Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -834,7 +812,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_tmrx_t 
- * @brief  T32A Counter Capture Register A Setting structure definition.
+ * @brief  T32A Counter Capture Register A Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -846,7 +824,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_reldx_t
- * @brief  T32A Counter Reload Register Setting structure definition.
+ * @brief  T32A Counter Reload Register Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -858,7 +836,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_capx0_t
- * @brief  T32A Capture Register x0 Setting structure definition.
+ * @brief  T32A Capture Register x0 Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -870,7 +848,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_capx1_t
- * @brief  T32A Capture Register x0 Setting structure definition.
+ * @brief  T32A Capture Register x0 Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -882,7 +860,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_imx_t
- * @brief  Interrupt mask register Setting structure definition.
+ * @brief  Interrupt mask register Setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -902,7 +880,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_stx_t
- * @brief  Status register structure definition.
+ * @brief  Status register structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -922,7 +900,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_dma_req_t
- * @brief  DMA Request register setting structure definition.
+ * @brief  DMA Request register setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -938,7 +916,7 @@ typedef struct
 /*----------------------------------*/
 /** 
  * @struct t32a_pulse_cr_t
- * @brief  Pulse Count Control register setting structure definition.
+ * @brief  Pulse Count Control register setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -957,7 +935,7 @@ typedef struct
 
 /** 
  * @struct t32a_initial_setting_t
- * @brief  Initial Timer setting structure definition.
+ * @brief  Initial Timer setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -984,7 +962,7 @@ typedef struct
 
 /** 
  * @struct t32a_initial_mode_t
- * @brief  Initial Mode setting structure definition.
+ * @brief  Initial Mode setting structure definenition.
 */
 /*----------------------------------*/
 typedef struct
@@ -995,7 +973,7 @@ typedef struct
 
 /*----------------------------------*/
 /** 
- * @brief  T32A handle structure definition.
+ * @brief  T32A handle structure definenition.
 */
 /*----------------------------------*/
 typedef struct t32a_handle

@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,11 +42,9 @@ SPIName spi_get_peripheral_name(PinName mosi, PinName miso, PinName sclk)
 
     SPIName spi_per;
 
-    // MISO or MOSI may be not connected
+    // If 3 wire SPI is used, the miso is not connected.
     if (miso == NC) {
         spi_per = (SPIName)pinmap_merge(spi_mosi, spi_sclk);
-    } else if (mosi == NC) {
-        spi_per = (SPIName)pinmap_merge(spi_miso, spi_sclk);
     } else {
         SPIName spi_data = (SPIName)pinmap_merge(spi_mosi, spi_miso);
         spi_per = (SPIName)pinmap_merge(spi_data, spi_sclk);
@@ -62,14 +59,10 @@ void spi_init_direct(spi_t *obj, const spi_pinmap_t *pinmap)
     MBED_ASSERT((int)obj->spi.instance != NC);
 
     // pin out the spi pins
-    if (pinmap->mosi_pin != NC) {
-        pin_function(pinmap->mosi_pin, pinmap->mosi_function);
-        pin_mode(pinmap->mosi_pin, PullNone);
-    }
-    if (pinmap->miso_pin != NC) {
-        pin_function(pinmap->miso_pin, pinmap->miso_function);
-        pin_mode(pinmap->miso_pin, PullNone);
-    }
+    pin_function(pinmap->mosi_pin, pinmap->mosi_function);
+    pin_mode(pinmap->mosi_pin, PullNone);
+    pin_function(pinmap->miso_pin, pinmap->miso_function);
+    pin_mode(pinmap->miso_pin, PullNone);
     pin_function(pinmap->sclk_pin, pinmap->sclk_function);
     pin_mode(pinmap->sclk_pin, PullNone);
     if (pinmap->ssel_pin != NC) {

@@ -16,7 +16,7 @@
  */
 
 #include "mbed_assert.h"
-#include "system/LoRaWANTimer.h"
+#include "LoRaWANTimer.h"
 
 #include "LoRaWANTimer_stub.h"
 

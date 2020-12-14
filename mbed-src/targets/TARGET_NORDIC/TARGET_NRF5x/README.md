@@ -90,24 +90,6 @@ The tables must be placed in a C compilation file.
 1. If an instance is being used exclusively for either I2C or SPI, the objects can safely be called from multiple threads.
 1. If an instance is being used for both I2C and SPI, the user must provide thread safety between the objects.
 
-#### SPIM
-Description below taken from nRF52840 datasheet.
-
-*The SPI master can communicate with multiple SPI slaves using individual chip select signals for each slave.*
-
-*Listed here are the main features for the SPIM*
-
-- *EasyDMA direct transfer to/from RAM*
-- *SPI mode 0-3*
-- *Individual selection of I/O pins*
-- *Optional D/CX output line for distinguishing between command and data bytes*
-
-SPIM Instance 3 can provide transfer speeds up to 32 Mhz.
-
-##### Configuration
-Enabled in the *sdk_config.h* by setting the **NRFX_SPIM_ENABLED** macro
-
-As SPI and SPIM use the same hardware you should disable the SPI configuration at the same time (**NRFX_SPI_ENABLED**)
 
 ### Serial
 
@@ -173,7 +155,7 @@ The assert handler is defined in mbed-os/features/FEATURE_BLE/targets/TARGET_NOR
 
 #### Serial Wire Output (SWO)
 
-On the nRF52832 pin 18 (p18 or p0_18) is the SWO pin and a GPIO pin.  On the nRF52_DK target p18 is also mapped to LED2, so the ITM has been removed from these targets to avoid contention.  If you need SWO capability instead of LED2, add the ITM through ```mbed_app.json```:
+On the nRF52832 pin 18 (p18 or p0_18) is the SWO pin and a GPIO pin.  On the nRF52_DK and DELTA_DFBM_NQ620 targets p18 is also mapped to LED2, so the ITM has been removed from these targets to avoid contention.  If you need SWO capability instead of LED2, add the ITM through ```mbed_app.json```:
 ```
     "target_overrides": {
         "*": {

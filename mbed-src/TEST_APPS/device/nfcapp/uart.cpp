@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "platform/FileHandle.h"
-#include "drivers/BufferedSerial.h"
+#include "drivers/UARTSerial.h"
 
 /**
  * Macros for setting console flow control.
@@ -32,9 +32,8 @@
 
 mbed::FileHandle *mbed::mbed_override_console(int)
 {
-    static mbed::BufferedSerial console(
-        STDIO_UART_TX, STDIO_UART_RX, SERIAL_CONSOLE_BAUD_RATE
-    );
+    static mbed::UARTSerial console(STDIO_UART_TX, STDIO_UART_RX,
+                                    SERIAL_CONSOLE_BAUD_RATE);
 #if CONSOLE_FLOWCONTROL == CONSOLE_FLOWCONTROL_RTS
     mbed::console.set_flow_control(SerialBase::RTS, STDIO_UART_RTS, NC);
 #elif CONSOLE_FLOWCONTROL == CONSOLE_FLOWCONTROL_CTS

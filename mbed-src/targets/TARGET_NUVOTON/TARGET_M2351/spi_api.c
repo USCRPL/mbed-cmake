@@ -1,7 +1,5 @@
-/*
- * Copyright (c) 2015-2016, Nuvoton Technology Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
+/* mbed Microcontroller Library
+ * Copyright (c) 2015-2016 Nuvoton
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,28 +65,12 @@ static struct nu_spi_var spi3_var = {
     .pdma_perp_rx       =   PDMA_SPI3_RX
 #endif
 };
-/* Degrade QSPI0 to SPI_4 for standard SPI usage */
-static struct nu_spi_var spi4_var = {
+static struct nu_spi_var spi5_var = {
 #if DEVICE_SPI_ASYNCH
-    .pdma_perp_tx       =   PDMA_QSPI0_TX,
-    .pdma_perp_rx       =   PDMA_QSPI0_RX
+    .pdma_perp_tx       =   PDMA_SPI5_TX,
+    .pdma_perp_rx       =   PDMA_SPI5_RX
 #endif
 };
-
-/* Change to QSPI version functions
- *
- * In most cases, we can control degraded QSPI H/W to standard through BSP SPI driver
- * directly as if it is just SPI H/W. However, BSP SPI driver distinguishes among
- * SPI H/W instances in below functions:
- *
- * SPI_Open
- * SPI_Close
- * SPI_SetBusClock
- * SPI_GetBusClock
- *
- * In these cases, we must change to QSPI version instead for QSPI H/W.
- */
-static int spi_is_qspi(spi_t *obj);
 
 /* Synchronous version of SPI_ENABLE()/SPI_DISABLE() macros
  *
@@ -144,8 +126,7 @@ static const struct nu_modinit_s spi_modinit_tab[] = {
     {SPI_1, SPI1_MODULE, CLK_CLKSEL2_SPI1SEL_PCLK0, MODULE_NoMsk, SPI1_RST, SPI1_IRQn, &spi1_var},
     {SPI_2, SPI2_MODULE, CLK_CLKSEL2_SPI2SEL_PCLK1, MODULE_NoMsk, SPI2_RST, SPI2_IRQn, &spi2_var},
     {SPI_3, SPI3_MODULE, CLK_CLKSEL2_SPI3SEL_PCLK0, MODULE_NoMsk, SPI3_RST, SPI3_IRQn, &spi3_var},
-    /* Degrade QSPI0 to SPI_4 for standard SPI usage */
-    {SPI_4, QSPI0_MODULE, CLK_CLKSEL2_QSPI0SEL_PCLK0, MODULE_NoMsk, QSPI0_RST, QSPI0_IRQn, &spi4_var},
+    {SPI_5, SPI5_MODULE, CLK_CLKSEL2_SPI5SEL_PCLK1, MODULE_NoMsk, SPI5_RST, SPI5_IRQn, &spi5_var},
 
     {NC, 0, 0, 0, 0, (IRQn_Type) 0, NULL}
 };
@@ -224,11 +205,7 @@ void spi_free(spi_t *obj)
     }
 #endif
 
-    if (spi_is_qspi(obj)) {
-        QSPI_Close((QSPI_T *) NU_MODBASE(obj->spi.spi));
-    } else {
-        SPI_Close((SPI_T *) NU_MODBASE(obj->spi.spi));
-    }
+    SPI_Close((SPI_T *) NU_MODBASE(obj->spi.spi));
 
     const struct nu_modinit_s *modinit = get_modinit(obj->spi.spi, spi_modinit_tab);
     MBED_ASSERT(modinit != NULL);
@@ -266,19 +243,11 @@ void spi_format(spi_t *obj, int bits, int mode, int slave)
 
     SPI_DISABLE_SYNC(spi_base);
 
-    if (spi_is_qspi(obj)) {
-        QSPI_Open((QSPI_T *) spi_base,
-                  slave ? QSPI_SLAVE : QSPI_MASTER,
-                  (mode == 0) ? QSPI_MODE_0 : (mode == 1) ? QSPI_MODE_1 : (mode == 2) ? QSPI_MODE_2 : QSPI_MODE_3,
-                  bits,
-                  QSPI_GetBusClock((QSPI_T *)spi_base));
-    } else {
-        SPI_Open(spi_base,
-                 slave ? SPI_SLAVE : SPI_MASTER,
-                 (mode == 0) ? SPI_MODE_0 : (mode == 1) ? SPI_MODE_1 : (mode == 2) ? SPI_MODE_2 : SPI_MODE_3,
-                 bits,
-                 SPI_GetBusClock(spi_base));
-    }
+    SPI_Open(spi_base,
+             slave ? SPI_SLAVE : SPI_MASTER,
+             (mode == 0) ? SPI_MODE_0 : (mode == 1) ? SPI_MODE_1 : (mode == 2) ? SPI_MODE_2 : SPI_MODE_3,
+             bits,
+             SPI_GetBusClock(spi_base));
     // NOTE: Hardcode to be MSB first.
     SPI_SET_MSB_FIRST(spi_base);
 
@@ -307,47 +276,24 @@ void spi_frequency(spi_t *obj, int hz)
 
     SPI_DISABLE_SYNC(spi_base);
 
-    if (spi_is_qspi(obj)) {
-        QSPI_SetBusClock((QSPI_T *) NU_MODBASE(obj->spi.spi), hz);
-    } else {
-        SPI_SetBusClock((SPI_T *) NU_MODBASE(obj->spi.spi), hz);
-    }
+    SPI_SetBusClock((SPI_T *) NU_MODBASE(obj->spi.spi), hz);
 }
 
 
 int spi_master_write(spi_t *obj, int value)
 {
     SPI_T *spi_base = (SPI_T *) NU_MODBASE(obj->spi.spi);
-    PinName spi_miso = obj->spi.pin_miso;
 
+    // NOTE: Data in receive FIFO can be read out via ICE.
     SPI_ENABLE_SYNC(spi_base);
 
-    /* Wait for TX FIFO not full */
+    // Wait for tx buffer empty
     while(! spi_writeable(obj));
     SPI_WRITE_TX(spi_base, value);
 
-    /* Make inter-frame (SPI data frame) delay match configured suspend interval
-     * in no MISO case
-     *
-     * This API requires data write/read simultaneously. However, it can enlarge
-     * the inter-frame delay. The data flow for one call of this API would be:
-     * 1. Write data to TX FIFO when it is not full
-     * 2. Write delay consisting of TX FIFO to TX Shift Register...
-     * 3. Actual data transfer on SPI bus
-     * 4. Read delay consisting of RX FIFO from RX Shift Register...
-     * 5. Read data from RX FIFO when it is not empty
-     * Among above, S2&S4 contribute to the inter-frame delay.
-     *
-     * To favor no MISO case, we skip S4&S5. Thus, S2 can overlap with S3 and doesn't
-     * contribute to the inter-frame delay when data is written successively. The solution
-     * can cause RX FIFO overrun. Ignore it.
-     */
-    int value2 = -1;
-    if (spi_miso != NC) {
-        /* Wait for RX FIFO not empty */
-        while (! spi_readable(obj));
-        value2 = SPI_READ_RX(spi_base);
-    }
+    // Wait for rx buffer full
+    while (! spi_readable(obj));
+    int value2 = SPI_READ_RX(spi_base);
 
     /* We don't call SPI_DISABLE_SYNC here for performance. */
 
@@ -645,13 +591,6 @@ uint8_t spi_active(spi_t *obj)
        Use it to judge if asynchronous transfer is on-going. */
     uint32_t vec = NVIC_GetVector(modinit->irq_n);
     return vec ? 1 : 0;
-}
-
-static int spi_is_qspi(spi_t *obj)
-{
-    SPI_T *spi_base = (SPI_T *) NU_MODBASE(obj->spi.spi);
-
-    return (spi_base == ((SPI_T *) QSPI0));
 }
 
 static int spi_writeable(spi_t * obj)

@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2018-2018 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +16,9 @@
 
 #if defined(DEVICE_USBDEVICE) && DEVICE_USBDEVICE && \
     (defined(TARGET_KL25Z) | defined(TARGET_KL43Z) | \
-     defined(TARGET_KL46Z) | \
-     defined(TARGET_K64F) | defined(TARGET_K22F) | defined(TARGET_K82F))
+     defined(TARGET_KL46Z) | defined(TARGET_K20D50M) | \
+     defined(TARGET_K64F) | defined(TARGET_K22F) | defined(TARGET_K82F) | \
+     defined(TARGET_TEENSY3_1))
 
 #if defined(TARGET_KSDK2_MCUS)
 #include "fsl_common.h"
@@ -26,9 +26,6 @@
 #include "USBPhyHw.h"
 #include "USBEndpoints_Kinetis.h"
 #include "mbed_critical.h"
-#include "platform/mbed_power_mgmt.h"
-#include "cmsis.h"
-
 
 static USBPhyHw *instance;
 

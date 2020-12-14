@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Cypress Semiconductor Corporation
+ * Copyright 2019 Cypress Semiconductor Corporation
  * SPDX-License-Identifier: Apache-2.0
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -458,7 +458,7 @@ void *whd_cdc_get_ioctl_buffer(whd_driver_t whd_driver,
                                whd_buffer_t *buffer,
                                uint16_t data_length)
 {
-    if ( (uint32_t)IOCTL_OFFSET + data_length > USHRT_MAX )
+    if ((uint32_t)IOCTL_OFFSET + data_length > USHRT_MAX)
     {
         WPRINT_WHD_ERROR( ("The reserved ioctl buffer length is over %u\n", USHRT_MAX) );
         return NULL;
@@ -500,7 +500,8 @@ void whd_process_cdc(whd_driver_t whd_driver, whd_buffer_t buffer)
         /* Save the response packet in a variable */
         cdc_bdc_info->ioctl_response = buffer;
 
-        WPRINT_WHD_DATA_LOG( ("Wcd:< Procd pkt 0x%08lX: IOCTL Response\n", (unsigned long)buffer) );
+        WPRINT_WHD_DATA_LOG( ("Wcd:< Procd pkt 0x%08lX: IOCTL Response (%d bytes)\n", (unsigned long)buffer,
+                              size) );
 
         /* Wake the thread which sent the IOCTL/IOVAR so that it will resume */
         result = cy_rtos_set_semaphore(&cdc_bdc_info->ioctl_sleep, WHD_FALSE);
@@ -571,7 +572,7 @@ void whd_process_bdc(whd_driver_t whd_driver, whd_buffer_t buffer)
         WPRINT_WHD_DATA_LOG( ("IP data not aligned to 4 bytes %lx\n", ip_data_start_add) );
     }
 
-    WPRINT_WHD_DATA_LOG( ("Wcd:< Procd pkt 0x%08lX\n", (unsigned long)buffer) );
+    WPRINT_WHD_DATA_LOG( ("Wcd:< Procd pkt 0x%08lX: Data (%d bytes)\n", (unsigned long)buffer, size) );
     bssid_index = (uint32_t)(bdc_header->flags2 & BDC_FLAG2_IF_MASK);
     ifp = whd_driver->iflist[bssid_index];
 

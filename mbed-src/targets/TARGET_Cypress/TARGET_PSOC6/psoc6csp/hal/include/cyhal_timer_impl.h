@@ -47,8 +47,6 @@ __STATIC_INLINE uint32_t cyhal_timer_convert_event(cyhal_timer_event_t event)
     return pdl_event;
 }
 
-#define cyhal_timer_free(obj) cyhal_tcpwm_free(obj)
-
 __STATIC_INLINE void cyhal_timer_register_callback_internal(cyhal_timer_t *obj, cyhal_timer_event_callback_t callback, void *callback_arg)
 {
     cyhal_tcpwm_register_callback(&(obj->resource), (cy_israddress) callback, callback_arg);
@@ -56,13 +54,13 @@ __STATIC_INLINE void cyhal_timer_register_callback_internal(cyhal_timer_t *obj, 
 
 #define cyhal_timer_register_callback(obj, callback, callback_arg) cyhal_timer_register_callback_internal(obj, callback, callback_arg)
 
-__STATIC_INLINE void cyhal_timer_enable_event_internal(cyhal_timer_t *obj, cyhal_timer_event_t event, uint8_t intr_priority, bool enable)
+__STATIC_INLINE void cyhal_timer_enable_event_internal(cyhal_timer_t *obj, cyhal_timer_event_t event, uint8_t intrPriority, bool enable)
 {
     uint32_t converted = cyhal_timer_convert_event(event);
-    cyhal_tcpwm_enable_event(obj->base, &(obj->resource), converted, intr_priority, enable);
+    cyhal_tcpwm_enable_event(obj->base, &(obj->resource), converted, intrPriority, enable);
 }
 
-#define cyhal_timer_enable_event(obj, event, intr_priority, enable) cyhal_timer_enable_event_internal(obj, event, intr_priority, enable)
+#define cyhal_timer_enable_event(obj, event, intrPriority, enable) cyhal_timer_enable_event_internal(obj, event, intrPriority, enable)
 
 #if defined(__cplusplus)
 }

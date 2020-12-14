@@ -3,18 +3,11 @@
  * @version  V1.00
  * @brief    SCU register definition header file
  *
- * SPDX-License-Identifier: Apache-2.0
- *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __SCU_REG_H__
 #define __SCU_REG_H__
 
-/** @addtogroup REGISTER Control Register
-
-  @{
-
-*/
 
 
 /*---------------------- Secure configuration Unit -------------------------*/
@@ -28,7 +21,7 @@ typedef struct
 
 
     /**
-     * @var SCU_T::PNSSET[0]
+     * @var SCU_T::PNSSET0
      * Offset: 0x00  Peripheral Non-secure Attribution Set Register0 (0x4000_0000~0x4001_FFFF)
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -49,7 +42,7 @@ typedef struct
      * |        |          |Write 1 to set PDMA1 to non-secure state. Write 0 has no effect.
      * |        |          |0 = PDMA1 is a secure module (default).
      * |        |          |1 = PDMA1 is a non-secure module.
-     * @var SCU_T::PNSSET[1]
+     * @var SCU_T::PNSSET1
      * Offset: 0x04  Peripheral Non-secure Attribution Set Register1 (0x4002_0000~0x4003_FFFF)
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -62,7 +55,7 @@ typedef struct
      * |        |          |Write 1 to set CRPT to non-secure state. Write 0 has no effect.
      * |        |          |0 = CRPT is a secure module (default).
      * |        |          |1 = CRPT is a non-secure module.
-     * @var SCU_T::PNSSET[2]
+     * @var SCU_T::PNSSET2
      * Offset: 0x08  Peripheral Non-secure Attribution Set Register2 (0x4004_0000~0x4005_FFFF)
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -111,7 +104,7 @@ typedef struct
      * |        |          |Write 1 to set BPWM1 to non-secure state. Write 0 has no effect.
      * |        |          |0 = BPWM1 is a secure module (default).
      * |        |          |1 = BPWM1 is a non-secure module.
-     * @var SCU_T::PNSSET[3]
+     * @var SCU_T::PNSSET3
      * Offset: 0x0C  Peripheral Non-secure Attribution Set Register3 (0x4006_0000~0x4007_FFFF)
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -160,7 +153,7 @@ typedef struct
      * |        |          |Write 1 to set UART5 to non-secure state. Write 0 has no effect.
      * |        |          |0 = UART5 is a secure module (default).
      * |        |          |1 = UART5 is a non-secure module.
-     * @var SCU_T::PNSSET[4]
+     * @var SCU_T::PNSSET4
      * Offset: 0x10  Peripheral Non-secure Attribution Set Register4 (0x4008_0000~0x4009_FFFF)
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -189,7 +182,7 @@ typedef struct
      * |        |          |Write 1 to set SC2 to non-secure state. Write 0 has no effect.
      * |        |          |0 = SC2 is a secure module (default).
      * |        |          |1 = SC2 is a non-secure module.
-     * @var SCU_T::PNSSET[5]
+     * @var SCU_T::PNSSET5
      * Offset: 0x14  Peripheral Non-secure Attribution Set Register5 (0x400A_0000~0x400B_FFFF)
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -214,11 +207,15 @@ typedef struct
      * |        |          |Write 1 to set ECAP1 to non-secure state. Write 0 has no effect.
      * |        |          |0 = ECAP1 is a secure module (default).
      * |        |          |1 = ECAP1 is a non-secure module.
+     * |[23]    |DSRC      |Set DSRC to Non-secure State
+     * |        |          |Write 1 to set DSRC to non-secure state. Write 0 has no effect.
+     * |        |          |0 = DSRC is a secure module (default).
+     * |        |          |1 = DSRC is a non-secure module.
      * |[25]    |TRNG      |Set TRNG to Non-secure State
      * |        |          |Write 1 to set TRNG to non-secure state. Write 0 has no effect.
      * |        |          |0 = TRNG is a secure module (default).
      * |        |          |1 = TRNG is a non-secure module.
-     * @var SCU_T::PNSSET[6]
+     * @var SCU_T::PNSSET6
      * Offset: 0x18  Peripheral Non-secure Attribution Set Register6 (0x400C_0000~0x400D_FFFF)
      * ---------------------------------------------------------------------------------------------------
      * |Bits    |Field     |Descriptions
@@ -975,6 +972,9 @@ typedef struct
 #define SCU_PNSSET5_ECAP1_Pos            (21)                                              /*!< SCU_T::PNSSET5: ECAP1 Position         */
 #define SCU_PNSSET5_ECAP1_Msk            (0x1ul << SCU_PNSSET5_ECAP1_Pos)                  /*!< SCU_T::PNSSET5: ECAP1 Mask             */
 
+#define SCU_PNSSET5_DSRC_Pos             (23)                                              /*!< SCU_T::PNSSET5: DSRC Position          */
+#define SCU_PNSSET5_DSRC_Msk             (0x1ul << SCU_PNSSET5_DSRC_Pos)                   /*!< SCU_T::PNSSET5: DSRC Mask              */
+
 #define SCU_PNSSET5_TRNG_Pos             (25)                                              /*!< SCU_T::PNSSET5: TRNG Position          */
 #define SCU_PNSSET5_TRNG_Msk             (0x1ul << SCU_PNSSET5_TRNG_Pos)                   /*!< SCU_T::PNSSET5: TRNG Mask              */
 
@@ -1241,7 +1241,6 @@ typedef struct
 
 /**@}*/ /* SCU_CONST */
 /**@}*/ /* end of SCU register group */
-/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __SCU_REG_H__ */

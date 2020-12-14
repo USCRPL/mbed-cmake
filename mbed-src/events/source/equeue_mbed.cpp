@@ -3,7 +3,6 @@
  * https://github.com/mbedmicro/mbed
  *
  * Copyright (c) 2016-2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +38,7 @@ using namespace mbed;
 #if MBED_CONF_RTOS_API_PRESENT
 
 #include "rtos/Kernel.h"
-#include "platform/internal/mbed_os_timer.h"
+#include "platform/source/mbed_os_timer.h"
 
 void equeue_tick_init()
 {
@@ -50,9 +49,6 @@ void equeue_tick_init()
 
 unsigned equeue_tick()
 {
-    using unsigned_ms_t = std::chrono::duration<unsigned, std::milli>;
-
-    unsigned_ms_t d;
 #if defined MBED_TICKLESS || !MBED_CONF_RTOS_PRESENT
     // It is not safe to call get_ms_count from ISRs, both
     // because documentation says so, and because it will give
@@ -64,9 +60,9 @@ unsigned equeue_tick()
         // should not be called from critical sections, for
         // performance reasons, but I don't have a good
         // current alternative!
-        d = std::chrono::duration_cast<unsigned_ms_t>(mbed::internal::os_timer->get_time().time_since_epoch());
+        return mbed::internal::os_timer->get_time() / 1000;
     } else {
-        d = rtos::Kernel::Clock::now().time_since_epoch();
+        return rtos::Kernel::get_ms_count();
     }
 #else
     // And this is the legacy behaviour - if running in
@@ -74,9 +70,8 @@ unsigned equeue_tick()
     // documentation saying no. (Most recent CMSIS-RTOS
     // permits `ososKernelGetTickCount` from IRQ, and our
     // `rtos::Kernel` wrapper copes too).
-    d = rtos::Kernel::Clock::now().time_since_epoch();
+    return rtos::Kernel::get_ms_count();
 #endif
-    return d.count();
 }
 
 #else

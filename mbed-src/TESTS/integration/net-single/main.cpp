@@ -23,8 +23,6 @@
 
 #if !INTEGRATION_TESTS
 #error [NOT_SUPPORTED] integration tests not enabled for this target
-#elif !MBED_CONF_RTOS_PRESENT
-#error [NOT_SUPPORTED] integration tests require RTOS
 #else
 
 #include "mbed.h"
@@ -49,9 +47,11 @@ using namespace utest::v1;
 
 #if !defined(MBED_CONF_APP_NO_LED)
 DigitalOut led1(LED1);
+DigitalOut led2(LED2);
 void led_thread()
 {
     led1 = !led1;
+    led2 = !led1;
 }
 #endif
 
@@ -72,7 +72,8 @@ static control_t setup_network(const size_t call_count)
         }
     }
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, err);
-
+    tr_info("[NET] IP address is '%s'", interface->get_ip_address());
+    tr_info("[NET] MAC address is '%s'", interface->get_mac_address());
     return CaseNext;
 }
 

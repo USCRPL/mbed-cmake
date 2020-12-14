@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2018 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +41,9 @@ void us_ticker_irq_handler(void);
 
 // ************************************ 16-bit timer ************************************
 #if TIM_MST_BIT_WIDTH == 16
+
+extern uint32_t prev_time;
+extern uint32_t elapsed_time;
 
 #if defined(TARGET_STM32F0)
 void timer_update_irq_handler(void)
@@ -126,6 +128,10 @@ void init_16bit_timer(void)
 #endif
 
     __HAL_TIM_DISABLE_IT(&TimMasterHandle, TIM_IT_CC1);
+
+    // Used by HAL_GetTick()
+    prev_time = 0;
+    elapsed_time = 0;
 }
 
 // ************************************ 32-bit timer ************************************

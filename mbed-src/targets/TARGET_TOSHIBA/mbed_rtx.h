@@ -1,8 +1,5 @@
 /* mbed Microcontroller Library
- *
- * Copyright (C) 2019, Toshiba Electronic Device Solutions Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
+ * (C)Copyright TOSHIBA ELECTRONIC DEVICES & STORAGE CORPORATION 2017 All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +17,34 @@
 #ifndef MBED_MBED_RTX_H
 #define MBED_MBED_RTX_H
 
+#if defined(TARGET_TMPM066)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP                        (0x20004000UL)
+#endif
+#ifdef MBED_CONF_RTOS_MAIN_THREAD_STACK_SIZE
+#undef MBED_CONF_RTOS_MAIN_THREAD_STACK_SIZE
+#endif
+#define MBED_CONF_RTOS_MAIN_THREAD_STACK_SIZE 3072
+
+#endif
+
 #if defined(TARGET_TMPM46B)
 
 #ifndef INITIAL_SP
 #define INITIAL_SP                        (0x20080000UL)
+#endif
+#ifdef MBED_CONF_RTOS_MAIN_THREAD_STACK_SIZE
+#undef MBED_CONF_RTOS_MAIN_THREAD_STACK_SIZE
+#endif
+#define MBED_CONF_RTOS_MAIN_THREAD_STACK_SIZE 3072
+
+#endif
+
+#if defined(TARGET_TMPM3H6)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP                        (0x20004000UL)
 #endif
 
 #endif
@@ -32,6 +53,14 @@
 
 #ifndef INITIAL_SP
 #define INITIAL_SP                        (0x20030000UL)
+#endif
+
+#endif
+
+#if defined(TARGET_TMPM3HQ)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP                        (0x20010000UL)
 #endif
 
 #endif

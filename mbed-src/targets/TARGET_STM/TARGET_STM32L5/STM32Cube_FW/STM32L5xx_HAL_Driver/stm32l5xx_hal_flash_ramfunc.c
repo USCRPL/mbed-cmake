@@ -53,7 +53,7 @@
   * @{
   */
 
-/** @defgroup FLASH_RAMFUNC FLASH RAMFUNC
+/** @defgroup FLASH_RAMFUNC FLASH_RAMFUNC
   * @brief FLASH functions executed from RAM
   * @{
   */
@@ -71,12 +71,12 @@
   * @{
   */
 
-/** @defgroup FLASH_RAMFUNC_Exported_Functions_Group1 RAM Execution functions
- *  @brief   RAM Execution functions
+/** @defgroup FLASH_RAMFUNC_Exported_Functions_Group1 Peripheral features functions
+ *  @brief   Data transfers functions
  *
 @verbatim
  ===============================================================================
-                      ##### RAM Execution functions #####
+                      ##### ramfunc functions #####
  ===============================================================================
     [..]
     This subsection provides a set of functions that should be executed from RAM.
@@ -130,7 +130,7 @@ __RAM_FUNC HAL_StatusTypeDef HAL_FLASHEx_DisableRunPowerDown(void)
   */
 __RAM_FUNC HAL_StatusTypeDef HAL_FLASHEx_OB_DBankConfig(uint32_t DBankConfig)
 {
-  uint32_t count, reg;
+  register uint32_t count, reg;
   HAL_StatusTypeDef status = HAL_ERROR;
 
   /* Process Locked */

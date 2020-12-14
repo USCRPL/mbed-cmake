@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file cy8c6xx5_cm4_dual.ld
-* \version 2.90
+* \version 2.70
 *
 * Linker file for the GNU C compiler.
 *
@@ -19,7 +19,7 @@
 *
 ********************************************************************************
 * \copyright
-* Copyright 2016-2020 Cypress Semiconductor Corporation
+* Copyright 2016-2019 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,10 +40,6 @@ SEARCH_DIR(.)
 GROUP(-lgcc -lc -lnosys)
 ENTRY(Reset_Handler)
 
-/* By default, the COMPONENT_CM0P_SLEEP prebuilt image is used for the CM0p core.
-* More about CM0+ prebuilt images, see here:
-* https://github.com/cypresssemiconductorco/psoc6cm0p
-*/
 /* The size of the Cortex-M0+ application image at the start of FLASH */
 FLASH_CM0P_SIZE = 0x2000;
 
@@ -79,12 +75,12 @@ FLASH_CM0P_SIZE = 0x2000;
   #define MBED_RAM_SIZE     0x0003D800
 #endif
 
-#if !defined(MBED_CONF_TARGET_BOOT_STACK_SIZE)
-    #define MBED_CONF_TARGET_BOOT_STACK_SIZE 0x400
+#if !defined(MBED_BOOT_STACK_SIZE)
+    #define MBED_BOOT_STACK_SIZE 0x400
 #endif
 
 /* The size of the stack section at the end of CM4 SRAM */
-STACK_SIZE = MBED_CONF_TARGET_BOOT_STACK_SIZE;
+STACK_SIZE = MBED_BOOT_STACK_SIZE;
 
 /* Force symbol to be entered in the output file as an undefined symbol. Doing
 * this may, for example, trigger linking of additional modules from standard

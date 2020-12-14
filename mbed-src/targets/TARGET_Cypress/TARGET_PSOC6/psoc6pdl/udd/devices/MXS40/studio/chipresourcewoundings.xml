@@ -6,13 +6,9 @@
   <BooleanWounding name="CAN_FD">
     <Block name="canfd.chan"/>
   </BooleanWounding>
-  <BooleanWounding name="CAPSENSEADC">
+  <BooleanWounding name="CAPSENSE">
     <Block name="csd.csd"/>
   </BooleanWounding>
-  <BooleanWounding name="CAPSENSE">
-    <Block name="csd.capsense"/>
-  </BooleanWounding>
-
   <BooleanWounding name="DIRDRIVELCD">
     <Block name="lcd"/>
   </BooleanWounding>

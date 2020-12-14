@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2016 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,13 +38,25 @@
 #define INITIAL_SP              (0x20008000UL)
 #endif
 
+#elif defined(TARGET_EFM32PG)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20008000UL)
+#endif
+
+#elif defined(TARGET_EFM32WG)
+
+#ifndef INITIAL_SP
+#define INITIAL_SP              (0x20008000UL)
+#endif
+
 #elif defined(TARGET_EFR32MG1)
 
 #ifndef INITIAL_SP
 #define INITIAL_SP              (0x20007C00UL)
 #endif
 
-#elif defined(TARGET_EFR32MG12)
+#elif defined(TARGET_EFR32MG12) || defined(TARGET_EFM32PG12)
 
 #ifndef INITIAL_SP
 #define INITIAL_SP              (0x20040000UL)

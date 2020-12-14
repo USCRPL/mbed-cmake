@@ -1,7 +1,5 @@
-/*
- * Copyright (c) 2017-2018, Nuvoton Technology Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
+/* mbed Microcontroller Library
+ * Copyright (c) 2017-2018 Nuvoton
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,9 +57,9 @@ static const struct nu_modinit_s pwm_modinit_tab[] = {
     {NC, 0, 0, 0, 0, (IRQn_Type) 0, NULL}
 };
 
-static void pwmout_config(pwmout_t *obj, int start);
+static void pwmout_config(pwmout_t* obj, int start);
 
-void pwmout_init(pwmout_t *obj, PinName pin)
+void pwmout_init(pwmout_t* obj, PinName pin)
 {
     obj->pwm = (PWMName) pinmap_peripheral(pin, PinMap_PWM);
     MBED_ASSERT((int) obj->pwm != NC);
@@ -91,7 +89,7 @@ void pwmout_init(pwmout_t *obj, PinName pin)
     }
 
     // NOTE: All channels (identified by PWMName) share a PWM module. This reset will also affect other channels of the same PWM module.
-    if (!((struct nu_pwm_var *) modinit->var)->en_msk) {
+    if (! ((struct nu_pwm_var *) modinit->var)->en_msk) {
         /* Reset module
          *
          * NOTE: We must call secure version (from non-secure domain) because SYS/CLK regions are secure.
@@ -113,7 +111,7 @@ void pwmout_init(pwmout_t *obj, PinName pin)
     pwm_modinit_mask |= 1 << i;
 }
 
-void pwmout_free(pwmout_t *obj)
+void pwmout_free(pwmout_t* obj)
 {
     EPWM_T *pwm_base = (EPWM_T *) NU_MODBASE(obj->pwm);
     uint32_t chn =  NU_MODSUBINDEX(obj->pwm);
@@ -142,29 +140,29 @@ void pwmout_free(pwmout_t *obj)
     obj->pin = NC;
 }
 
-void pwmout_write(pwmout_t *obj, float value)
+void pwmout_write(pwmout_t* obj, float value)
 {
-    obj->pulsewidth_us = NU_CLAMP((uint32_t)(value * obj->period_us), 0, obj->period_us);
+    obj->pulsewidth_us = NU_CLAMP((uint32_t) (value * obj->period_us), 0, obj->period_us);
     pwmout_config(obj, 1);
 }
 
-float pwmout_read(pwmout_t *obj)
+float pwmout_read(pwmout_t* obj)
 {
     return NU_CLAMP((((float) obj->pulsewidth_us) / obj->period_us), 0.0f, 1.0f);
 }
 
-void pwmout_period(pwmout_t *obj, float seconds)
+void pwmout_period(pwmout_t* obj, float seconds)
 {
     pwmout_period_us(obj, seconds * 1000000.0f);
 }
 
-void pwmout_period_ms(pwmout_t *obj, int ms)
+void pwmout_period_ms(pwmout_t* obj, int ms)
 {
     pwmout_period_us(obj, ms * 1000);
 }
 
 // Set the PWM period, keeping the duty cycle the same.
-void pwmout_period_us(pwmout_t *obj, int us)
+void pwmout_period_us(pwmout_t* obj, int us)
 {
     uint32_t period_us_old = obj->period_us;
     uint32_t pulsewidth_us_old = obj->pulsewidth_us;
@@ -173,33 +171,23 @@ void pwmout_period_us(pwmout_t *obj, int us)
     pwmout_config(obj, 1);
 }
 
-int pwmout_read_period_us(pwmout_t *obj)
-{
-    return obj->period_us;
-}
-
-void pwmout_pulsewidth(pwmout_t *obj, float seconds)
+void pwmout_pulsewidth(pwmout_t* obj, float seconds)
 {
     pwmout_pulsewidth_us(obj, seconds * 1000000.0f);
 }
 
-void pwmout_pulsewidth_ms(pwmout_t *obj, int ms)
+void pwmout_pulsewidth_ms(pwmout_t* obj, int ms)
 {
     pwmout_pulsewidth_us(obj, ms * 1000);
 }
 
-void pwmout_pulsewidth_us(pwmout_t *obj, int us)
+void pwmout_pulsewidth_us(pwmout_t* obj, int us)
 {
     obj->pulsewidth_us = NU_CLAMP(us, 0, obj->period_us);
     pwmout_config(obj, 1);
 }
 
-int pwmout_read_pulsewidth_us(pwmout_t *obj)
-{
-    return obj->pulsewidth_us;
-}
-
-static void pwmout_config(pwmout_t *obj, int start)
+static void pwmout_config(pwmout_t* obj, int start)
 {
     EPWM_T *pwm_base = (EPWM_T *) NU_MODBASE(obj->pwm);
     uint32_t chn = NU_MODSUBINDEX(obj->pwm);

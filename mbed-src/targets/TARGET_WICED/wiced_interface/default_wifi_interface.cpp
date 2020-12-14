@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-#if defined(MBED_CONF_NSAPI_PRESENT)
-
 #include "WicedInterface.h"
 
 WiFiInterface *WiFiInterface::get_target_default_instance()
@@ -24,5 +22,3 @@ WiFiInterface *WiFiInterface::get_target_default_instance()
     static WicedInterface wifi;
     return &wifi;
 }
-
-#endif

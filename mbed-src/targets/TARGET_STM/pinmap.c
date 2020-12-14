@@ -59,9 +59,7 @@ const uint32_t ll_pin_defines[16] = {
  */
 void pin_function(PinName pin, int data)
 {
-    if (pin == NC) {
-        return;
-    }
+    MBED_ASSERT(pin != (PinName)NC);
 
     // Get the pin informations
     uint32_t mode  = STM_PIN_FUNCTION(data);
@@ -165,9 +163,7 @@ void pin_function(PinName pin, int data)
  */
 void pin_mode(PinName pin, PinMode mode)
 {
-    if (pin == NC) {
-        return;
-    }
+    MBED_ASSERT(pin != (PinName)NC);
 
     uint32_t port_index = STM_PORT(pin);
     uint32_t ll_pin  = ll_pin_defines[STM_PIN(pin)];

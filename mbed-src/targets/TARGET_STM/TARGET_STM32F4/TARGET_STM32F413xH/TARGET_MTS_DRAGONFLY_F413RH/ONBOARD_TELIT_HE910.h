@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2018 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,12 +29,6 @@ public:
     virtual nsapi_error_t hard_power_off();
     virtual nsapi_error_t soft_power_on();
     virtual nsapi_error_t soft_power_off();
-
-private:
-    void press_power_button();
-    void release_power_button();
-    void power_up();
-    void power_down();
 };
 
 } // namespace mbed

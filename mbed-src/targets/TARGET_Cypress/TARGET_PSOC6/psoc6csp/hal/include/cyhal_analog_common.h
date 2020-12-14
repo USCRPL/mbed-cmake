@@ -33,13 +33,13 @@ extern "C" {
  * Initialize the programmable analog. This utilizes reference counting to avoid
  * repeatedly initializing the analog subsystem when multiple analog blocks are in use
  * */
-void cyhal_analog_init(void);
+void cyhal_analog_init();
 
 /**
  * Uninitialize the programmable analog. This utilizes reference counting to avoid
  * disabling the analog subsystem until all blocks which require it have been freed.
  */
-void cyhal_analog_free(void);
+void cyhal_analog_free();
 
 #if defined(__cplusplus)
 }

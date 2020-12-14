@@ -1,30 +1,32 @@
 /***************************************************************************//**
- * @file
+ * @file em_lcd.c
  * @brief Liquid Crystal Display (LCD) Peripheral API
+ * @version 5.3.3
  *******************************************************************************
  * # License
- * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2016 Silicon Laboratories, Inc. http://www.silabs.com</b>
  *******************************************************************************
- *
- * SPDX-License-Identifier: Zlib
- *
- * The licensor of this software is Silicon Laboratories Inc.
- *
- * This software is provided 'as-is', without any express or implied
- * warranty. In no event will the authors be held liable for any damages
- * arising from the use of this software.
  *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
+ *    claim that you wrote the original software.
  * 2. Altered source versions must be plainly marked as such, and must not be
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
+ *
+ * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Labs has no
+ * obligation to support this Software. Silicon Labs is providing the
+ * Software "AS IS", with no express or implied warranties of any kind,
+ * including, but not limited to, any implied warranties of merchantability
+ * or fitness for any particular purpose or warranties against infringement
+ * of any proprietary rights of a third party.
+ *
+ * Silicon Labs will not be liable for any consequential, incidental, or
+ * special damages, or any other relief, or for any claim by any third party,
+ * arising from your use of this Software.
  *
  ******************************************************************************/
 
@@ -45,21 +47,21 @@
  *  This module contains functions to control the LDC peripheral of Silicon
  *  Labs 32-bit MCUs and SoCs. The LCD driver can drive up to 8x36 segmented
  *  LCD directly. The animation feature makes it possible to have active
- *  animations without the CPU intervention.
+ *  animations without CPU intervention.
  * @{
  ******************************************************************************/
 
 /***************************************************************************//**
  * @brief
- *   Initialize the Liquid Crystal Display (LCD) controller.
+ *   Initalize Liquid Crystal Display (LCD) controller
  *
  * @details
- *   Configures the LCD controller. You must enable
+ *   This function call will only configure the LCD controller. You must enable
  *   it afterwards, potentially configuring Frame Control and interrupts first
  *   according to requirements.
  *
  * @param[in] lcdInit
- *   A pointer to the initialization structure which configures the LCD controller.
+ *   Pointer to initialization structure which configures LCD controller.
  *
  ******************************************************************************/
 void LCD_Init(const LCD_Init_TypeDef *lcdInit)
@@ -68,10 +70,10 @@ void LCD_Init(const LCD_Init_TypeDef *lcdInit)
 
   EFM_ASSERT(lcdInit != (void *) 0);
 
-  /* Disable the controller before reconfiguration. */
+  /* Disable controller before reconfiguration */
   LCD_Enable(false);
 
-  /* Make sure the other bit fields don't get affected (i.e., voltage boost). */
+  /* Make sure we don't touch other bit fields (i.e. voltage boost) */
   dispCtrl &= ~(0
 #if defined(LCD_DISPCTRL_MUXE)
                 | _LCD_DISPCTRL_MUXE_MASK
@@ -93,8 +95,8 @@ void LCD_Init(const LCD_Init_TypeDef *lcdInit)
 #endif
                 );
 
-  /* Configure the controller according to the initialization structure. */
-  dispCtrl |= lcdInit->mux; /* Also configures MUXE. */
+  /* Configure controller according to initialization structure */
+  dispCtrl |= lcdInit->mux; /* also configures MUXE */
   dispCtrl |= lcdInit->bias;
   dispCtrl |= lcdInit->wave;
 #if defined(_SILICON_LABS_32B_SERIES_0)
@@ -103,10 +105,10 @@ void LCD_Init(const LCD_Init_TypeDef *lcdInit)
 #endif
 #if defined(_SILICON_LABS_32B_SERIES_1)
   dispCtrl |= lcdInit->mode;
-  dispCtrl |= (lcdInit->chargeRedistribution);
+  dispCtrl |= (lcdInit->chgrDst << _LCD_DISPCTRL_CHGRDST_SHIFT);
 #endif
 
-  /* Update the display controller. */
+  /* Update display controller */
   LCD->DISPCTRL = dispCtrl;
 
 #if defined(_SILICON_LABS_32B_SERIES_1)
@@ -114,7 +116,7 @@ void LCD_Init(const LCD_Init_TypeDef *lcdInit)
   LCD_ContrastSet(lcdInit->contrastLevel);
 #endif
 
-  /* Enable the controller if needed. */
+  /* Enable controller if wanted */
   if (lcdInit->enable) {
     LCD_Enable(true);
   }
@@ -123,10 +125,10 @@ void LCD_Init(const LCD_Init_TypeDef *lcdInit)
 #if defined(_SILICON_LABS_32B_SERIES_0)
 /***************************************************************************//**
  * @brief
- *   Select a source for VLCD.
+ *   Select source for VLCD
  *
  * @param[in] vlcd
- *   Select a source for the VLCD voltage.
+ *   Select source for VLD voltage
  ******************************************************************************/
 void LCD_VLCDSelect(LCD_VLCDSel_TypeDef vlcd)
 {
@@ -151,10 +153,10 @@ void LCD_VLCDSelect(LCD_VLCDSel_TypeDef vlcd)
 
 /***************************************************************************//**
  * @brief
- *   Configure Update Control.
+ *   Configure Update Control
  *
  * @param[in] ud
- *   Configures the LCD update method.
+ *   Configures LCD update method
  ******************************************************************************/
 void LCD_UpdateCtrl(LCD_UpdateCtrl_TypeDef ud)
 {
@@ -163,10 +165,10 @@ void LCD_UpdateCtrl(LCD_UpdateCtrl_TypeDef ud)
 
 /***************************************************************************//**
  * @brief
- *   Initialize the LCD Frame Counter.
+ *   Initialize LCD Frame Counter
  *
  * @param[in] fcInit
- *   A pointer to the Frame Counter initialization structure.
+ *   Pointer to Frame Counter initialization structure
  ******************************************************************************/
 void LCD_FrameCountInit(const LCD_FrameCountInit_TypeDef *fcInit)
 {
@@ -174,16 +176,16 @@ void LCD_FrameCountInit(const LCD_FrameCountInit_TypeDef *fcInit)
 
   EFM_ASSERT(fcInit != (void *) 0);
 
-  /* Verify that the FC Top Counter is within limits. */
+  /* Verify FC Top Counter to be within limits */
   EFM_ASSERT(fcInit->top < 64);
 
-  /* Reconfigure the frame count configuration. */
+  /* Reconfigure frame count configuration */
   bactrl &= ~(_LCD_BACTRL_FCTOP_MASK
               | _LCD_BACTRL_FCPRESC_MASK);
   bactrl |= (fcInit->top << _LCD_BACTRL_FCTOP_SHIFT);
   bactrl |= fcInit->prescale;
 
-  /* Set the Blink and Animation Control Register. */
+  /* Set Blink and Animation Control Register */
   LCD->BACTRL = bactrl;
 
   LCD_FrameCountEnable(fcInit->enable);
@@ -191,10 +193,10 @@ void LCD_FrameCountInit(const LCD_FrameCountInit_TypeDef *fcInit)
 
 /***************************************************************************//**
  * @brief
- *   Configure the LCD controller Animation feature.
+ *   Configures LCD controller Animation feature
  *
  * @param[in] animInit
- *   A pointer to the LCD Animation initialization structure.
+ *   Pointer to LCD Animation initialization structure
  ******************************************************************************/
 void LCD_AnimInit(const LCD_AnimInit_TypeDef *animInit)
 {
@@ -202,11 +204,11 @@ void LCD_AnimInit(const LCD_AnimInit_TypeDef *animInit)
 
   EFM_ASSERT(animInit != (void *) 0);
 
-  /* Set Animation Register Values. */
+  /* Set Animation Register Values */
   LCD->AREGA = animInit->AReg;
   LCD->AREGB = animInit->BReg;
 
-  /* Configure the Animation Shift and Logic. */
+  /* Configure Animation Shift and Logic */
   bactrl &= ~(_LCD_BACTRL_AREGASC_MASK
               | _LCD_BACTRL_AREGBSC_MASK
               | _LCD_BACTRL_ALOGSEL_MASK);
@@ -225,23 +227,23 @@ void LCD_AnimInit(const LCD_AnimInit_TypeDef *animInit)
   }
 #endif
 
-  /* Reconfigure. */
+  /* Reconfigure */
   LCD->BACTRL = bactrl;
 
-  /* Enable. */
+  /* Enable */
   LCD_AnimEnable(animInit->enable);
 }
 
 /***************************************************************************//**
  * @brief
- *   Enables updating this range of LCD segment lines.
+ *   Enables update of this range of LCD segment lines
  *
  * @param[in] segmentRange
- *   A range of 4 LCD segment lines to enable or disable for all enabled COM
- *   lines.
+ *   Range of 4 LCD segments lines to enable or disable, for all enabled COM
+ *   lines
  *
  * @param[in] enable
- *   Boolean true to enable segment updates, false to disable updates.
+ *   Bool true to enable segment updates, false to disable updates
  ******************************************************************************/
 #if defined(_SILICON_LABS_32B_SERIES_0)
 void LCD_SegmentRangeEnable(LCD_SegmentRange_TypeDef segmentRange, bool enable)
@@ -256,40 +258,40 @@ void LCD_SegmentRangeEnable(LCD_SegmentRange_TypeDef segmentRange, bool enable)
 
 /***************************************************************************//**
  * @brief
- *   Turn on or clear a segment.
+ *   Turn on or clear a segment
  *
  * @note
- *    For the Gecko Family, the maximum configuration is (COM-lines x Segment-Lines) 4x40.
- *    For the Tiny Gecko Family, the maximum configuration is 8x20 or 4x24.
- *    For the Giant Gecko Family, the maximum configuration is 8x36 or 4x40.
+ *    On Gecko Family, max configuration is (COM-lines x Segment-Lines) 4x40
+ *    On Tiny Family, max configuration is 8x20 or 4x24
+ *    On Giant Family, max configuration is 8x36 or 4x40
  *
  * @param[in] com
- *   A COM line to change.
+ *   COM line to change
  *
  * @param[in] bit
- *   A bit index indicating which field to change.
+ *   Bit index of which field to change
  *
  * @param[in] enable
- *   True will set segment, false will clear segment.
+ *   When true will set segment, when false will clear segment
  ******************************************************************************/
 void LCD_SegmentSet(int com, int bit, bool enable)
 {
 #if defined(_LCD_SEGD7L_MASK)
-  /* Tiny Gecko and Giant Gecko Families support up to 8 COM lines. */
+  /* Tiny and Giant Family supports up to 8 COM lines */
   EFM_ASSERT(com < 8);
 #else
-  /* Gecko Family supports up to 4 COM lines. */
+  /* Gecko Family supports up to 4 COM lines */
   EFM_ASSERT(com < 4);
 #endif
 
 #if defined(_LCD_SEGD0H_MASK)
   EFM_ASSERT(bit < 40);
 #else
-  /* Tiny Gecko Family supports only "low" segment registers. */
+  /* Tiny Gecko Family supports only "low" segment registers */
   EFM_ASSERT(bit < 32);
 #endif
 
-  /* Use a bitband access for atomic bit set/clear of the segment. */
+  /* Use bitband access for atomic bit set/clear of segment */
   switch (com) {
     case 0:
       if (bit < 32) {
@@ -396,27 +398,27 @@ void LCD_SegmentSet(int com, int bit, bool enable)
 
 /***************************************************************************//**
  * @brief
- *   Update 0-31 lowest segments on a given COM-line in one operation
- *   according to the bit mask.
+ *   Updates the 0-31 lowest segments on a given COM-line in one operation,
+ *   according to bit mask
  *
  * @param[in] com
- *   Indicates a COM line to update.
+ *   Which COM line to update
  *
  * @param[in] mask
- *   A bit mask for segments 0-31.
+ *   Bit mask for segments 0-31
  *
  * @param[in] bits
- *   A bit pattern for segments 0-31.
+ *   Bit pattern for segments 0-31
  ******************************************************************************/
 void LCD_SegmentSetLow(int com, uint32_t mask, uint32_t bits)
 {
   uint32_t segData;
 
-  /* A maximum number of com lines. */
+  /* Maximum number of com lines */
 #if defined(_LCD_SEGD7L_MASK)
   EFM_ASSERT(com < 8);
 #else
-  /* Gecko Family supports up to 4 COM lines. */
+  /* Gecko Family supports up to 4 COM lines */
   EFM_ASSERT(com < 4);
 #endif
 
@@ -486,16 +488,16 @@ void LCD_SegmentSetLow(int com, uint32_t mask, uint32_t bits)
 #if defined(_LCD_SEGD0H_MASK)
 /***************************************************************************//**
  * @brief
- *   Update the high (32-39) segments on a given COM-line in one operation.
+ *   Updated the high (32-39) segments on a given COM-line in one operation
  *
  * @param[in] com
- *   Indicates a COM line to update.
+ *   Which COM line to update
  *
  * @param[in] mask
- *   A bit mask for segments 32-39.
+ *   Bit mask for segments 32-39
  *
  * @param[in] bits
- *   A bit pattern for segments 32-39.
+ *   Bit pattern for segments 32-39
  ******************************************************************************/
 void LCD_SegmentSetHigh(int com, uint32_t mask, uint32_t bits)
 {
@@ -507,7 +509,7 @@ void LCD_SegmentSetHigh(int com, uint32_t mask, uint32_t bits)
   EFM_ASSERT(com < 4);
 #endif
 
-  /* A maximum number of com lines. */
+  /* Maximum number of com lines */
   switch (com) {
     case 0:
       segData     = LCD->SEGD0H;
@@ -574,10 +576,10 @@ void LCD_SegmentSetHigh(int com, uint32_t mask, uint32_t bits)
 #if defined(_SILICON_LABS_32B_SERIES_0)
 /***************************************************************************//**
  * @brief
- *   Configure the contrast level on the LCD panel.
+ *   Configure contrast level on LCD panel
  *
  * @param[in] level
- *   The contrast level in range 0-31.
+ *   Contrast level in the range 0-31
  ******************************************************************************/
 void LCD_ContrastSet(int level)
 {
@@ -591,10 +593,10 @@ void LCD_ContrastSet(int level)
 #if defined(_SILICON_LABS_32B_SERIES_1)
 /***************************************************************************//**
  * @brief
- *   Configure the contrast level on the LCD panel.
+ *   Configure contrast level on LCD panel
  *
  * @param[in] level
- *   The contrast level in range 0-63.
+ *   Contrast level in the range 0-63
  ******************************************************************************/
 void LCD_ContrastSet(int level)
 {
@@ -607,10 +609,10 @@ void LCD_ContrastSet(int level)
 
 /***************************************************************************//**
  * @brief
- *   Configure the bias level on the LCD panel.
+ *   Configure bias level on LCD panel
  *
  * @param[in] bias
- *   The bias level.
+ *   Bias level
  ******************************************************************************/
 void LCD_BiasSet(LCD_Bias_TypeDef bias)
 {
@@ -637,23 +639,22 @@ void LCD_VBoostSet(LCD_VBoostLevel_TypeDef vboost)
 #if defined(LCD_CTRL_DSC)
 /***************************************************************************//**
  * @brief
- *   Configure the bias level for a specific segment line for Direct Segment Control.
+ *   Configure bias level for a specific segment line for Direct Segment Control
  *
  * @note
  *   When DSC is active, each configuration takes up 4 bits in the Segment
- *   Registers (SEGD0L/SEGD1H) which defines the bias level.
+ *   Registers (SEGD0L/SEGD1H) which defines bias level.
  *   For optimal use of this feature, the entire SEGD-registers should be set
- *   at once in an optimized routine. Therefore, this function
- *   shows how to correctly configure the bias levels and should be used
+ *   at once in a optimized routine, so this function is mainly here to
+ *   demonstrate how to correctly configure the bias levels, and should be used
  *   with care.
  *
  * @param[in] segmentLine
- *   A segment line number.
+ *   Segment line number
  *
  * @param[in] biasLevel
- *   The bias configuration level, 0-4. This value must be within the constraints
- *   defined by the LCD_DISPCTRL bias settings. For more information,
- *   see the applicable Reference Manual and data sheet.
+ *   Bias configuration level, 0-4. This value must be within the constraint
+ *   defined by the LCD_DISPCTRL bias setting, see Reference Manual/Datasheet
  ******************************************************************************/
 void LCD_BiasSegmentSet(int segmentLine, int biasLevel)
 {
@@ -664,7 +665,7 @@ void LCD_BiasSegmentSet(int segmentLine, int biasLevel)
 #if !defined(_LCD_SEGD0H_MASK)
   EFM_ASSERT(segmentLine < 20);
 
-  /* A bias configuration for 8 segment lines per SEGDnL register. */
+  /* Bias config for 8 segment lines per SEGDnL register */
   biasRegister = segmentLine / 8;
   bitShift     = (segmentLine % 8) * 4;
 
@@ -689,7 +690,7 @@ void LCD_BiasSegmentSet(int segmentLine, int biasLevel)
 #else
   EFM_ASSERT(segmentLine < 40);
 
-  /* A bias configuration for 10 segment lines per SEGDn L+H registers. */
+  /* Bias config for 10 segment lines per SEGDn L+H registers */
   biasRegister = segmentLine / 10;
   bitShift     = (segmentLine % 10) * 4;
 
@@ -733,7 +734,7 @@ void LCD_BiasSegmentSet(int segmentLine, int biasLevel)
   }
 #endif
 
-  /* Configure a new bias setting. */
+  /* Configure new bias setting */
   *segmentRegister = (*segmentRegister & ~(0xF << bitShift)) | (biasLevel << bitShift);
 }
 #endif
@@ -741,23 +742,22 @@ void LCD_BiasSegmentSet(int segmentLine, int biasLevel)
 #if defined(LCD_CTRL_DSC)
 /***************************************************************************//**
  * @brief
- *   Configure the bias level for a specific segment line.
+ *   Configure bias level for a specific segment line
  *
  * @note
  *   When DSC is active, each configuration takes up 4 bits in the Segment
  *   Registers (SEGD4L/SEGD4H) which defines bias level.
  *   For optimal use of this feature, the entire SEGD-registers should be set
- *   at once in a optimized routine. Therefore, this function
- *   shows how to correctly configure the bias levels and should be used
+ *   at once in a optimized routine, so this function is mainly here to
+ *   demonstrate how to correctly configure the bias levels, and should be used
  *   with care.
  *
  * @param[in] comLine
- *   A COM line number, 0-7.
+ *   COM line number, 0-7
  *
  * @param[in] biasLevel
- *   The bias configuration level, 0-4. This value must be within the constraints
- *   defined by the LCD_DISPCTRL bias settings.
- *   For more information, see the appropriate Reference Manual and data sheet.
+ *   Bias configuration level, 0-4. This value must be within the constraint
+ *   defined by the LCD_DISPCTRL bias setting, see Reference Manual/Datasheet
  ******************************************************************************/
 void LCD_BiasComSet(int comLine, int biasLevel)
 {
@@ -772,10 +772,10 @@ void LCD_BiasComSet(int comLine, int biasLevel)
 #if defined(_SILICON_LABS_32B_SERIES_1)
 /***************************************************************************//**
  * @brief
- *   Configure the mode for the LCD panel.
+ *   Configure the mode for the LCD panel
  *
  * @param[in] mode
- *   A mode.
+ *   Mode
  ******************************************************************************/
 void LCD_ModeSet(LCD_Mode_Typedef mode)
 {
@@ -784,10 +784,10 @@ void LCD_ModeSet(LCD_Mode_Typedef mode)
 
 /***************************************************************************//**
  * @brief
- *   Configure the charge redistribution cycles for the LCD panel.
+ *   Configure the charge redistribution cycles for the LCD panel
  *
  * @param[in] chgrDst
- *   Charge redistribution cycles, range 0-4.
+ *   Charge redistribution cycles, range 0-4
  ******************************************************************************/
 void LCD_ChargeRedistributionCyclesSet(uint8_t cycles)
 {

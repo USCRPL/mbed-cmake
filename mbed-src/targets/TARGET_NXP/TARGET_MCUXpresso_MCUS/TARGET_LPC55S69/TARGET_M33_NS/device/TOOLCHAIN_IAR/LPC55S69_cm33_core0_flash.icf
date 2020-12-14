@@ -54,11 +54,11 @@ if (!isdefinedsymbol(MBED_RAM_SIZE)) {
   define symbol MBED_RAM_SIZE          = NS_DATA_SIZE;
 }
 
-if (!isdefinedsymbol(MBED_CONF_TARGET_BOOT_STACK_SIZE)) {
-  define symbol MBED_CONF_TARGET_BOOT_STACK_SIZE   = 0x400;
+if (!isdefinedsymbol(MBED_BOOT_STACK_SIZE)) {
+  define symbol MBED_BOOT_STACK_SIZE   = 0x400;
 }
 
-define symbol __stack_size__ = MBED_CONF_TARGET_BOOT_STACK_SIZE;
+define symbol __stack_size__ = MBED_BOOT_STACK_SIZE;
 define symbol __heap_size__  = 0x4000;
 
 define symbol __ram_vector_table_size__   =  isdefinedsymbol(__ram_vector_table__) ? 0x00000200 : 0;
@@ -126,7 +126,7 @@ define region CSTACK_region = mem:[from m_data_end-__size_cstack__+1 to m_data_e
 define region m_interrupts_ram_region = mem:[from m_interrupts_ram_start to m_interrupts_ram_end];
 
 define block CSTACK    with alignment = 8, size = __size_cstack__   { };
-define block HEAP      with expanding size, alignment = 8, minimum size = __heap_size__ { };
+define block HEAP      with alignment = 8, size = __size_heap__     { };
 define block RW        { readwrite };
 define block ZI        { zi };
 

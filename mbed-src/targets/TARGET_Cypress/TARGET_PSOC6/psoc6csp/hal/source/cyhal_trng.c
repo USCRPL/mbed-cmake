@@ -26,7 +26,6 @@
 #include "cyhal_hwmgr.h"
 #include "cyhal_crypto_common.h"
 #include "cyhal_trng_impl.h"
-#include "cy_utils.h"
 
 #if defined(CY_IP_MXCRYPTO)
 

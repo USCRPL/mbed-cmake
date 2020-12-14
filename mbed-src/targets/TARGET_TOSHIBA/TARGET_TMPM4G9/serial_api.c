@@ -1,8 +1,5 @@
 /* mbed Microcontroller Library
- *
- * Copyright (C) 2019, Toshiba Electronic Device Solutions Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
+ * (C)Copyright TOSHIBA ELECTRONIC DEVICES & STORAGE CORPORATION 2018 All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -546,7 +543,6 @@ void serial_clear(serial_t *obj)
     } else {
         {
             dummy = obj->FUARTx->DR;            //dummy read
-            (void)dummy;
         }
     }
 }

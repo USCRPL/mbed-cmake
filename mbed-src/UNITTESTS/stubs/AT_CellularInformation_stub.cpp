@@ -16,11 +16,11 @@
  */
 
 #include "AT_CellularInformation.h"
-#include "netsocket/nsapi_types.h"
+#include "nsapi_types.h"
 
 using namespace mbed;
 
-AT_CellularInformation::AT_CellularInformation(ATHandler &at, AT_CellularDevice &device) : _at(at), _device(device)
+AT_CellularInformation::AT_CellularInformation(ATHandler &at) : AT_CellularBase(at)
 {
 }
 

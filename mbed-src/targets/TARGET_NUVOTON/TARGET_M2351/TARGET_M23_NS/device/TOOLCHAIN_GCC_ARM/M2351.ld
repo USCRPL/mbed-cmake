@@ -22,11 +22,11 @@
 
 #include "../../../device/partition_M2351_mem.h"
 
-#if !defined(MBED_CONF_TARGET_BOOT_STACK_SIZE)
-#define MBED_CONF_TARGET_BOOT_STACK_SIZE    0x400
+#if !defined(MBED_BOOT_STACK_SIZE)
+#define MBED_BOOT_STACK_SIZE    0x400
 #endif
 
-StackSize = MBED_CONF_TARGET_BOOT_STACK_SIZE;
+StackSize = MBED_BOOT_STACK_SIZE;
 
 MEMORY
 {
@@ -120,17 +120,6 @@ SECTIONS
 
         KEEP(*(.eh_frame*))
     } > FLASH
-
-    /* Stack Pointer (SP) configuration with GCC_ARM
-     *
-     * SP would go through the following configuration sequence:
-     * (1) SP(MSP) <- Entry 0 of vector table (on H/W reset)
-     * (2) Switch SP from MSP to PSP in startup file (as TFM requests)
-     * (3) SP(PSP) <- __stack (in _start(), C/C++ runtime initialization)
-     *
-     * S(3) may cause SP(PSP) incorrectly configured. To avoid this error, __stack
-     * is assigned conditionally according to Secure PSA or not.
-     */
 
     .stack (NOLOAD) :
     {

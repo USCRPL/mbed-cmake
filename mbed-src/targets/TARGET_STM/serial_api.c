@@ -158,9 +158,14 @@ static void _serial_init_direct(serial_t *obj, const serial_pinmap_t *pinmap)
 
     // Configure UART pins
     pin_function(pinmap->tx_pin, pinmap->tx_function);
-    pin_mode(pinmap->tx_pin, PullUp);
     pin_function(pinmap->rx_pin, pinmap->rx_function);
-    pin_mode(pinmap->rx_pin, PullUp);
+
+    if (pinmap->tx_pin != NC) {
+        pin_mode(pinmap->tx_pin, PullUp);
+    }
+    if (pinmap->rx_pin != NC) {
+        pin_mode(pinmap->rx_pin, PullUp);
+    }
 
     // Configure UART
     obj_s->baudrate = 9600; // baudrate default value
@@ -352,17 +357,7 @@ void serial_free(serial_t *obj)
 
     // Configure GPIOs
     pin_function(obj_s->pin_tx, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
-
     pin_function(obj_s->pin_rx, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
-
-#if DEVICE_SERIAL_FC
-    if ( (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS) || (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS_CTS) ) {
-        pin_function(obj_s->pin_rts, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
-    }
-    if ( (obj_s->hw_flow_ctl == UART_HWCONTROL_CTS) || (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS_CTS) ) {
-        pin_function(obj_s->pin_cts, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
-    }
-#endif
 
     serial_irq_ids[obj_s->index] = 0;
 }

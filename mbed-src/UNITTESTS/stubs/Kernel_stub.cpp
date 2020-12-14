@@ -15,16 +15,11 @@
  * limitations under the License.
  */
 
-#include "rtos/Kernel.h"
+#include "Kernel.h"
 
 namespace rtos {
 
 uint64_t Kernel::get_ms_count()
-{
-    return impl::get_tick_count();
-
-}
-uint64_t Kernel::impl::get_tick_count()
 {
     return 20;
 }

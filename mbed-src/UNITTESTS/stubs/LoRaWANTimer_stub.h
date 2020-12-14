@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "system/LoRaWANTimer.h"
+#include "LoRaWANTimer.h"
 
 namespace LoRaWANTimer_stub {
 extern lorawan_time_t time_value;

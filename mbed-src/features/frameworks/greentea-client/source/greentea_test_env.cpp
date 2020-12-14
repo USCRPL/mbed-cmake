@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 
+#if DEVICE_SERIAL
+
 #include <ctype.h>
 #include <cstdio>
 #include <string.h>
 #include "greentea-client/test_env.h"
+#include "greentea-client/greentea_serial.h"
 #include "greentea-client/greentea_metrics.h"
 #include "mbed_trace.h"
-#include "platform/mbed_retarget.h"
 
 /**
  *   Generic test suite transport protocol keys
@@ -57,6 +59,7 @@ static void greentea_notify_timeout(const int);
 static void greentea_notify_hosttest(const char *);
 static void greentea_notify_completion(const int);
 static void greentea_notify_version();
+static void greentea_write_string(const char *str);
 
 /** \brief Handle the handshake with the host
  *  \details This is contains the shared handhshake functionality that is used between
@@ -209,15 +212,17 @@ void greentea_notify_coverage_end() {
  *
  *        This function writes the preamble "{{" which is required
  *        for key-value comunication between the target and the host.
- *        This uses greentea_putc which allows the direct writing of characters
- *        using the write() method.
+ *        This uses a Rawserial object, greentea_serial, which provides
+ *        a direct interface to the USBTX and USBRX serial pins and allows
+ *        the direct writing of characters using the putc() method.
  *        This suite of functions are provided to allow for serial communication
  *        to the host from within a thread/ISR.
+ *
  */
-static void greentea_write_preamble()
+inline void greentea_write_preamble()
 {
-    greentea_putc('{');
-    greentea_putc('{');
+    greentea_serial->putc('{');
+    greentea_serial->putc('{');
 }
 
 /**
@@ -225,18 +230,19 @@ static void greentea_write_preamble()
  *
  *        This function writes the postamble "{{\n" which is required
  *        for key-value comunication between the target and the host.
- *        This uses greentea_putc which allows the direct writing of characters
- *        using the write() method.
+ *        This uses a Rawserial object, greentea_serial, which provides
+ *        a direct interface to the USBTX and USBRX serial pins and allows
+ *        the direct writing of characters using the putc() method.
  *        This suite of functions are provided to allow for serial communication
  *        to the host from within a thread/ISR.
  *
  */
-static void greentea_write_postamble()
+inline void greentea_write_postamble()
 {
-    greentea_putc('}');
-    greentea_putc('}');
-    greentea_putc('\r');
-    greentea_putc('\n');
+    greentea_serial->putc('}');
+    greentea_serial->putc('}');
+    greentea_serial->putc('\r');
+    greentea_serial->putc('\n');
 }
 
 /**
@@ -244,14 +250,17 @@ static void greentea_write_postamble()
  *
  *        This function writes a '\0' terminated string from the target
  *        to the host. It writes directly to the serial port using the
- *        the write() method.
+ *        greentea_serial, Rawserial object.
  *
  * \param str - string value
  *
  */
-void greentea_write_string(const char *str)
+inline void greentea_write_string(const char *str)
 {
-    write(STDOUT_FILENO, str, strlen(str));
+    while (*str != '\0') {
+        greentea_serial->putc(*str);
+        str ++;
+    }
 }
 
 
@@ -261,7 +270,7 @@ void greentea_write_string(const char *str)
  *        This function writes an integer value from the target
  *        to the host. The integer value is converted to a string and
  *        and then written character by character directly to the serial
- *        port using the console.
+ *        port using the greentea_serial, Rawserial object.
  *        sprintf() is used to convert the int to a string. Sprintf if
  *        inherently thread safe so can be used.
  *
@@ -269,13 +278,13 @@ void greentea_write_string(const char *str)
  *
  */
 #define MAX_INT_STRING_LEN 15
-static void greentea_write_int(const int val)
+inline void greentea_write_int(const int val)
 {
     char intval[MAX_INT_STRING_LEN];
     unsigned int i = 0;
     sprintf(intval, "%d", val);
     while (intval[i] != '\0') {
-        greentea_putc(intval[i]);
+        greentea_serial->putc(intval[i]);
         i++;
     }
 }
@@ -295,7 +304,7 @@ extern "C" void greentea_send_kv(const char *key, const char *val) {
     if (key && val) {
         greentea_write_preamble();
         greentea_write_string(key);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_string(val);
         greentea_write_postamble();
     }
@@ -318,7 +327,7 @@ void greentea_send_kv(const char *key, const int val) {
     if (key) {
         greentea_write_preamble();
         greentea_write_string(key);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_int(val);
         greentea_write_postamble();
     }
@@ -342,9 +351,9 @@ void greentea_send_kv(const char *key, const char *val, const int result) {
     if (key) {
         greentea_write_preamble();
         greentea_write_string(key);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_string(val);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_int(result);
         greentea_write_postamble();
 
@@ -375,11 +384,11 @@ void greentea_send_kv(const char *key, const char *val, const int passes, const 
     if (key) {
         greentea_write_preamble();
         greentea_write_string(key);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_string(val);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_int(passes);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_int(failures);
         greentea_write_postamble();
     }
@@ -408,9 +417,9 @@ void greentea_send_kv(const char *key, const int passes, const int failures) {
     if (key) {
         greentea_write_preamble();
         greentea_write_string(key);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_int(passes);
-        greentea_putc(';');
+        greentea_serial->putc(';');
         greentea_write_int(failures);
         greentea_write_postamble();
     }
@@ -553,21 +562,7 @@ enum Token {
  *
  */
 extern "C" int greentea_getc() {
-    uint8_t c;
-    read(STDOUT_FILENO, &c, 1);
-    return c;
-}
-
-
-/**
- * \brief Write character from stream of data
- *
- * \return The number of bytes written
- *
- */
-extern "C" void greentea_putc(int c) {
-    uint8_t _c = c;
-    write(STDOUT_FILENO, &_c, 1);
+    return greentea_serial->getc();
 }
 
 /**
@@ -740,7 +735,6 @@ static int gettok(char *out_str, const int str_size) {
 	if (LastChar == '}') {
 		LastChar = greentea_getc();
 		if (LastChar == '}') {
-			greentea_getc(); //offset the extra '\n' send by Greentea python tool
 			LastChar = '!';
 			return tok_close;
 		}
@@ -792,3 +786,5 @@ static int HandleKV(char *out_key,
     getNextToken(0, 0);
     return 0;
 }
+
+#endif

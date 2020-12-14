@@ -32,7 +32,7 @@
         (++) Falling
 
     (+) Exti lines 0 to 15 are linked to gpio pin number 0 to 15. Gpio port can
-        be selected through multiplexer.
+        be selected throught multiplexer.
 
                      ##### How to use this driver #####
   ==============================================================================

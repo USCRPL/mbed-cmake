@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +23,6 @@ extern "C" {
 #endif
 
 typedef enum {
-    GPIO_X = 0, // dummy peripheral used instead of GPIO_A..GPIO_E
-} GPIOName;
-
-typedef enum {
     OSC32KCLK = 0,
 } RTCName;
 
@@ -37,6 +32,7 @@ typedef enum {
     UART_2 = 2,
     UART_3 = 3,
     UART_4 = 4,
+    UART_5 = 5,
 } UARTName;
 
 #define STDIO_UART_TX     USBTX
@@ -128,7 +124,7 @@ typedef enum {
     DAC_0 = 0
 } DACName;
 
-#define DEVICE_SPI_COUNT 3
+
 typedef enum {
     SPI_0 = 0,
     SPI_1 = 1,

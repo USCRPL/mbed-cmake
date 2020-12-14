@@ -1,10 +1,10 @@
 /* Linker script for mbed LPC1114 */
 
-#if !defined(MBED_CONF_TARGET_BOOT_STACK_SIZE)
-    #define MBED_CONF_TARGET_BOOT_STACK_SIZE 0x400
+#if !defined(MBED_BOOT_STACK_SIZE)
+    #define MBED_BOOT_STACK_SIZE 0x400
 #endif
 
-STACK_SIZE = MBED_CONF_TARGET_BOOT_STACK_SIZE;
+STACK_SIZE = MBED_BOOT_STACK_SIZE;
 
 /* Linker script to configure memory regions. */
 MEMORY
@@ -46,9 +46,9 @@ SECTIONS
     .text :
     {
         KEEP(*(.isr_vector))
-        *(.text.Reset_Handler)
+		*(.text.Reset_Handler)
         *(.text.SystemInit)
-        . = 0x200;
+		. = 0x200;
         *(.text*)
 
         KEEP(*(.init))
@@ -95,24 +95,24 @@ SECTIONS
 
         . = ALIGN(8);
         /* preinit data */
-        PROVIDE_HIDDEN (__preinit_array_start = .);
+        PROVIDE (__preinit_array_start = .);
         KEEP(*(.preinit_array))
-        PROVIDE_HIDDEN (__preinit_array_end = .);
+        PROVIDE (__preinit_array_end = .);
 
         . = ALIGN(8);
         /* init data */
-        PROVIDE_HIDDEN (__init_array_start = .);
+        PROVIDE (__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array))
-        PROVIDE_HIDDEN (__init_array_end = .);
+        PROVIDE (__init_array_end = .);
 
 
         . = ALIGN(8);
         /* finit data */
-        PROVIDE_HIDDEN (__fini_array_start = .);
+        PROVIDE (__fini_array_start = .);
         KEEP(*(SORT(.fini_array.*)))
         KEEP(*(.fini_array))
-        PROVIDE_HIDDEN (__fini_array_end = .);
+        PROVIDE (__fini_array_end = .);
 
         . = ALIGN(8);
         /* All data end */
@@ -128,7 +128,7 @@ SECTIONS
         __bss_end__ = .;
     } > RAM
     
-    .heap (COPY):
+    .heap :
     {
         __end__ = .;
         end = __end__;
@@ -140,7 +140,7 @@ SECTIONS
     /* .stack_dummy section doesn't contains any symbols. It is only
      * used for linker to calculate size of stack sections, and assign
      * values to stack symbols later */
-    .stack_dummy (COPY):
+    .stack_dummy :
     {
         *(.stack)
     } > RAM

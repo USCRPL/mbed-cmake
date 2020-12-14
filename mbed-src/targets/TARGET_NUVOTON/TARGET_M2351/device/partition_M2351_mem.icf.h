@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Nuvoton Technology Corporation
+ * Copyright (c) 2019-2020, Nuvoton Technology Corporation
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -22,9 +22,6 @@
  * evaluating undefined symbol. Define it explicitly. */
 if (!isdefinedsymbol(DOMAIN_NS)) {
     define symbol DOMAIN_NS             = 0;
-}
-if (!isdefinedsymbol(TFM_LVL)) {
-    define symbol TFM_LVL               = 0;
 }
 
 /* Default flash/SRAM partition
@@ -246,20 +243,6 @@ if (APPLICATION_RAM_SIZE != MBED_RAM_APP_SIZE) {
 define symbol NU_TZ_NSC_SIZE            = 0x1000;
 /* TZ NSC area defaults to from secure ROM end */
 define symbol NU_TZ_NSC_START           = (NU_ROM_START_S + NU_ROM_SIZE_S - NU_TZ_NSC_SIZE);
-
-/* Configuration of TDB internal storage area
- *
- * 1. Must match "tdb_internal/mbed_lib.json"
- * 2. Can pass to linker files for memory layout check
- *
- * With this approach, we can pass this configuration from "tdb_internal/mbed_lib.json"
- * to linker file for detecting memory layout error before run-time.
- */
-if (!DOMAIN_NS && !TFM_LVL) {
-    /* TDB internal storage area defaults to 32KiB at end of flash. */
-    define symbol NU_TDB_INTERNAL_STORAGE_SIZE  = 0x8000;
-    define symbol NU_TDB_INTERNAL_STORAGE_START = (NU_ROM_START_S + NU_ROM_SIZE_S - NU_TZ_NSC_SIZE - NU_TDB_INTERNAL_STORAGE_SIZE);
-}
 
 /* Configuration of flash IAP area */
 define symbol NU_FLASHIAP_SECURE_START          = NU_ROM_START_S;

@@ -5,11 +5,11 @@
 * SFLASH IP definitions
 *
 * \note
-* Generator version: 1.6.0.225
+* Generator version: 1.5.1.36
 *
 ********************************************************************************
 * \copyright
-* Copyright 2016-2020 Cypress Semiconductor Corporation
+* Copyright 2016-2019 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,9 +47,12 @@ typedef struct {
   __IOM uint16_t FAMILY_ID;                     /*!< 0x0000000C Indicates Family ID of the device */
    __IM uint16_t RESERVED2[3];
   __IOM uint32_t CPUSS_WOUNDING;                /*!< 0x00000014 CPUSS Wounding */
-   __IM uint32_t RESERVED3[4];
-  __IOM uint32_t SFLASH_SVN;                    /*!< 0x00000028 SFLASH Subversion */
-   __IM uint32_t RESERVED4[20];
+   __IM uint32_t RESERVED3[2];
+  __IOM uint8_t  SORT_REV[3];                   /*!< 0x00000020 SORT Revision */
+  __IOM uint8_t  CRI_BB_REV;                    /*!< 0x00000023 CRI BB Revision */
+  __IOM uint8_t  CRI_AB_REV;                    /*!< 0x00000024 CRI AB Revision */
+  __IOM uint8_t  CHI_AB_REV;                    /*!< 0x00000025 CHI AB Revision */
+   __IM uint16_t RESERVED4[43];
   __IOM uint32_t FB_FLAGS;                      /*!< 0x0000007C Flash boot flags */
    __IM uint32_t RESERVED5[352];
   __IOM uint8_t  DIE_LOT[3];                    /*!< 0x00000600 Lot Number (3 bytes) */
@@ -197,9 +200,18 @@ typedef struct {
 /* SFLASH.CPUSS_WOUNDING */
 #define SFLASH_CPUSS_WOUNDING_CPUSS_WOUNDING_Pos 0UL
 #define SFLASH_CPUSS_WOUNDING_CPUSS_WOUNDING_Msk 0xFFFFFFFFUL
-/* SFLASH.SFLASH_SVN */
-#define SFLASH_SFLASH_SVN_DATA32_Pos            0UL
-#define SFLASH_SFLASH_SVN_DATA32_Msk            0xFFFFFFFFUL
+/* SFLASH.SORT_REV */
+#define SFLASH_SORT_REV_DATA_Pos                0UL
+#define SFLASH_SORT_REV_DATA_Msk                0xFFUL
+/* SFLASH.CRI_BB_REV */
+#define SFLASH_CRI_BB_REV_DATA_Pos              0UL
+#define SFLASH_CRI_BB_REV_DATA_Msk              0xFFUL
+/* SFLASH.CRI_AB_REV */
+#define SFLASH_CRI_AB_REV_DATA_Pos              0UL
+#define SFLASH_CRI_AB_REV_DATA_Msk              0xFFUL
+/* SFLASH.CHI_AB_REV */
+#define SFLASH_CHI_AB_REV_DATA_Pos              0UL
+#define SFLASH_CHI_AB_REV_DATA_Msk              0xFFUL
 /* SFLASH.FB_FLAGS */
 #define SFLASH_FB_FLAGS_FB_PIN_CTL_Pos          0UL
 #define SFLASH_FB_FLAGS_FB_PIN_CTL_Msk          0x3UL

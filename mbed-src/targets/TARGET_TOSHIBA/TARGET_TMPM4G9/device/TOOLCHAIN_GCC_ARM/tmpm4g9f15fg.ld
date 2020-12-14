@@ -1,20 +1,3 @@
-/*
- * Copyright(C) 2019, Toshiba Electronic Device Solutions Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 /* Linker script for Toshiba TMPM4G9 */
 
 /* Linker script to configure memory regions. */
@@ -27,11 +10,11 @@
   #define MBED_APP_SIZE 0x180000
 #endif
 
-#if !defined(MBED_CONF_TARGET_BOOT_STACK_SIZE)
-    #define MBED_CONF_TARGET_BOOT_STACK_SIZE 0x400
+#if !defined(MBED_BOOT_STACK_SIZE)
+    #define MBED_BOOT_STACK_SIZE 0x400
 #endif
 
-STACK_SIZE = MBED_CONF_TARGET_BOOT_STACK_SIZE;
+STACK_SIZE = MBED_BOOT_STACK_SIZE;
 
 MEMORY
 {

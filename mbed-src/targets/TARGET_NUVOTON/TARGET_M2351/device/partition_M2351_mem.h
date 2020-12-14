@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Nuvoton Technology Corporation
+ * Copyright (c) 2019-2020, Nuvoton Technology Corporation
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -47,76 +47,38 @@
 
 /* Resolve non-secure ROM start */
 #ifndef MBED_ROM_START
-#ifdef PSA_NON_SECURE_ROM_START
-#define MBED_ROM_START          (PSA_NON_SECURE_ROM_START)
-#else
 #define MBED_ROM_START          (0x10040000)
 #endif
-#endif
-
 /* Resolve non-secure ROM size */
 #ifndef MBED_ROM_SIZE
-#ifdef PSA_NON_SECURE_ROM_SIZE
-#define MBED_ROM_SIZE           (PSA_NON_SECURE_ROM_SIZE)
-#else
 #define MBED_ROM_SIZE           (0x40000)
 #endif
-#endif
-
 /* Resolve non-secure RAM start */
 #ifndef MBED_RAM_START
-#ifdef PSA_NON_SECURE_RAM_START
-#define MBED_RAM_START          (PSA_NON_SECURE_RAM_START)
-#else
 #define MBED_RAM_START          (0x30008000)
 #endif
-#endif
-
 /* Resolve non-secure RAM size */
 #ifndef MBED_RAM_SIZE
-#ifdef PSA_NON_SECURE_RAM_SIZE
-#define MBED_RAM_SIZE           (PSA_NON_SECURE_RAM_SIZE)
-#else
 #define MBED_RAM_SIZE           (0x10000)
-#endif
 #endif
 
 #else
 
 /* Resolve secure ROM start */
 #ifndef MBED_ROM_START
-#ifdef PSA_SECURE_ROM_START
-#define MBED_ROM_START          (PSA_SECURE_ROM_START)
-#else
 #define MBED_ROM_START          (0x0)
 #endif
-#endif
-
 /* Resolve secure ROM size */
 #ifndef MBED_ROM_SIZE
-#ifdef PSA_SECURE_ROM_SIZE
-#define MBED_ROM_SIZE           (PSA_SECURE_ROM_SIZE)
-#else
 #define MBED_ROM_SIZE           (0x40000)
 #endif
-#endif
-
 /* Resolve secure RAM start */
 #ifndef MBED_RAM_START
-#ifdef PSA_SECURE_RAM_START
-#define MBED_RAM_START          (PSA_SECURE_RAM_START)
-#else
 #define MBED_RAM_START          (0x20000000)
 #endif
-#endif
-
 /* Resolve secure RAM size */
 #ifndef MBED_RAM_SIZE
-#ifdef PSA_SECURE_RAM_SIZE
-#define MBED_RAM_SIZE           (PSA_SECURE_RAM_SIZE)
-#else
 #define MBED_RAM_SIZE           (0x8000)
-#endif
 #endif
 
 #endif
@@ -252,22 +214,6 @@
 #define NU_TZ_NSC_START     (NU_ROM_START_S + NU_ROM_SIZE_S - NU_TZ_NSC_SIZE)
 /* TZ NSC area defaults to 4KiB. */
 #define NU_TZ_NSC_SIZE      0x1000
-
-/* Configuration of TDB internal storage area
- *
- * 1. Must match "tdb_internal/mbed_lib.json"
- * 2. Can pass to linker files for memory layout check
- *
- * With this approach, we can pass this configuration from "tdb_internal/mbed_lib.json"
- * to linker file for detecting memory layout error before run-time.
- */
-#if !defined(DOMAIN_NS) || (DOMAIN_NS == 0)
-#if (TFM_LVL > 0)
-/* TDB internal storage area defaults to 32KiB at end of flash. */
-#define NU_TDB_INTERNAL_STORAGE_START   (NU_ROM_START_S + NU_ROM_SIZE_S - NU_TZ_NSC_SIZE - NU_TDB_INTERNAL_STORAGE_SIZE)
-#define NU_TDB_INTERNAL_STORAGE_SIZE    0x8000
-#endif
-#endif
 
 /* Configuration of flash IAP area */
 #define NU_FLASHIAP_SECURE_START        NU_ROM_START_S

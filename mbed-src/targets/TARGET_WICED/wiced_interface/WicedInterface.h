@@ -1,6 +1,5 @@
 /* Wiced implementation of NetworkInterfaceAPI
  * Copyright (c) 2017 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +16,6 @@
 
 #ifndef WICED_INTERFACE_H
 #define WICED_INTERFACE_H
-
-#if defined(MBED_CONF_NSAPI_PRESENT)
 
 #include "mbed.h"
 #include "EthernetInterface.h"
@@ -112,7 +109,5 @@ private:
     char _pass[64]; /* The longest allowed passphrase + 1 */
     nsapi_security_t _security;
 };
-
-#endif
 
 #endif

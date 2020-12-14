@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -206,7 +205,7 @@ typedef enum {
 
     I2C_SCL = A5,
     I2C_SDA = A4,
-
+	
     // Not connected
     NC = (int)0xFFFFFFFF
 } PinName;

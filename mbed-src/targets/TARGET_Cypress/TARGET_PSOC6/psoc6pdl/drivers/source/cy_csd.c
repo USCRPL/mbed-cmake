@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file cy_csd.c
-* \version 1.10.1
+* \version 1.10
 *
 * The source file of the CSD driver.
 *

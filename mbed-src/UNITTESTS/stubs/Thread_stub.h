@@ -17,7 +17,7 @@
 #ifndef THREAD_STUB_H_
 #define THREAD_STUB_H_
 
-#include "rtos/Thread.h"
+#include "Thread.h"
 
 namespace Thread_stub {
 extern osStatus osStatus_value;

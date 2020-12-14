@@ -20,12 +20,8 @@
 #include "cycfg.h"
 #include "cyhal_hwmgr.h"
 #include "cybsp.h"
-#include "cy_mbed_post_init.h"
 #include "mbed_power_mgmt.h"
-#include "mbed_error.h"
-#if MBED_CONF_RTOS_PRESENT
 #include "rtos_idle.h"
-#endif // MBED_CONF_RTOS_PRESENT
 #include "us_ticker_api.h"
 
 #if defined(CY_ENABLE_XIP_PROGRAM)
@@ -34,6 +30,10 @@
 #if defined(MBED_CONF_TARGET_XIP_ENABLE)
 #include "cy_serial_flash_qspi.h"
 #endif /* defined(MBED_CONF_TARGET_XIP_ENABLE) */
+
+#if defined(COMPONENT_SPM_MAILBOX)
+void mailbox_init(void);
+#endif
 
 
 #if (defined(CY_CFG_PWR_SYS_IDLE_MODE) && (CY_CFG_PWR_SYS_IDLE_MODE == CY_CFG_PWR_MODE_ACTIVE))
@@ -51,11 +51,6 @@ static void active_idle_hook(void)
 }
 #endif
 
-MBED_WEAK void cy_mbed_post_bsp_init_hook(void)
-{
-    /* By default, do nothing */
-}
-
 /*******************************************************************************
 * Function Name: mbed_sdk_init
 ****************************************************************************//**
@@ -66,7 +61,7 @@ MBED_WEAK void cy_mbed_post_bsp_init_hook(void)
 *******************************************************************************/
 void mbed_sdk_init(void)
 {
-#if CY_CPU_CORTEX_M0P
+#if (CY_CPU_CORTEX_M0P && !defined(COMPONENT_SPM_MAILBOX))
     /* Disable global interrupts */
     __disable_irq();
 #endif
@@ -75,16 +70,18 @@ void mbed_sdk_init(void)
     /* Placed here as it must be done after proper LIBC initialization. */
     SystemInit();
 
+#if defined(COMPONENT_SPM_MAILBOX)
+    mailbox_init();
+#endif
+
     /* Set up the device based on configurator selections */
-    if (CY_RSLT_SUCCESS != cybsp_init()) {
-        MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_FAILED_OPERATION), "cybsp_init");
-    }
+    cybsp_init();
 
-    cy_mbed_post_bsp_init_hook();
-
-#if CY_CPU_CORTEX_M0P
+#if (CY_CPU_CORTEX_M0P)
+#if !defined(COMPONENT_SPM_MAILBOX)
     /* Enable global interrupts */
     __enable_irq();
+#endif
 #else
     /*
      * Init the us Ticker here to avoid imposing on the limited stack space of the idle thread.

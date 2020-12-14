@@ -23,7 +23,7 @@
 
 namespace mbed {
 
-SerialWireOutput::SerialWireOutput()
+SerialWireOutput::SerialWireOutput(void)
 {
     /* Initialize ITM using internal init function. */
     mbed_itm_init();

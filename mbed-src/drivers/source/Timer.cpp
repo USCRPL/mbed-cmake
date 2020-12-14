@@ -15,138 +15,107 @@
  * limitations under the License.
  */
 #include "drivers/Timer.h"
-#include "drivers/LowPowerTimer.h"
 #include "hal/ticker_api.h"
 #include "hal/us_ticker_api.h"
-#include "hal/lp_ticker_api.h"
-#include "platform/CriticalSectionLock.h"
 #include "platform/mbed_critical.h"
 #include "platform/mbed_power_mgmt.h"
 
-using std::milli;
-using std::micro;
-using namespace std::chrono;
-
 namespace mbed {
 
-TimerBase::TimerBase(const ticker_data_t *data) : TimerBase(data, !data->interface->runs_in_deep_sleep)
-{
-}
-
-TimerBase::TimerBase(const ticker_data_t *data, bool lock_deepsleep) : _ticker_data(data), _lock_deepsleep(lock_deepsleep)
+Timer::Timer() : _running(), _start(), _time(), _ticker_data(get_us_ticker_data()), _lock_deepsleep(true)
 {
     reset();
 }
 
-// This creates a temporary CriticalSectionLock while we delegate to the
-// constructor that does the copy, thus holding critical section during the copy,
-// ensuring locking on the source. Then continue our own initialization
-// outside the critical section
-TimerBase::TimerBase(const TimerBase &t) : TimerBase(t, CriticalSectionLock{})
+Timer::Timer(const ticker_data_t *data) : _running(), _start(), _time(), _ticker_data(data),
+    _lock_deepsleep(!data->interface->runs_in_deep_sleep)
 {
-    // If running, new copy needs an extra lock
-    if (_running && _lock_deepsleep) {
-        sleep_manager_lock_deep_sleep();
-    }
+    reset();
 }
 
-// Unlike copy constructor, no need for lock on move - we must be only person
-// accessing source.
-TimerBase::TimerBase(TimerBase &&t) : TimerBase(t, false)
+Timer::~Timer()
 {
-    // Original is marked as no longer running - we adopt any lock it had
-    t._running = false;
-}
-
-TimerBase::~TimerBase()
-{
+    core_util_critical_section_enter();
     if (_running) {
         if (_lock_deepsleep) {
             sleep_manager_unlock_deep_sleep();
         }
     }
+    _running = 0;
+    core_util_critical_section_exit();
 }
 
-void TimerBase::start()
+void Timer::start()
 {
-    CriticalSectionLock lock;
+    core_util_critical_section_enter();
     if (!_running) {
         if (_lock_deepsleep) {
             sleep_manager_lock_deep_sleep();
         }
-        _start = _ticker_data.now();
-        _running = true;
+        _start = ticker_read_us(_ticker_data);
+        _running = 1;
     }
+    core_util_critical_section_exit();
 }
 
-void TimerBase::stop()
+void Timer::stop()
 {
-    CriticalSectionLock lock;
+    core_util_critical_section_enter();
     _time += slicetime();
     if (_running) {
         if (_lock_deepsleep) {
             sleep_manager_unlock_deep_sleep();
         }
     }
-    _running = false;
+    _running = 0;
+    core_util_critical_section_exit();
 }
 
-int TimerBase::read_us() const
+int Timer::read_us()
 {
-    return duration<int, micro>(elapsed_time()).count();
+    return read_high_resolution_us();
 }
 
-float TimerBase::read() const
+float Timer::read()
 {
-    return duration<float>(elapsed_time()).count();
+    return (float)read_high_resolution_us() / 1000000.0f;
 }
 
-int TimerBase::read_ms() const
+int Timer::read_ms()
 {
-    return duration_cast<duration<int, milli>>(elapsed_time()).count();
+    return read_high_resolution_us() / 1000;
 }
 
-us_timestamp_t TimerBase::read_high_resolution_us() const
+us_timestamp_t Timer::read_high_resolution_us()
 {
-    return duration_cast<duration<us_timestamp_t, micro>>(elapsed_time()).count();
+    core_util_critical_section_enter();
+    us_timestamp_t time = _time + slicetime();
+    core_util_critical_section_exit();
+    return time;
 }
 
-microseconds TimerBase::elapsed_time() const
+us_timestamp_t Timer::slicetime()
 {
-    CriticalSectionLock lock;
-    return _time + slicetime();
-}
-
-microseconds TimerBase::slicetime() const
-{
-    CriticalSectionLock lock;
-    microseconds ret = 0us;
+    us_timestamp_t ret = 0;
+    core_util_critical_section_enter();
     if (_running) {
-        ret = _ticker_data.now() - _start;
+        ret = ticker_read_us(_ticker_data) - _start;
     }
+    core_util_critical_section_exit();
     return ret;
 }
 
-void TimerBase::reset()
+void Timer::reset()
 {
-    CriticalSectionLock lock;
-    _start = _ticker_data.now();
-    _time = 0s;
+    core_util_critical_section_enter();
+    _start = ticker_read_us(_ticker_data);
+    _time = 0;
+    core_util_critical_section_exit();
 }
 
-TimerBase::operator float() const
+Timer::operator float()
 {
-    return duration<float>(elapsed_time()).count();
+    return read();
 }
-
-Timer::Timer() : TimerBase(get_us_ticker_data(), true)
-{
-}
-
-#if DEVICE_LPTICKER
-LowPowerTimer::LowPowerTimer() : TimerBase(get_lp_ticker_data(), false)
-{
-}
-#endif
 
 } // namespace mbed

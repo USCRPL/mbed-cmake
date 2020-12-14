@@ -17,7 +17,7 @@
 
 #include "platform/mbed_thread.h"
 #include "platform/mbed_critical.h"
-#include "platform/internal/mbed_os_timer.h"
+#include "platform/source/mbed_os_timer.h"
 
 /* If the RTOS is present, we call the RTOS API to do the work */
 /* If the RTOS is not present, the RTOS API calls us to do the work */
@@ -26,38 +26,33 @@
 #include "rtos/ThisThread.h"
 #endif
 
-using namespace std::chrono;
-
 extern "C" {
 
     uint64_t get_ms_count(void)
     {
 #if MBED_CONF_RTOS_PRESENT
-        rtos::Kernel::Clock::time_point tp = rtos::Kernel::Clock::now();
+        return rtos::Kernel::get_ms_count();
 #else
-        mbed::internal::OsClock::time_point tp = mbed::internal::OsClock::now();
+        return mbed::internal::init_os_timer()->update_and_get_tick();
 #endif
-        return duration<uint64_t, std::milli>(tp.time_since_epoch()).count();
     }
 
     void thread_sleep_for(uint32_t millisec)
     {
-        auto d = duration<uint32_t, std::milli>(millisec);
 #if MBED_CONF_RTOS_PRESENT
-        rtos::ThisThread::sleep_for(d);
+        rtos::ThisThread::sleep_for(millisec);
 #else
         // Undocumented, but osDelay(UINT32_MAX) does actually sleep forever
-        mbed::internal::do_timed_sleep_relative_or_forever(d);
+        mbed::internal::do_timed_sleep_relative_or_forever(millisec);
 #endif
     }
 
     void thread_sleep_until(uint64_t millisec)
     {
-        auto d = duration<uint64_t, std::milli>(millisec);
 #if MBED_CONF_RTOS_PRESENT
-        rtos::ThisThread::sleep_until(rtos::Kernel::Clock::time_point(d));
+        rtos::ThisThread::sleep_until(millisec);
 #else
-        mbed::internal::do_timed_sleep_absolute(mbed::internal::OsClock::time_point(d));
+        mbed::internal::do_timed_sleep_absolute(millisec);
 #endif
     }
 

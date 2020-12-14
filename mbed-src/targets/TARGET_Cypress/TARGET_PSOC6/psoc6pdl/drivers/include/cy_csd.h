@@ -1,12 +1,12 @@
 /***************************************************************************//**
 * \file cy_csd.h
-* \version 1.10.1
+* \version 1.10
 *
 * The header file of the CSD driver.
 *
 ********************************************************************************
 * \copyright
-* Copyright 2018-2020 Cypress Semiconductor Corporation
+* Copyright 2018-2019 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -254,22 +254,22 @@
 * * <a href="http://www.cypress.com/trm218176"><b>Technical Reference Manual (TRM)</b></a>
 *
 * * <a href="https://github.com/cypresssemiconductorco/capsense">
-*   <b>CapSense Middleware Library</b></a>
+*   <b>Cypress CapSense Middleware Library</b></a>
 *
 * * <a href="https://cypresssemiconductorco.github.io/capsense/capsense_api_reference_manual/html/index.html">
-*   <b>CapSense Middleware API Reference Guide</b></a>
+*   <b>Cypress CapSense Middleware API Reference Guide</b></a>
 *
 * * <a href="https://github.com/cypresssemiconductorco/csdadc">
-*   <b>CSDADC Middleware Library</b></a>
+*   <b>Cypress CSDADC Middleware Library</b></a>
 *
 * * <a href="https://cypresssemiconductorco.github.io/csdadc/csdadc_api_reference_manual/html/index.html">
-*   <b>CSDADC Middleware API Reference Guide</b></a>
+*   <b>Cypress CSDADC Middleware API Reference Guide</b></a>
 *
 * * <a href="https://github.com/cypresssemiconductorco/csdidac">
-*   <b>CSDIDAC Middleware Library</b></a>
+*   <b>Cypress CSDIDAC Middleware Library</b></a>
 *
 * * <a href="https://cypresssemiconductorco.github.io/csdidac/csdidac_api_reference_manual/html/index.html">
-*   <b>CSDIDAC Middleware API Reference Guide</b></a>
+*   <b>Cypress CSDIDAC Middleware API Reference Guide</b></a>
 *
 * * \ref page_getting_started "Getting Started with the PDL"
 *
@@ -311,11 +311,6 @@
 ********************************************************************************
 * <table class="doxtable">
 *   <tr><th>Version</th><th>Changes</th><th>Reason for Change</th></tr>
-*   <tr>
-*     <td>1.10.1</td>
-*     <td>Documentation updates</td>
-*     <td>Update middleware references</td>
-*   </tr>
 *   <tr>
 *     <td rowspan="2">1.10</td>
 *     <td>The CSD driver sources are enclosed with the conditional compilation 

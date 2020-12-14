@@ -1,7 +1,7 @@
 #! armclang -E
 
 /*
- * Copyright (c) 2018-2019, Nuvoton Technology Corporation
+ * Copyright (c) 2019-2020, Nuvoton Technology Corporation
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -20,12 +20,8 @@
 
 #include "../../../device/partition_M2351_mem.h"
 
-#if !defined(MBED_CONF_TARGET_BOOT_STACK_SIZE)
-#  if defined(MBED_BOOT_STACK_SIZE)
-#    define MBED_CONF_TARGET_BOOT_STACK_SIZE MBED_BOOT_STACK_SIZE
-#  else
-#    define MBED_CONF_TARGET_BOOT_STACK_SIZE 0x400
-#  endif
+#if !defined(MBED_BOOT_STACK_SIZE)
+#define MBED_BOOT_STACK_SIZE    0x400
 #endif
 
 LR_IROM1    MBED_APP_START
@@ -38,7 +34,7 @@ LR_IROM1    MBED_APP_START
         .ANY (+RO)
     }
 
-    ARM_LIB_STACK   MBED_RAM_APP_START    EMPTY   MBED_CONF_TARGET_BOOT_STACK_SIZE
+    ARM_LIB_STACK   MBED_RAM_APP_START    EMPTY   MBED_BOOT_STACK_SIZE
     {
     }
 

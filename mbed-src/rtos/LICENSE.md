@@ -20,6 +20,8 @@ Files licensed under MIT:
 - rtos.h
 - rtos_handlers.h
 - rtos_idle.h
+- RtosTimer.cpp
+- RtosTimer.h
 - Semaphore.cpp
 - Semaphore.h
 - ThisThread.cpp

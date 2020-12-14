@@ -17,13 +17,12 @@
 #ifndef MY_CELLULARDEVICE_H_
 #define MY_CELLULARDEVICE_H_
 
-#include "AT_CellularDevice.h"
+#include "CellularDevice.h"
 #include "AT_CellularNetwork.h"
 #include "FileHandle_stub.h"
 #include "ATHandler_stub.h"
 #include "AT_CellularContext.h"
 #include "gtest/gtest.h"
-#include "drivers/BufferedSerial.h"
 
 using namespace events;
 
@@ -34,9 +33,9 @@ class CellularInformation;
 class CellularContext;
 class FileHandle;
 
-class myCellularDevice : public AT_CellularDevice {
+class myCellularDevice : public CellularDevice {
 public:
-    myCellularDevice(FileHandle *fh) : AT_CellularDevice(fh), _context_list(0), _network(0) {}
+    myCellularDevice(FileHandle *fh) : CellularDevice(fh), _context_list(0), _network(0) {}
     virtual ~myCellularDevice()
     {
         delete _context_list;
@@ -53,8 +52,19 @@ public:
         return NSAPI_ERROR_OK;
     }
 
+    virtual CellularContext *create_context(UARTSerial *serial, const char *const apn, PinName dcd_pin,
+                                            bool active_high, bool cp_req = false, bool nonip_req = false)
+    {
+        if (_context_list) {
+            return _context_list;
+        }
+        EventQueue que;
+        ATHandler at(serial, que, 0, ",");
+        _context_list = new AT_CellularContext(at, this);
+        return _context_list;
+    }
 
-    virtual CellularContext *create_context(const char *apn = NULL, bool cp_req = false, bool nonip_req = false)
+    virtual CellularContext *create_context(FileHandle *fh = NULL, const char *apn = NULL, bool cp_req = false, bool nonip_req = false)
     {
         if (_context_list) {
             return _context_list;
@@ -71,7 +81,7 @@ public:
         delete _context_list;
     }
 
-    virtual CellularNetwork *open_network()
+    virtual CellularNetwork *open_network(FileHandle *fh = NULL)
     {
         if (_network) {
             return _network;
@@ -79,16 +89,16 @@ public:
         EventQueue que;
         FileHandle_stub fh1;
         ATHandler at(&fh1, que, 0, ",");
-        _network = new AT_CellularNetwork(at, *this);
+        _network = new AT_CellularNetwork(at);
         return _network;
     }
 
-    virtual CellularSMS *open_sms()
+    virtual CellularSMS *open_sms(FileHandle *fh = NULL)
     {
         return NULL;
     }
 
-    virtual CellularInformation *open_information()
+    virtual CellularInformation *open_information(FileHandle *fh = NULL)
     {
         return NULL;
     }
@@ -103,6 +113,11 @@ public:
     virtual void close_information() {}
 
     virtual void set_timeout(int timeout) {}
+
+    virtual uint16_t get_send_delay() const
+    {
+        return 0;
+    }
 
     virtual void modem_debug_on(bool on) {}
 
@@ -182,8 +197,6 @@ public:
             EXPECT_EQ(timeout[i], get_timeouts[i]);
         }
     }
-
-
 
     AT_CellularNetwork *_network;
     AT_CellularContext *_context_list;

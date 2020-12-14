@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2006-2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,10 +104,6 @@ struct qspi_s {
 #include "gpio_object.h"
 
 #include "us_ticker_defines.h"
-
-#if DEVICE_CRC
-#define HAL_CRC_IS_SUPPORTED(polynomial, width) ((width) == 16 || (width) == 32)
-#endif
 
 #ifdef __cplusplus
 }

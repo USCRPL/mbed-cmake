@@ -1,30 +1,32 @@
 /***************************************************************************//**
- * @file
+ * @file em_crypto.h
  * @brief Cryptography accelerator peripheral API
+ * @version 5.3.3
  *******************************************************************************
  * # License
- * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2016 Silicon Laboratories, Inc. http://www.silabs.com</b>
  *******************************************************************************
- *
- * SPDX-License-Identifier: Zlib
- *
- * The licensor of this software is Silicon Laboratories Inc.
- *
- * This software is provided 'as-is', without any express or implied
- * warranty. In no event will the authors be held liable for any damages
- * arising from the use of this software.
  *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
+ *    claim that you wrote the original software.
  * 2. Altered source versions must be plainly marked as such, and must not be
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
+ *
+ * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Labs has no
+ * obligation to support this Software. Silicon Labs is providing the
+ * Software "AS IS", with no express or implied warranties of any kind,
+ * including, but not limited to, any implied warranties of merchantability
+ * or fitness for any particular purpose or warranties against infringement
+ * of any proprietary rights of a third party.
+ *
+ * Silicon Labs will not be liable for any consequential, incidental, or
+ * special damages, or any other relief, or for any claim by any third party,
+ * arising from your use of this Software.
  *
  ******************************************************************************/
 #ifndef EM_CRYPTO_H
@@ -52,7 +54,7 @@ extern "C" {
  * @brief Cryptography accelerator peripheral API
  *
  * @details
- *   For cryptographic support, users should consider the
+ *   In order for cryptographic support, users are recommended to consider the
  *   crypto APIs of the mbedTLS library provided by Silicon Labs instead of the
  *   interface provided in em_crypto.h. The mbedTLS library provides a much
  *   richer crypto API, including hardware acceleration of several functions.
@@ -76,8 +78,8 @@ extern "C" {
  *   @li ECB - Electronic Code Book mode
  *   @li OFB - Output Feedback mode
  *
- *   For the AES APIs input/output data (plaintext, ciphertext, key, and so on) are
- *   treated as byte arrays, starting with most significant byte. In other words, 32 bytes
+ *   For the AES APIs Input/output data (plaintext, ciphertext, key etc) are
+ *   treated as byte arrays, starting with most significant byte. Ie, 32 bytes
  *   of plaintext (B0...B31) is located in memory in the same order, with B0 at
  *   the lower address and B31 at the higher address.
  *
@@ -95,18 +97,18 @@ extern "C" {
  *   undefined.
  *
  *   It is up to the user to use a cipher mode according to its requirements
- *   to avoid breaking security. See the specific cipher mode
+ *   in order to not break security. Please refer to specific cipher mode
  *   theory for details.
  *
  *   References:
- *   @li Wikipedia - Cipher modes, en.wikipedia.org/wiki/Cipher_modes
+ *   @li Wikipedia - Cipher modes, http://en.wikipedia.org/wiki/Cipher_modes
  *
  *   @li Recommendation for Block Cipher Modes of Operation,
  *      NIST Special Publication 800-38A, 2001 Edition,
- *      csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
+ *      http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
  *
  *   @li Recommendation for Block Cipher Modes of Operation,
- *      csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf
+ *      http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf
  *
  *   @n @section crypto_sha SHA
  *   The SHA APIs include support for
@@ -114,25 +116,25 @@ extern "C" {
  *   @li SHA-256 @ref CRYPTO_SHA_256
  *
  *   The SHA-1 implementation is FIPS-180-1 compliant, ref:
- *   @li Wikipedia -  SHA-1, en.wikipedia.org/wiki/SHA-1
- *   @li SHA-1 spec - www.itl.nist.gov/fipspubs/fip180-1.htm
+ *   @li Wikipedia -  SHA-1, https://en.wikipedia.org/wiki/SHA-1
+ *   @li SHA-1 spec - http://www.itl.nist.gov/fipspubs/fip180-1.htm
  *
  *   The SHA-256 implementation is FIPS-180-2 compliant, ref:
- *   @li Wikipedia -  SHA-2, en.wikipedia.org/wiki/SHA-2
- *   @li SHA-2 spec - csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
+ *   @li Wikipedia -  SHA-2, https://en.wikipedia.org/wiki/SHA-2
+ *   @li SHA-2 spec - http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
  *
  *   @n @section crypto_mul CRYPTO_Mul
  *   @ref CRYPTO_Mul is a function for multiplying big integers that are
- *   bigger than the operand size of the MUL instruction, which is 128 bits.
+ *   bigger than the operand size of the MUL instruction which is 128 bits.
  *   CRYPTO_Mul multiplies all partial operands of the input operands using
  *   MUL to form a resulting number which may be twice the size of
  *   the operands.
  *
- *   CRPYTO_Mul is typically used by RSA implementations, which perform a
- *   huge amount of multiplication and square operations to
+ *   CRPYTO_Mul is typically used by RSA implementations which perform a
+ *   huge amount of multiplication and square operations in order to
  *   implement modular exponentiation.
  *   Some RSA implementations use a number representation including arrays
- *   of 32bit words of variable size. Compile with
+ *   of 32bit words of variable size. The user should compile with
  *   -D USE_VARIABLE_SIZED_DATA_LOADS in order to load these numbers
  *   directly into CRYPTO without converting the number representation.
  *
@@ -141,21 +143,21 @@ extern "C" {
  *   be used to implement complex algorithms like elliptic curve cryptography
  *   (ECC)) and authenticated encryption algorithms. There are two typical
  *   modes of operation:
- *   @li Multi-sequence operation
+ *   @li Multi sequence operation
  *   @li Single static instruction sequence operation
  *
- *   In multi-sequence mode the software starts by loading input data,
+ *   In multi sequence mode the software starts by loading input data, then
  *   an instruction sequence, execute, and finally read the result. This
  *   process is repeated until the full crypto operation is complete.
  *
- *   When using a single static instruction sequence, only one
- *   instruction sequence is loaded initially. The sequence can be set up
- *   to run multiple times. Data can be loaded during the execution of the
+ *   When using a single static instruction sequence, there is just one
+ *   instruction sequence which is loaded initially. The sequence can be setup
+ *   to run multiple times. The data can be loaded during the execution of the
  *   sequence by using DMA, BUFC and/or programmed I/O directly from the MCU
- *   core. For details about how to program the instruction sequences, see
- *   the reference manual of the particular Silicon Labs device.
+ *   core. For details on how to program the instruction sequences please refer
+ *   to the reference manual of the particular Silicon Labs device.
  *
- *   To load input data to the CRYPTO module, use any of the following
+ *   In order to load input data to the CRYPTO module use any of the following
  *   functions:
  *   @li @ref CRYPTO_DataWrite  - Write 128 bits to a DATA register.
  *   @li @ref CRYPTO_DDataWrite - Write 256 bits to a DDATA register.
@@ -167,20 +169,20 @@ extern "C" {
  *   @li @ref CRYPTO_DDataRead - Read 256 bits from a DDATA register.
  *   @li @ref CRYPTO_QDataRead - Read 512 bits from a QDATA register.
  *
- *   To load an instruction sequence to the CRYPTO module, use
+ *   In order to load an instruction sequence to the CRYPTO module use
  *   @ref CRYPTO_InstructionSequenceLoad.
  *
- *   To execute the current instruction sequence in the CRYPTO module,
+ *   In order to execute the current instruction sequence in the CRYPTO module
  *   use @ref CRYPTO_InstructionSequenceExecute.
  *
- *   To check whether an instruction sequence has completed,
+ *   In order to check whether an instruction sequence has completed
  *   use @ref CRYPTO_InstructionSequenceDone.
  *
- *   To wait for an instruction sequence to complete,
+ *   In order to wait for an instruction sequence to complete
  *   use @ref CRYPTO_InstructionSequenceWait.
  *
- *   To optimally load (with regards to speed) and execute an
- *   instruction sequence, use any of the CRYPTO_EXECUTE_X macros (where X is
+ *   In order to optimally load (with regards to speed) and execute an
+ *   instruction sequence use any of the CRYPTO_EXECUTE_X macros (where X is
  *   in the range 1-20) defined in @ref em_crypto.h. E.g. CRYPTO_EXECUTE_19.
  * @{
  ******************************************************************************/
@@ -236,8 +238,8 @@ extern "C" {
 /** @cond DO_NOT_INCLUDE_WITH_DOXYGEN */
 /**
  * Instruction sequence load macros CRYPTO_SEQ_LOAD_X (where X is in the range
- * 1-20), for example, @ref CRYPTO_SEQ_LOAD_20.
- * Use these macros for faster execution than the function API.
+ * 1-20). E.g. @ref CRYPTO_SEQ_LOAD_20.
+ * Use these macros in order for faster execution than the function API.
  */
 #define CRYPTO_SEQ_LOAD_1(crypto, a1) { \
     crypto->SEQ0 =  a1 |  (CRYPTO_CMD_INSTR_END << 8); }
@@ -327,40 +329,40 @@ extern "C" {
 
 /** @cond DO_NOT_INCLUDE_WITH_DOXYGEN */
 /**
- * Instruction sequence execution macros CRYPTO_EXECUTE_X (where X is in range
- * 1-20), for example @ref CRYPTO_EXECUTE_19.
- * Use these macros for faster execution than the function API.
+ * Instruction sequence execution macros CRYPTO_EXECUTE_X (where X is in the range
+ * 1-20). E.g. @ref CRYPTO_EXECUTE_19.
+ * Use these macros in order for faster execution than the function API.
  */
 #define CRYPTO_EXECUTE_1(crypto, a1) { \
-    crypto->SEQ0 = a1 | (CRYPTO_CMD_INSTR_EXEC << 8); }
+    crypto->SEQ0 = a1 | (CRYPTO_CMD_INSTR_EXEC << 8);                    }
 #define CRYPTO_EXECUTE_2(crypto, a1, a2) { \
-    crypto->SEQ0 = a1 | (a2 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16); }
+    crypto->SEQ0 = a1 | (a2 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16);         }
 #define CRYPTO_EXECUTE_3(crypto, a1, a2, a3) { \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (CRYPTO_CMD_INSTR_EXEC << 24); }
 #define CRYPTO_EXECUTE_4(crypto, a1, a2, a3, a4) {           \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24); \
-    crypto->SEQ1 = CRYPTO_CMD_INSTR_EXEC; }
+    crypto->SEQ1 = CRYPTO_CMD_INSTR_EXEC;                              }
 #define CRYPTO_EXECUTE_5(crypto, a1, a2, a3, a4, a5) {       \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24); \
-    crypto->SEQ1 = a5 | (CRYPTO_CMD_INSTR_EXEC << 8); }
+    crypto->SEQ1 = a5 | (CRYPTO_CMD_INSTR_EXEC << 8);                    }
 #define CRYPTO_EXECUTE_6(crypto, a1, a2, a3, a4, a5, a6) {   \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24); \
-    crypto->SEQ1 = a5 | (a6 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16); }
+    crypto->SEQ1 = a5 | (a6 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16);         }
 #define CRYPTO_EXECUTE_7(crypto, a1, a2, a3, a4, a5, a6, a7) { \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24);   \
     crypto->SEQ1 = a5 | (a6 << 8) | (a7 << 16) | (CRYPTO_CMD_INSTR_EXEC << 24); }
 #define CRYPTO_EXECUTE_8(crypto, a1, a2, a3, a4, a5, a6, a7, a8) { \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24);       \
     crypto->SEQ1 = a5 | (a6 << 8) | (a7 << 16) | (a8 << 24);       \
-    crypto->SEQ2 = CRYPTO_CMD_INSTR_EXEC; }
+    crypto->SEQ2 = CRYPTO_CMD_INSTR_EXEC;                              }
 #define CRYPTO_EXECUTE_9(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9) { \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24);           \
     crypto->SEQ1 = a5 | (a6 << 8) | (a7 << 16) | (a8 << 24);           \
-    crypto->SEQ2 = a9 | (CRYPTO_CMD_INSTR_EXEC << 8); }
+    crypto->SEQ2 = a9 | (CRYPTO_CMD_INSTR_EXEC << 8);                    }
 #define CRYPTO_EXECUTE_10(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) { \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24);                 \
     crypto->SEQ1 = a5 | (a6 << 8) | (a7 << 16) | (a8 << 24);                 \
-    crypto->SEQ2 = a9 | (a10 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16); }
+    crypto->SEQ2 = a9 | (a10 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16);        }
 #define CRYPTO_EXECUTE_11(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) { \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24);                      \
     crypto->SEQ1 = a5 | (a6 << 8) | (a7 << 16) | (a8 << 24);                      \
@@ -369,17 +371,17 @@ extern "C" {
     crypto->SEQ0 = a1 |  (a2 << 8) |  (a3 << 16) | (a4 << 24);                         \
     crypto->SEQ1 = a5 |  (a6 << 8) |  (a7 << 16) | (a8 << 24);                         \
     crypto->SEQ2 = a9 | (a10 << 8) | (a11 << 16) | (a12 << 24);                        \
-    crypto->SEQ3 = CRYPTO_CMD_INSTR_EXEC; }
+    crypto->SEQ3 = CRYPTO_CMD_INSTR_EXEC;                              }
 #define CRYPTO_EXECUTE_13(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13) { \
     crypto->SEQ0 = a1  | (a2 << 8)  | (a3 << 16)  | (a4 << 24);                             \
     crypto->SEQ1 = a5  | (a6 << 8)  | (a7 << 16)  | (a8 << 24);                             \
     crypto->SEQ2 = a9  | (a10 << 8) | (a11 << 16) | (a12 << 24);                            \
-    crypto->SEQ3 = a13 | (CRYPTO_CMD_INSTR_EXEC << 8); }
+    crypto->SEQ3 = a13 | (CRYPTO_CMD_INSTR_EXEC << 8);                   }
 #define CRYPTO_EXECUTE_14(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14) { \
     crypto->SEQ0 = a1 | (a2 << 8) | (a3 << 16) | (a4 << 24);                                     \
     crypto->SEQ1 = a5 | (a6 << 8) | (a7 << 16) | (a8 << 24);                                     \
     crypto->SEQ2 = a9 | (a10 << 8) | (a11 << 16) | (a12 << 24);                                  \
-    crypto->SEQ3 = a13 | (a14 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16); }
+    crypto->SEQ3 = a13 | (a14 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16);       }
 #define CRYPTO_EXECUTE_15(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15) { \
     crypto->SEQ0 =  a1 |  (a2 << 8) |  (a3 << 16) |  (a4 << 24);                                      \
     crypto->SEQ1 =  a5 |  (a6 << 8) |  (a7 << 16) |  (a8 << 24);                                      \
@@ -390,19 +392,19 @@ extern "C" {
     crypto->SEQ1 =  a5 |  (a6 << 8) |  (a7 << 16) |  (a8 << 24);                                           \
     crypto->SEQ2 =  a9 | (a10 << 8) | (a11 << 16) | (a12 << 24);                                           \
     crypto->SEQ3 = a13 | (a14 << 8) | (a15 << 16) | (a16 << 24);                                           \
-    crypto->SEQ4 = CRYPTO_CMD_INSTR_EXEC; }
+    crypto->SEQ4 = CRYPTO_CMD_INSTR_EXEC;                              }
 #define CRYPTO_EXECUTE_17(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17) { \
     crypto->SEQ0 =  a1 |  (a2 << 8) |  (a3 << 16) | (a4 << 24);                                                 \
     crypto->SEQ1 =  a5 |  (a6 << 8) |  (a7 << 16) | (a8 << 24);                                                 \
     crypto->SEQ2 =  a9 | (a10 << 8) | (a11 << 16) | (a12 << 24);                                                \
     crypto->SEQ3 = a13 | (a14 << 8) | (a15 << 16) | (a16 << 24);                                                \
-    crypto->SEQ4 = a17 | (CRYPTO_CMD_INSTR_EXEC << 8); }
+    crypto->SEQ4 = a17 | (CRYPTO_CMD_INSTR_EXEC << 8);                   }
 #define CRYPTO_EXECUTE_18(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18) { \
     crypto->SEQ0 =  a1 |  (a2 << 8) |  (a3 << 16) |  (a4 << 24);                                                     \
     crypto->SEQ1 =  a5 |  (a6 << 8) |  (a7 << 16) |  (a8 << 24);                                                     \
     crypto->SEQ2 =  a9 | (a10 << 8) | (a11 << 16) | (a12 << 24);                                                     \
     crypto->SEQ3 = a13 | (a14 << 8) | (a15 << 16) | (a16 << 24);                                                     \
-    crypto->SEQ4 = a17 | (a18 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16); }
+    crypto->SEQ4 = a17 | (a18 << 8) | (CRYPTO_CMD_INSTR_EXEC << 16);       }
 #define CRYPTO_EXECUTE_19(crypto, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19) { \
     crypto->SEQ0 =  a1 |  (a2 << 8) |  (a3 << 16) |  (a4 << 24);                                                          \
     crypto->SEQ1 =  a5 |  (a6 << 8) |  (a7 << 16) |  (a8 << 24);                                                          \
@@ -415,7 +417,7 @@ extern "C" {
     crypto->SEQ2 =  a9 | (a10 << 8) | (a11 << 16) | (a12 << 24);                                                               \
     crypto->SEQ3 = a13 | (a14 << 8) | (a15 << 16) | (a16 << 24);                                                               \
     crypto->SEQ4 = a17 | (a18 << 8) | (a19 << 16) | (a20 << 24);                                                               \
-    CRYPTO_InstructionSequenceExecute(crypto); }
+    CRYPTO_InstructionSequenceExecute(); }
 /** @endcond */
 
 /*******************************************************************************
@@ -425,14 +427,14 @@ extern "C" {
 /**
  * CRYPTO data types used for data load functions. This data type is
  * capable of storing a 128 bits value as used in the crypto DATA
- * registers.
+ * registers
  */
 typedef uint32_t CRYPTO_Data_TypeDef[CRYPTO_DATA_SIZE_IN_32BIT_WORDS];
 
 /**
  * CRYPTO data type used for data load functions. This data type
  * is capable of storing a 256 bits value as used in the crypto DDATA
- * registers.
+ * registers
  */
 typedef uint32_t CRYPTO_DData_TypeDef[CRYPTO_DDATA_SIZE_IN_32BIT_WORDS];
 
@@ -443,7 +445,7 @@ typedef uint32_t* CRYPTO_DDataPtr_TypeDef;
 /**
  * CRYPTO data type used for data load functions. This data type is
  * capable of storing a 512 bits value as used in the crypto QDATA
- * registers.
+ * registers
  */
 typedef uint32_t CRYPTO_QData_TypeDef[CRYPTO_QDATA_SIZE_IN_32BIT_WORDS];
 
@@ -534,13 +536,13 @@ typedef enum {
 } CRYPTO_KeyWidth_TypeDef;
 
 /**
- * The maximum number of crypto instructions in an instruction sequence.
+ * The max number of crypto instructions in an instruction sequence
  */
 #define CRYPTO_MAX_SEQUENCE_INSTRUCTIONS (20)
 
 /**
  * Instruction sequence type.
- * Fill in the desired operations from step1, step2, and so on.
+ * The user should fill in the desired operations from step1, then step2 etc.
  * The CRYPTO_CMD_INSTR_END marks the end of the sequence.
  * Bit fields are used to format the memory layout of the struct equal to the
  * sequence registers in the CRYPTO module.
@@ -548,7 +550,7 @@ typedef enum {
 typedef uint8_t CRYPTO_InstructionSequence_TypeDef[CRYPTO_MAX_SEQUENCE_INSTRUCTIONS];
 
 /** Default instruction sequence consisting of all ENDs. The user can
-    initialize the instruction sequence with this default value set and fill
+    initialize the instruction sequence with this default value set, and fill
     in the desired operations from step 1. The first END instruction marks
     the end of the sequence. */
 #define CRYPTO_INSTRUCTIONSEQUENSE_DEFAULT                            \
@@ -571,11 +573,11 @@ typedef uint8_t CRYPTO_SHA256_Digest_TypeDef[CRYPTO_SHA256_DIGEST_SIZE_IN_BYTES]
  *   AES counter modification function pointer.
  *
  * @note
- *   This is defined for backwards compatibility with EFM32 em_aes.h.
- *   The CRYPTO implementation of counter mode does not support counter update
+ *   This is defined in order for backwards compatibility with EFM32 em_aes.h.
+ *   The CRYPTO implementation of Counter mode does not support counter update
  *   callbacks.
  *
- * @param[in]  ctr   A counter value to be modified.
+ * @param[in]  ctr   Counter value to be modified.
  */
 typedef void (*CRYPTO_AES_CtrFuncPtr_TypeDef)(uint8_t * ctr);
 
@@ -588,14 +590,14 @@ typedef void (*CRYPTO_AES_CtrFuncPtr_TypeDef)(uint8_t * ctr);
  *   Set the modulus type used for wide arithmetic operations.
  *
  * @details
- *   This function sets the modulus type to be used by the modulus instructions
+ *   This function sets the modulus type to be used by the Modulus instructions
  *   of the CRYPTO module.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in]  modType
- *   A modulus type.
+ *   Modulus type.
  ******************************************************************************/
 void CRYPTO_ModulusSet(CRYPTO_TypeDef *          crypto,
                        CRYPTO_ModulusId_TypeDef  modType);
@@ -609,7 +611,7 @@ void CRYPTO_ModulusSet(CRYPTO_TypeDef *          crypto,
  *   the MUL instruction.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in]  mulOperandWidth
  *   Multiplication width in bits.
@@ -619,7 +621,7 @@ void CRYPTO_MulOperandWidthSet(CRYPTO_TypeDef *crypto,
                                CRYPTO_MulOperandWidth_TypeDef mulOperandWidth)
 {
   uint32_t temp = crypto->WAC & (~_CRYPTO_WAC_MULWIDTH_MASK);
-  crypto->WAC = temp | (uint32_t)mulOperandWidth;
+  crypto->WAC = temp | mulOperandWidth;
 }
 
 /***************************************************************************//**
@@ -630,17 +632,17 @@ void CRYPTO_MulOperandWidthSet(CRYPTO_TypeDef *crypto,
  *   This function sets the result width of the non-modulus instructions.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in]  resultWidth
- *   A result width of non-modulus instructions.
+ *   Result width of non-modulus instructions.
  ******************************************************************************/
 __STATIC_INLINE
 void CRYPTO_ResultWidthSet(CRYPTO_TypeDef *crypto,
                            CRYPTO_ResultWidth_TypeDef resultWidth)
 {
   uint32_t temp = crypto->WAC & (~_CRYPTO_WAC_RESULTWIDTH_MASK);
-  crypto->WAC = temp | (uint32_t)resultWidth;
+  crypto->WAC = temp | resultWidth;
 }
 
 /***************************************************************************//**
@@ -652,16 +654,16 @@ void CRYPTO_ResultWidthSet(CRYPTO_TypeDef *crypto,
  *   @ref CRYPTO_CMD_INSTR_DATA1INC.
  *
  * @param[in]  crypto
- *   A pointer to CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in]  incWidth
- *   An incrementation width.
+ *   incrementation width.
  ******************************************************************************/
 __STATIC_INLINE void CRYPTO_IncWidthSet(CRYPTO_TypeDef *crypto,
                                         CRYPTO_IncWidth_TypeDef incWidth)
 {
   uint32_t temp = crypto->CTRL & (~_CRYPTO_CTRL_INCWIDTH_MASK);
-  crypto->CTRL = temp | (uint32_t)incWidth;
+  crypto->CTRL = temp | incWidth;
 }
 
 /***************************************************************************//**
@@ -669,13 +671,13 @@ __STATIC_INLINE void CRYPTO_IncWidthSet(CRYPTO_TypeDef *crypto,
  *   Write a 128 bit value into a crypto register.
  *
  * @note
- *   This function provides a low-level API for writing to the multi-word
- *   registers in the crypto peripheral. Applications should use
+ *   This function provide a low-level api for writing to the multi-word
+ *   registers in the crypto peripheral. Applications should prefer to use
  *   @ref CRYPTO_DataWrite, @ref CRYPTO_DDataWrite or @ref CRYPTO_QDataWrite
- *   for writing to DATA, DDATA, and QDATA registers.
+ *   for writing to the DATA, DDATA and QDATA registers.
  *
  * @param[in]  reg
- *   A pointer to the crypto register.
+ *   Pointer to the crypto register.
  *
  * @param[in]  val
  *   This is a pointer to 4 32 bit integers that contains the 128 bit value
@@ -701,13 +703,13 @@ __STATIC_INLINE void CRYPTO_BurstToCrypto(volatile uint32_t * reg,
  *   Read a 128 bit value from a crypto register.
  *
  * @note
- *   This function provides a low-level API for reading one of the multi-word
- *   registers in the crypto peripheral. Applications should use
+ *   This function provide a low-level api for reading one of the multi-word
+ *   registers in the crypto peripheral. Applications should prefer to use
  *   @ref CRYPTO_DataRead, @ref CRYPTO_DDataRead or @ref CRYPTO_QDataRead
- *   for reading the value of DATA, DDATA, and QDATA registers.
+ *   for reading the value of the DATA, DDATA and QDATA registers.
  *
  * @param[in]  reg
- *   A pointer to the crypto register.
+ *   Pointer to the crypto register.
  *
  * @param[out]  val
  *   This is a pointer to an array that is capable of holding 4 32 bit integers
@@ -742,7 +744,7 @@ __STATIC_INLINE void CRYPTO_BurstFromCrypto(volatile uint32_t * reg, uint32_t * 
 __STATIC_INLINE void CRYPTO_DataWrite(CRYPTO_DataReg_TypeDef dataReg,
                                       const CRYPTO_Data_TypeDef val)
 {
-  CRYPTO_BurstToCrypto(dataReg, val);
+  CRYPTO_BurstToCrypto((volatile uint32_t *)dataReg, val);
 }
 
 /***************************************************************************//**
@@ -760,7 +762,7 @@ __STATIC_INLINE void CRYPTO_DataWrite(CRYPTO_DataReg_TypeDef dataReg,
 __STATIC_INLINE void CRYPTO_DataRead(CRYPTO_DataReg_TypeDef  dataReg,
                                      CRYPTO_Data_TypeDef     val)
 {
-  CRYPTO_BurstFromCrypto(dataReg, val);
+  CRYPTO_BurstFromCrypto((volatile uint32_t *)dataReg, val);
 }
 
 /***************************************************************************//**
@@ -778,8 +780,8 @@ __STATIC_INLINE void CRYPTO_DataRead(CRYPTO_DataReg_TypeDef  dataReg,
 __STATIC_INLINE void CRYPTO_DDataWrite(CRYPTO_DDataReg_TypeDef ddataReg,
                                        const CRYPTO_DData_TypeDef val)
 {
-  CRYPTO_BurstToCrypto(ddataReg, &val[0]);
-  CRYPTO_BurstToCrypto(ddataReg, &val[4]);
+  CRYPTO_BurstToCrypto((volatile uint32_t *)ddataReg, &val[0]);
+  CRYPTO_BurstToCrypto((volatile uint32_t *)ddataReg, &val[4]);
 }
 
 /***************************************************************************//**
@@ -797,8 +799,8 @@ __STATIC_INLINE void CRYPTO_DDataWrite(CRYPTO_DDataReg_TypeDef ddataReg,
 __STATIC_INLINE void CRYPTO_DDataRead(CRYPTO_DDataReg_TypeDef  ddataReg,
                                       CRYPTO_DData_TypeDef     val)
 {
-  CRYPTO_BurstFromCrypto(ddataReg, &val[0]);
-  CRYPTO_BurstFromCrypto(ddataReg, &val[4]);
+  CRYPTO_BurstFromCrypto((volatile uint32_t *)ddataReg, &val[0]);
+  CRYPTO_BurstFromCrypto((volatile uint32_t *)ddataReg, &val[4]);
 }
 
 /***************************************************************************//**
@@ -813,13 +815,13 @@ __STATIC_INLINE void CRYPTO_DDataRead(CRYPTO_DDataReg_TypeDef  ddataReg,
  * @param[in]  qdataReg   The 512 bits QDATA register.
  * @param[in]  val        Value of the data to write to the QDATA register.
  ******************************************************************************/
-__STATIC_INLINE void CRYPTO_QDataWrite(CRYPTO_QDataReg_TypeDef qdataReg,
-                                       const CRYPTO_QData_TypeDef val)
+__STATIC_INLINE void CRYPTO_QDataWrite(CRYPTO_QDataReg_TypeDef  qdataReg,
+                                       CRYPTO_QData_TypeDef     val)
 {
-  CRYPTO_BurstToCrypto(qdataReg, &val[0]);
-  CRYPTO_BurstToCrypto(qdataReg, &val[4]);
-  CRYPTO_BurstToCrypto(qdataReg, &val[8]);
-  CRYPTO_BurstToCrypto(qdataReg, &val[12]);
+  CRYPTO_BurstToCrypto((volatile uint32_t *)qdataReg, &val[0]);
+  CRYPTO_BurstToCrypto((volatile uint32_t *)qdataReg, &val[4]);
+  CRYPTO_BurstToCrypto((volatile uint32_t *)qdataReg, &val[8]);
+  CRYPTO_BurstToCrypto((volatile uint32_t *)qdataReg, &val[12]);
 }
 
 /***************************************************************************//**
@@ -837,10 +839,10 @@ __STATIC_INLINE void CRYPTO_QDataWrite(CRYPTO_QDataReg_TypeDef qdataReg,
 __STATIC_INLINE void CRYPTO_QDataRead(CRYPTO_QDataReg_TypeDef qdataReg,
                                       CRYPTO_QData_TypeDef    val)
 {
-  CRYPTO_BurstFromCrypto(qdataReg, &val[0]);
-  CRYPTO_BurstFromCrypto(qdataReg, &val[4]);
-  CRYPTO_BurstFromCrypto(qdataReg, &val[8]);
-  CRYPTO_BurstFromCrypto(qdataReg, &val[12]);
+  CRYPTO_BurstFromCrypto((volatile uint32_t *)qdataReg, &val[0]);
+  CRYPTO_BurstFromCrypto((volatile uint32_t *)qdataReg, &val[4]);
+  CRYPTO_BurstFromCrypto((volatile uint32_t *)qdataReg, &val[8]);
+  CRYPTO_BurstFromCrypto((volatile uint32_t *)qdataReg, &val[12]);
 }
 
 /***************************************************************************//**
@@ -851,13 +853,13 @@ __STATIC_INLINE void CRYPTO_QDataRead(CRYPTO_QDataReg_TypeDef qdataReg,
  *   Write 128 or 256 bit key to the KEYBUF register in the crypto module.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in]  val
  *   Value of the data to write to the KEYBUF register.
  *
  * @param[in]  keyWidth
- *   Key width - 128 or 256 bits.
+ *   Key width - 128 or 256 bits
  ******************************************************************************/
 __STATIC_INLINE void CRYPTO_KeyBufWrite(CRYPTO_TypeDef          *crypto,
                                         CRYPTO_KeyBuf_TypeDef    val,
@@ -867,7 +869,7 @@ __STATIC_INLINE void CRYPTO_KeyBufWrite(CRYPTO_TypeDef          *crypto,
     /* Set AES-256 mode */
     BUS_RegBitWrite(&crypto->CTRL, _CRYPTO_CTRL_AES_SHIFT, _CRYPTO_CTRL_AES_AES256);
     /* Load key in KEYBUF register (= DDATA4) */
-    CRYPTO_DDataWrite(&crypto->DDATA4, val);
+    CRYPTO_DDataWrite(&crypto->DDATA4, (uint32_t *)val);
   } else {
     /* Set AES-128 mode */
     BUS_RegBitWrite(&crypto->CTRL, _CRYPTO_CTRL_AES_SHIFT, _CRYPTO_CTRL_AES_AES128);
@@ -887,7 +889,7 @@ void CRYPTO_KeyRead(CRYPTO_TypeDef *crypto,
  *   Quick write 128 bit key to the KEYBUF register in the CRYPTO module.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in]  val
  *   Value of the data to write to the KEYBUF register.
@@ -900,21 +902,21 @@ __STATIC_INLINE void CRYPTO_KeyBuf128Write(CRYPTO_TypeDef *crypto,
 
 /***************************************************************************//**
  * @brief
- *   Quick read access of the carry bit from arithmetic operations.
+ *   Quick read access of the Carry bit from arithmetic operations.
  *
  * @details
  *   This function reads the carry bit of the CRYPTO ALU.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @return
  *   Returns 'true' if carry is 1, and 'false' if carry is 0.
  ******************************************************************************/
 __STATIC_INLINE bool CRYPTO_CarryIsSet(CRYPTO_TypeDef *crypto)
 {
-  return ((crypto->DSTATUS & _CRYPTO_DSTATUS_CARRY_MASK)
-          >> _CRYPTO_DSTATUS_CARRY_SHIFT) != 0UL;
+  return (crypto->DSTATUS & _CRYPTO_DSTATUS_CARRY_MASK)
+         >> _CRYPTO_DSTATUS_CARRY_SHIFT;
 }
 
 /***************************************************************************//**
@@ -926,15 +928,15 @@ __STATIC_INLINE bool CRYPTO_CarryIsSet(CRYPTO_TypeDef *crypto)
  *   DDATA0 register via the DDATA0LSBS bit field in the DSTATUS register.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @return
  *   Returns the 4 LSbits of DDATA0.
  ******************************************************************************/
 __STATIC_INLINE uint8_t CRYPTO_DData0_4LSBitsRead(CRYPTO_TypeDef *crypto)
 {
-  return (uint8_t)((crypto->DSTATUS & _CRYPTO_DSTATUS_DDATA0LSBS_MASK)
-                   >> _CRYPTO_DSTATUS_DDATA0LSBS_SHIFT);
+  return (crypto->DSTATUS & _CRYPTO_DSTATUS_DDATA0LSBS_MASK)
+         >> _CRYPTO_DSTATUS_DDATA0LSBS_SHIFT;
 }
 
 /***************************************************************************//**
@@ -948,10 +950,10 @@ __STATIC_INLINE uint8_t CRYPTO_DData0_4LSBitsRead(CRYPTO_TypeDef *crypto)
  *   calling @ref CRYPTO_ResultWidthSet(cryptoResult260Bits);
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[out] val
- *   A location to store the value in memory.
+ *   Location where to store the value in memory.
  ******************************************************************************/
 __STATIC_INLINE void CRYPTO_DData0Read260(CRYPTO_TypeDef *crypto,
                                           CRYPTO_Data260_TypeDef val)
@@ -995,15 +997,15 @@ __STATIC_INLINE void CRYPTO_DData0Write260(CRYPTO_TypeDef *crypto,
  *   CRYPTO module.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @return
  *   Returns 'true' if MSbit is 1, and 'false' if MSbit is 0.
  ******************************************************************************/
 __STATIC_INLINE bool CRYPTO_DData1_MSBitRead(CRYPTO_TypeDef *crypto)
 {
-  return ((crypto->DSTATUS & _CRYPTO_DSTATUS_DDATA1MSB_MASK)
-          >> _CRYPTO_DSTATUS_DDATA1MSB_SHIFT) != 0UL;
+  return (crypto->DSTATUS & _CRYPTO_DSTATUS_DDATA1MSB_MASK)
+         >> _CRYPTO_DSTATUS_DDATA1MSB_SHIFT;
 }
 
 /***************************************************************************//**
@@ -1017,10 +1019,10 @@ __STATIC_INLINE bool CRYPTO_DData1_MSBitRead(CRYPTO_TypeDef *crypto)
  *   function is called. The first END marks the end of the sequence.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in]  instructionSequence
- *   An instruction sequence to load.
+ *   Instruction sequence to load.
  ******************************************************************************/
 __STATIC_INLINE
 void CRYPTO_InstructionSequenceLoad(CRYPTO_TypeDef *crypto,
@@ -1044,7 +1046,7 @@ void CRYPTO_InstructionSequenceLoad(CRYPTO_TypeDef *crypto,
  *   in the CRYPTO module.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  ******************************************************************************/
 __STATIC_INLINE void CRYPTO_InstructionSequenceExecute(CRYPTO_TypeDef *crypto)
 {
@@ -1060,7 +1062,7 @@ __STATIC_INLINE void CRYPTO_InstructionSequenceExecute(CRYPTO_TypeDef *crypto)
  *   This function checks whether an instruction sequence has completed.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @return
  *   Returns 'true' if the instruction sequence is done, and 'false' if not.
@@ -1068,8 +1070,8 @@ __STATIC_INLINE void CRYPTO_InstructionSequenceExecute(CRYPTO_TypeDef *crypto)
 __STATIC_INLINE bool CRYPTO_InstructionSequenceDone(CRYPTO_TypeDef *crypto)
 {
   /* Return true if operation has completed. */
-  return (crypto->STATUS
-          & (CRYPTO_STATUS_INSTRRUNNING | CRYPTO_STATUS_SEQRUNNING)) == 0UL;
+  return !(crypto->STATUS
+           & (CRYPTO_STATUS_INSTRRUNNING | CRYPTO_STATUS_SEQRUNNING));
 }
 
 /***************************************************************************//**
@@ -1081,12 +1083,12 @@ __STATIC_INLINE bool CRYPTO_InstructionSequenceDone(CRYPTO_TypeDef *crypto)
  *   sequence has completed.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  ******************************************************************************/
 __STATIC_INLINE void CRYPTO_InstructionSequenceWait(CRYPTO_TypeDef *crypto)
 {
-  while (!CRYPTO_InstructionSequenceDone(crypto)) {
-  }
+  while (!CRYPTO_InstructionSequenceDone(crypto))
+    ;
 }
 
 /***************************************************************************//**
@@ -1098,13 +1100,13 @@ __STATIC_INLINE void CRYPTO_InstructionSequenceWait(CRYPTO_TypeDef *crypto)
  *   has completed.
  *
  * @param[in]  crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  ******************************************************************************/
 __STATIC_INLINE void CRYPTO_InstructionWait(CRYPTO_TypeDef *crypto)
 {
   /* Wait for completion */
-  while ((crypto->IF & CRYPTO_IF_INSTRDONE) == 0UL) {
-  }
+  while (!(crypto->IF & CRYPTO_IF_INSTRDONE))
+    ;
   crypto->IFC = CRYPTO_IF_INSTRDONE;
 }
 
@@ -1138,22 +1140,6 @@ void CRYPTO_AES_CBC256(CRYPTO_TypeDef *crypto,
                        const uint8_t * key,
                        const uint8_t * iv,
                        bool encrypt);
-
-void CRYPTO_AES_PCBC128(CRYPTO_TypeDef *crypto,
-                        uint8_t * out,
-                        const uint8_t * in,
-                        unsigned int len,
-                        const uint8_t * key,
-                        const uint8_t * iv,
-                        bool encrypt);
-
-void CRYPTO_AES_PCBC256(CRYPTO_TypeDef *crypto,
-                        uint8_t * out,
-                        const uint8_t * in,
-                        unsigned int len,
-                        const uint8_t * key,
-                        const uint8_t * iv,
-                        bool encrypt);
 
 void CRYPTO_AES_CFB128(CRYPTO_TypeDef *crypto,
                        uint8_t * out,
@@ -1224,10 +1210,10 @@ void CRYPTO_AES_OFB256(CRYPTO_TypeDef *crypto,
  *   Clear one or more pending CRYPTO interrupts.
  *
  * @param[in] crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in] flags
- *   A pending CRYPTO interrupt source to clear. Use a bitwise logic OR combination of
+ *   Pending CRYPTO interrupt source to clear. Use a bitwise logic OR combination of
  *   valid interrupt flags for the CRYPTO module (CRYPTO_IF_nnn).
  ******************************************************************************/
 __STATIC_INLINE void CRYPTO_IntClear(CRYPTO_TypeDef *crypto, uint32_t flags)
@@ -1240,7 +1226,7 @@ __STATIC_INLINE void CRYPTO_IntClear(CRYPTO_TypeDef *crypto, uint32_t flags)
  *   Disable one or more CRYPTO interrupts.
  *
  * @param[in] crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in] flags
  *   CRYPTO interrupt sources to disable. Use a bitwise logic OR combination of
@@ -1261,7 +1247,7 @@ __STATIC_INLINE void CRYPTO_IntDisable(CRYPTO_TypeDef *crypto, uint32_t flags)
  *   if such a pending interrupt should be ignored.
  *
  * @param[in] crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in] flags
  *   CRYPTO interrupt sources to enable. Use a bitwise logic OR combination of
@@ -1280,7 +1266,7 @@ __STATIC_INLINE void CRYPTO_IntEnable(CRYPTO_TypeDef *crypto, uint32_t flags)
  *   The event bits are not cleared by the use of this function.
  *
  * @param[in] crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @return
  *   CRYPTO interrupt sources pending. A bitwise logic OR combination of valid
@@ -1300,7 +1286,7 @@ __STATIC_INLINE uint32_t CRYPTO_IntGet(CRYPTO_TypeDef *crypto)
  *   Interrupt flags are not cleared by the use of this function.
  *
  * @param[in] crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @return
  *   Pending and enabled CRYPTO interrupt sources
@@ -1322,10 +1308,10 @@ __STATIC_INLINE uint32_t CRYPTO_IntGetEnabled(CRYPTO_TypeDef *crypto)
 
 /***************************************************************************//**
  * @brief
- *   Set one or more pending CRYPTO interrupts from software.
+ *   Set one or more pending CRYPTO interrupts from SW.
  *
  * @param[in] crypto
- *   A pointer to the CRYPTO peripheral register block.
+ *   Pointer to CRYPTO peripheral register block.
  *
  * @param[in] flags
  *   CRYPTO interrupt sources to set to pending. Use a bitwise logic OR combination
@@ -1337,7 +1323,7 @@ __STATIC_INLINE void CRYPTO_IntSet(CRYPTO_TypeDef *crypto, uint32_t flags)
 }
 
 /*******************************************************************************
- *****    Static inline wrappers for CRYPTO AES functions to      *****
+ *****    Static inline wrappers for CRYPTO AES functions in order to      *****
  *****    preserve backwards compatibility with AES module API functions.  *****
  ******************************************************************************/
 
@@ -1347,7 +1333,7 @@ __STATIC_INLINE void CRYPTO_IntSet(CRYPTO_TypeDef *crypto, uint32_t flags)
  *   128 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_CBC128 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_CBC128(uint8_t * out,
@@ -1366,7 +1352,7 @@ __STATIC_INLINE void AES_CBC128(uint8_t * out,
  *   key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_CBC256 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_CBC256(uint8_t * out,
@@ -1384,7 +1370,7 @@ __STATIC_INLINE void AES_CBC256(uint8_t * out,
  *   AES Cipher feedback (CFB) cipher mode encryption/decryption, 128 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_CFB128 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_CFB128(uint8_t * out,
@@ -1402,7 +1388,7 @@ __STATIC_INLINE void AES_CFB128(uint8_t * out,
  *   AES Cipher feedback (CFB) cipher mode encryption/decryption, 256 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_CFB256 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_CFB256(uint8_t * out,
@@ -1420,7 +1406,7 @@ __STATIC_INLINE void AES_CFB256(uint8_t * out,
  *   AES Counter (CTR) cipher mode encryption/decryption, 128 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_CTR128 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_CTR128(uint8_t * out,
@@ -1438,7 +1424,7 @@ __STATIC_INLINE void AES_CTR128(uint8_t * out,
  *   AES Counter (CTR) cipher mode encryption/decryption, 256 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_CTR256 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_CTR256(uint8_t * out,
@@ -1456,7 +1442,7 @@ __STATIC_INLINE void AES_CTR256(uint8_t * out,
  *   Update last 32 bits of 128 bit counter, by incrementing with 1.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_CTRUpdate32Bit instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_CTRUpdate32Bit(uint8_t * ctr)
@@ -1470,7 +1456,7 @@ __STATIC_INLINE void AES_CTRUpdate32Bit(uint8_t * ctr)
  *   decryption key is used for some cipher modes when decrypting.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_DecryptKey128 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_DecryptKey128(uint8_t * out, const uint8_t * in)
@@ -1484,7 +1470,7 @@ __STATIC_INLINE void AES_DecryptKey128(uint8_t * out, const uint8_t * in)
  *   decryption key is used for some cipher modes when decrypting.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_DecryptKey256 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_DecryptKey256(uint8_t * out, const uint8_t * in)
@@ -1498,7 +1484,7 @@ __STATIC_INLINE void AES_DecryptKey256(uint8_t * out, const uint8_t * in)
  *   128 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_ECB128 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_ECB128(uint8_t * out,
@@ -1516,7 +1502,7 @@ __STATIC_INLINE void AES_ECB128(uint8_t * out,
  *   256 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_ECB256 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_ECB256(uint8_t * out,
@@ -1533,7 +1519,7 @@ __STATIC_INLINE void AES_ECB256(uint8_t * out,
  *   AES Output feedback (OFB) cipher mode encryption/decryption, 128 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_OFB128 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_OFB128(uint8_t * out,
@@ -1550,7 +1536,7 @@ __STATIC_INLINE void AES_OFB128(uint8_t * out,
  *   AES Output feedback (OFB) cipher mode encryption/decryption, 256 bit key.
  *
  * @deprecated
- *   This function preserves backwards compatibility. Use
+ *   This function is present to preserve backwards compatibility. Use
  *   @ref CRYPTO_AES_OFB256 instead.
  ******************************************************************************/
 __STATIC_INLINE void AES_OFB256(uint8_t * out,

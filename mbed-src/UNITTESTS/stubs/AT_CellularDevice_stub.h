@@ -18,7 +18,6 @@
 #define AT_CELLULARDEVICE_STUB_H_
 
 #include "AT_CellularDevice.h"
-#include "ATHandler.h"
 
 namespace AT_CellularDevice_stub {
 extern int failure_count;
@@ -27,8 +26,6 @@ extern int init_module_failure_count;
 extern int set_pin_failure_count;
 extern int get_sim_failure_count;
 extern bool pin_needed;
-extern bool supported_bool;
-extern int max_sock_value;
 }
 
 

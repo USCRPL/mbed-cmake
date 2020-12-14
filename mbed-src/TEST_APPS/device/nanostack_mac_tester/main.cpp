@@ -44,7 +44,7 @@
 #endif
 
 extern mac_api_s *mac_interface;
-UnbufferedSerial pc(USBTX, USBRX);
+RawSerial pc(USBTX, USBRX);
 osThreadId_t main_thread;
 static CircularBuffer<uint8_t, RX_BUFFER_SIZE> rx_buffer;
 static uint8_t ns_heap[HEAP_FOR_MAC_TESTER_SIZE];
@@ -68,8 +68,7 @@ static void app_heap_error_handler(heap_fail_t event)
 
 static void rx_interrupt(void)
 {
-    uint8_t c;
-    pc.read(&c, 1);
+    uint8_t c = pc.getc();
     rx_buffer.push(c);
     if (main_thread != NULL) {
         osThreadFlagsSet(main_thread, 1);

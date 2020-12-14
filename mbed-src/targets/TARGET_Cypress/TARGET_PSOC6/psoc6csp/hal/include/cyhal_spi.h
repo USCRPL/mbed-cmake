@@ -82,7 +82,6 @@
 *
 * * <a href="https://github.com/cypresssemiconductorco/mtb-example-psoc6-spi-master"><b>mtb-example-psoc6-spi-master</b></a>: This example project demonstrates
 * use of SPI (HAL) resource in PSoC® 6 MCU in Master mode to write data to an SPI slave.
-*
 */
 
 #pragma once
@@ -91,41 +90,26 @@
 #include <stdbool.h>
 #include "cy_result.h"
 #include "cyhal_hw_types.h"
+#include "cyhal_modules.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-/** \addtogroup group_hal_results
- *  \{ *//**
- *  \{ @name SPI Results
- */
-
 /** Bad argument */
-#define CYHAL_SPI_RSLT_BAD_ARGUMENT                     \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 0))
+#define CYHAL_SPI_RSLT_BAD_ARGUMENT                    (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 0))
 /** Failed to initialize SPI clock */
-#define CYHAL_SPI_RSLT_CLOCK_ERROR                      \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 1))
+#define CYHAL_SPI_RSLT_CLOCK_ERROR                     (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 1))
 /** Failed to Transfer SPI data */
-#define CYHAL_SPI_RSLT_TRANSFER_ERROR                   \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 2))
+#define CYHAL_SPI_RSLT_TRANSFER_ERROR                  (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 2))
 /** Provided clock is not supported by SPI */
-#define CYHAL_SPI_RSLT_CLOCK_NOT_SUPPORTED              \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 3))
+#define CYHAL_SPI_RSLT_CLOCK_NOT_SUPPORTED             (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 3))
 /** Provided PIN configuration is not supported by SPI */
-#define CYHAL_SPI_RSLT_PIN_CONFIG_NOT_SUPPORTED         \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 5))
+#define CYHAL_SPI_RSLT_PIN_CONFIG_NOT_SUPPORTED        (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 5))
 /** Provided PIN configuration is not supported by SPI */
-#define CYHAL_SPI_RSLT_INVALID_PIN_API_NOT_SUPPORTED    \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 6))
+#define CYHAL_SPI_RSLT_INVALID_PIN_API_NOT_SUPPORTED   (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 6))
 /** The requested resource type is invalid */
-#define CYHAL_SPI_RSLT_ERR_INVALID_PIN                  \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 7))
-
-/**
- * \} \}
- */
+#define CYHAL_SPI_RSLT_ERR_INVALID_PIN                 (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_SPI, 7))
 
 /** Compatibility define for cyhal_spi_set_frequency. */
 #define cyhal_spi_frequency cyhal_spi_set_frequency
@@ -143,36 +127,25 @@ typedef enum {
 /** Handler for SPI interrupts */
 typedef void (*cyhal_spi_event_callback_t)(void *callback_arg, cyhal_spi_event_t event);
 
-/** Flag for SPI \ref cyhal_spi_mode_t values indicating that the LSB is sent first. */
-#define CYHAL_SPI_MODE_FLAG_LSB             (0x01u)
-/** Flag for SPI \ref cyhal_spi_mode_t values indicating that the CPHA=1. */
-#define CYHAL_SPI_MODE_FLAG_CPHA            (0x02u)
-/** Flag for SPI \ref cyhal_spi_mode_t values indicating that the CPOL=1. */
-#define CYHAL_SPI_MODE_FLAG_CPOL            (0x04u)
-/** Creates a \ref cyhal_spi_mode_t value given the cpol, cpha, lsb values. */
-#define CYHAL_SPI_MODE(cpol, cpha, lsb)     (((cpol > 0) ? CYHAL_SPI_MODE_FLAG_CPOL : 0) | \
-                                             ((cpha > 0) ? CYHAL_SPI_MODE_FLAG_CPHA : 0) | \
-                                             (( lsb > 0) ? CYHAL_SPI_MODE_FLAG_LSB  : 0))
-
 /** SPI operating modes */
 typedef enum
 {
     /** Standard motorola SPI CPOL=0, CPHA=0 with MSB first operation */
-    CYHAL_SPI_MODE_00_MSB = CYHAL_SPI_MODE(0, 0, 0),
+    CYHAL_SPI_MODE_00_MSB,
     /** Standard motorola SPI CPOL=0, CPHA=0 with LSB first operation */
-    CYHAL_SPI_MODE_00_LSB = CYHAL_SPI_MODE(0, 0, 1),
+    CYHAL_SPI_MODE_00_LSB,
     /** Standard motorola SPI CPOL=0, CPHA=1 with MSB first operation */
-    CYHAL_SPI_MODE_01_MSB = CYHAL_SPI_MODE(0, 1, 0),
+    CYHAL_SPI_MODE_01_MSB,
     /** Standard motorola SPI CPOL=0, CPHA=1 with LSB first operation */
-    CYHAL_SPI_MODE_01_LSB = CYHAL_SPI_MODE(0, 1, 1),
+    CYHAL_SPI_MODE_01_LSB,
     /** Standard motorola SPI CPOL=1, CPHA=0 with MSB first operation */
-    CYHAL_SPI_MODE_10_MSB = CYHAL_SPI_MODE(1, 0, 0),
+    CYHAL_SPI_MODE_10_MSB,
     /** Standard motorola SPI CPOL=1, CPHA=0 with LSB first operation */
-    CYHAL_SPI_MODE_10_LSB = CYHAL_SPI_MODE(1, 0, 1),
+    CYHAL_SPI_MODE_10_LSB,
     /** Standard motorola SPI CPOL=1, CPHA=1 with MSB first operation */
-    CYHAL_SPI_MODE_11_MSB = CYHAL_SPI_MODE(1, 1, 0),
+    CYHAL_SPI_MODE_11_MSB,
     /** Standard motorola SPI CPOL=1, CPHA=1 with LSB first operation */
-    CYHAL_SPI_MODE_11_LSB = CYHAL_SPI_MODE(1, 1, 1),
+    CYHAL_SPI_MODE_11_LSB,
 } cyhal_spi_mode_t;
 
 /** @brief Initial SPI configuration. */
@@ -186,8 +159,7 @@ typedef struct
 /** Initialize the SPI peripheral
  *
  * Configures the pins used by SPI, sets a default format and frequency, and enables the peripheral
- * @param[out] obj  Pointer to a SPI object. The caller must allocate the memory
- *  for this object but the init function will initialize its contents.
+ * @param[out] obj  The SPI object to initialize
  * @param[in]  mosi The pin to use for MOSI
  * @note At least MOSI or MISO pin should be non-NC
  * @param[in]  miso The pin to use for MISO
@@ -203,7 +175,7 @@ typedef struct
  * @param[in]  is_slave  false for master mode or true for slave mode operation
  * @return The status of the init request
  */
-cy_rslt_t cyhal_spi_init(cyhal_spi_t *obj, cyhal_gpio_t mosi, cyhal_gpio_t miso, cyhal_gpio_t sclk, cyhal_gpio_t ssel, const cyhal_clock_t *clk,
+cy_rslt_t cyhal_spi_init(cyhal_spi_t *obj, cyhal_gpio_t mosi, cyhal_gpio_t miso, cyhal_gpio_t sclk, cyhal_gpio_t ssel, const cyhal_clock_divider_t *clk,
                         uint8_t bits, cyhal_spi_mode_t mode, bool is_slave);
 
 /** Release a SPI object
@@ -223,11 +195,10 @@ void cyhal_spi_free(cyhal_spi_t *obj);
  */
 cy_rslt_t cyhal_spi_set_frequency(cyhal_spi_t *obj, uint32_t hz);
 
-/** Synchronously get a received value out of the SPI receive buffer
+/** Get a received value out of the SPI receive buffer
  *
  * In Master mode - transmits fill-in value and read the data from RxFifo
  * In Slave mode - Blocks until a value is available
- *
  * @param[in] obj   The SPI peripheral to read
  * @param[in] value The value received
  * @return The status of the read request
@@ -237,11 +208,10 @@ cy_rslt_t cyhal_spi_set_frequency(cyhal_spi_t *obj, uint32_t hz);
  */
 cy_rslt_t cyhal_spi_recv(cyhal_spi_t *obj, uint32_t* value);
 
-/** Synchronously send a byte out
+/** Send a byte out
  *
  * In Master mode transmits value to slave and read/drop a value from the RxFifo.
  * In Slave mode writes a value to TxFifo
- *
  * @param[in] obj   The SPI peripheral to use for sending
  * @param[in] value The value to send
  * @return The status of the write request
@@ -251,13 +221,11 @@ cy_rslt_t cyhal_spi_recv(cyhal_spi_t *obj, uint32_t* value);
  */
 cy_rslt_t cyhal_spi_send(cyhal_spi_t *obj, uint32_t value);
 
-/** Synchronously Write a block out and receive a value
+/** Write a block out and receive a value
  *
  *  The total number of bytes sent and received will be the maximum of
  *  tx_length and rx_length. The bytes written will be padded with the
- *  value given by write_fill.
- *
- * This function will block for the duration of the transfer.
+ *  value 0xff.
  *
  * @param[in] obj           The SPI peripheral to use for sending
  * @param[in] tx            Pointer to the byte-array of data to write to the device
@@ -270,12 +238,7 @@ cy_rslt_t cyhal_spi_send(cyhal_spi_t *obj, uint32_t value);
  */
 cy_rslt_t cyhal_spi_transfer(cyhal_spi_t *obj, const uint8_t *tx, size_t tx_length, uint8_t *rx, size_t rx_length, uint8_t write_fill);
 
-/** Start an asynchronous SPI transfer.
- *
- * This will transfer `rx_length` bytes into the buffer pointed to by `rx`, while simultaneously transfering
- * `tx_length` bytes of data from the buffer pointed to by `tx`, both in the background.
- * When the transfer is complete, the @ref CYHAL_SPI_IRQ_DONE event will be raised.
- * See @ref cyhal_spi_register_callback and @ref cyhal_spi_enable_event.
+/** Begin the SPI transfer. Buffer pointers and lengths are specified in tx_buff and rx_buff
  *
  * @param[in] obj           The SPI object that holds the transfer information
  * @param[in] tx            The transmit buffer
@@ -301,11 +264,9 @@ bool cyhal_spi_is_busy(cyhal_spi_t *obj);
  */
 cy_rslt_t cyhal_spi_abort_async(cyhal_spi_t *obj);
 
-/** Register a SPI callback handler
+/** The SPI callback handler registration
  *
- * This function will be called when one of the events enabled by \ref cyhal_spi_enable_event occurs.
- *
- * @param[in] obj          The SPI object
+ * @param[in] obj         The SPI object
  * @param[in] callback     The callback handler which will be invoked when the interrupt fires
  * @param[in] callback_arg Generic argument that will be provided to the callback when called
  */
@@ -313,14 +274,12 @@ void cyhal_spi_register_callback(cyhal_spi_t *obj, cyhal_spi_event_callback_t ca
 
 /** Configure SPI interrupt. This function is used for word-approach
  *
- * When an enabled event occurs, the function specified by \ref cyhal_spi_register_callback will be called.
- *
- * @param[in] obj            The SPI object
- * @param[in] event          The SPI event type
- * @param[in] intr_priority  The priority for NVIC interrupt events
- * @param[in] enable         True to turn on interrupts, False to turn off
+ * @param[in] obj      The SPI object
+ * @param[in] event    The SPI event type
+ * @param[in] intrPriority  The priority for NVIC interrupt events
+ * @param[in] enable   True to turn on interrupts, False to turn off
  */
-void cyhal_spi_enable_event(cyhal_spi_t *obj, cyhal_spi_event_t event, uint8_t intr_priority, bool enable);
+void cyhal_spi_enable_event(cyhal_spi_t *obj, cyhal_spi_event_t event, uint8_t intrPriority, bool enable);
 
 /*******************************************************************************
 * Backward compatibility macro. The following code is DEPRECATED and must

@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2018-2018 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -412,7 +411,7 @@ void USBPhyHw::init(USBPhyEvents *events)
     LPC_PINCON->PINSEL4 |= 0x00040000;
 
     // Connect must be low for at least 2.5uS
-    wait_us(5);
+    wait(0.3);
 
     // Disable control endpoints
     SIEsetEndpointStatus(EP0IN, SIE_SES_DA);

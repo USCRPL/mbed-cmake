@@ -1,8 +1,5 @@
 /* mbed Microcontroller Library
- *
- * Copyright (C) 2019, Toshiba Electronic Device Solutions Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
+ * (C)Copyright TOSHIBA ELECTRONIC DEVICES & STORAGE CORPORATION 2018 All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -193,7 +190,7 @@ void pwmout_period_us(pwmout_t *obj, int us)
     prscl       = T32A_PRSCLx_32;
 
     obj->trailing_timing = (us * CALCULATE_RGC1_VAL);
-    obj->leading_timing  = ((obj->trailing_timing) - (obj->trailing_timing * duty_cycle));
+    obj->leading_timing  = ((obj->trailing_timing)- (obj->trailing_timing * duty_cycle));
 
     obj->p_t32a.p_instance->MOD     =  T32A_MODE_32;
     obj->p_t32a.p_instance->RUNC    = (T32A_RUN_DISABLE | T32A_COUNT_STOP);
@@ -205,11 +202,6 @@ void pwmout_period_us(pwmout_t *obj, int us)
     obj->p_t32a.p_instance->OUTCRC0 = T32A_OCR_DISABLE;
     obj->p_t32a.p_instance->OUTCRC1 = (T32A_OCRCMPx1_CLR | T32A_OCRCMPx0_SET);
     obj->p_t32a.p_instance->RUNC    = (T32A_RUN_ENABLE   | T32A_COUNT_START);
-}
-
-int pwmout_read_period_us(pwmout_t *obj)
-{
-    return obj->trailing_timing;
 }
 
 void pwmout_pulsewidth(pwmout_t *obj, float seconds)
@@ -230,11 +222,6 @@ void pwmout_pulsewidth_us(pwmout_t *obj, int us)
     seconds = (float)(us / 1000000.0f);
     value   = (((seconds / obj->period) * 100.0f) / 100.0f);
     pwmout_write(obj, value);
-}
-
-int pwmout_read_pulsewidth_us(pwmout_t *obj)
-{
-    return obj->trailing_timing - obj->leading_timing;
 }
 
 const PinMap *pwmout_pinmap()

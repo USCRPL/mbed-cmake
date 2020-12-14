@@ -34,7 +34,7 @@ extern "C"
 
 static uint16_t cyhal_analog_ref_count = 0;
 
-void cyhal_analog_init(void)
+void cyhal_analog_init()
 {
     if(cyhal_analog_ref_count == 0)
     {
@@ -45,7 +45,7 @@ void cyhal_analog_init(void)
     ++cyhal_analog_ref_count;
 }
 
-void cyhal_analog_free(void)
+void cyhal_analog_free()
 {
     CY_ASSERT(cyhal_analog_ref_count > 0);
     --cyhal_analog_ref_count;

@@ -1,8 +1,5 @@
 /* mbed Microcontroller Library
- *
- * Copyright (C) 2019, Toshiba Electronic Device Solutions Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
+ * (C)Copyright TOSHIBA ELECTRONIC DEVICES & STORAGE CORPORATION 2018 All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +57,7 @@ uint32_t hal_reset_reason_get_raw(void)
 
 reset_reason_t hal_reset_reason_get(void)
 {
+    char multi_flag = 0;
     reset_reason_t ret;
 
     uint8_t NoOfSetBitCountReg1 = set_bit_count(TSB_RLM->RSTFLG0);
@@ -88,13 +86,6 @@ reset_reason_t hal_reset_reason_get(void)
     return ret;
 }
 
-void hal_reset_reason_get_capabilities(reset_reason_capabilities_t *cap)
-{
-    cap->reasons = 1 << RESET_REASON_UNKNOWN;
-    cap->reasons |= 1 << RESET_REASON_POWER_ON;
-    cap->reasons |= 1 << RESET_REASON_MULTIPLE;
-}
-
 static bool bit_status(uint32_t reg, uint8_t bit_no)
 {
     bool status = false;
@@ -109,7 +100,7 @@ static bool bit_status(uint32_t reg, uint8_t bit_no)
 static uint8_t set_bit_count(uint32_t reg)
 {
     uint8_t count = 0;
-    uint8_t index = 0;
+    int8_t index = 0;
 
     for (index = 0; index < (sizeof(uint32_t) * 8); index++) {
         if (reg & (1 << index)) {

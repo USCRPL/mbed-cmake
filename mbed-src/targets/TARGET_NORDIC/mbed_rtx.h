@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2016 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +17,21 @@
 #ifndef MBED_MBED_RTX_H
 #define MBED_MBED_RTX_H
 
-#if defined(TARGET_MCU_NRF52832)
+#if defined(TARGET_MCU_NRF51822)
+
+#ifndef INITIAL_SP
+#   if defined(TARGET_MCU_NORDIC_32K)
+#       define INITIAL_SP            (0x20008000UL)
+#   elif defined(TARGET_MCU_NORDIC_16K)
+#       define INITIAL_SP            (0x20004000UL)
+#   endif
+#endif
+
+#ifndef OS_SYSTICK
+#define OS_SYSTICK              0
+#endif
+
+#elif defined(TARGET_MCU_NRF52832)
 
 #ifndef INITIAL_SP
 #define INITIAL_SP              (0x20010000UL)
@@ -30,6 +43,6 @@
 #define INITIAL_SP              (0x20040000UL)
 #endif
 
-#endif // defined(TARGET_MCU_NRF52832)...
+#endif // defined(TARGET_MCU_NRF51822)...
 
 #endif // #ifndef MBED_MBED_RTX_H

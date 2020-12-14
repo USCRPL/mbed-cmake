@@ -1,6 +1,7 @@
 /***************************************************************************//**
  * @file
  * @brief Controller Area Network API
+ * @version 5.7.2
  *******************************************************************************
  * # License
  * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
@@ -427,7 +428,7 @@ void CAN_SetIdAndFilter(CAN_TypeDef *can,
 
   /* Reset MSGVAL. */
   mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD_WRITE;
-  mir->ARB &= ~CAN_MIR_ARB_MSGVAL;
+  mir->ARB &= ~(0x1U << _CAN_MIR_ARB_MSGVAL_SHIFT);
   CAN_SendRequest(can, interface, message->msgNum, true);
 
   /* Set which registers to write to RAM. */
@@ -441,13 +442,13 @@ void CAN_SetIdAndFilter(CAN_TypeDef *can,
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_ID_MASK);
     mir->ARB = (mir->ARB & ~_CAN_MIR_ARB_ID_MASK)
                | (message->id << _CAN_MIR_ARB_ID_SHIFT)
-               | CAN_MIR_ARB_MSGVAL
+               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT)
                | CAN_MIR_ARB_XTD_EXT;
   } else {
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_STD_ID_MAX);
     mir->ARB = (mir->ARB & ~(_CAN_MIR_ARB_ID_MASK | CAN_MIR_ARB_XTD_STD))
-               | (message->id << _CAN_MIR_ARB_STD_ID_SHIFT)
-               | CAN_MIR_ARB_MSGVAL;
+               | (_CAN_MIR_ARB_STD_ID_SHIFT)
+               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT);
   }
 
   if (message->extendedMask) {
@@ -525,10 +526,8 @@ void CAN_ConfigureMessageObject(CAN_TypeDef *can,
   /* Send reading request and wait (3 to 6 CPU cycle). */
   CAN_SendRequest(can, interface, msgNum, true);
 
-  /* Reset MSGVAL. */
+  /* Set which registers to write to RAM. */
   mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD_WRITE;
-  mir->ARB &= ~CAN_MIR_ARB_MSGVAL;
-  CAN_SendRequest(can, interface, msgNum, true);
 
   /* Configure a valid message and direction. */
   mir->ARB = (mir->ARB & ~(_CAN_MIR_ARB_DIR_MASK | _CAN_MIR_ARB_MSGVAL_MASK))
@@ -601,23 +600,16 @@ void CAN_SendMessage(CAN_TypeDef *can,
 
   /* Reset MSGVAL. */
   mir->CMDMASK |= CAN_MIR_CMDMASK_WRRD_WRITE;
-  mir->ARB &= ~CAN_MIR_ARB_MSGVAL;
+  mir->ARB &= ~(0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT);
   CAN_SendRequest(can, interface, message->msgNum, true);
 
   /* Set which registers to write to RAM. */
-  if ( ((mir->CTRL & _CAN_MIR_CTRL_RMTEN_MASK) == 0)
-       || (((mir->CTRL & _CAN_MIR_CTRL_RMTEN_MASK) == CAN_MIR_CTRL_RMTEN)
-           && ((mir->ARB & _CAN_MIR_ARB_DIR_MASK) == CAN_MIR_ARB_DIR_TX)) ) {
-    mir->CMDMASK |= CAN_MIR_CMDMASK_DATAA
-                    | CAN_MIR_CMDMASK_DATAB;
-
-    /* Set data. */
-    CAN_WriteData(can, interface, message);
-  }
+  mir->CMDMASK |= CAN_MIR_CMDMASK_DATAA
+                  | CAN_MIR_CMDMASK_DATAB;
 
   /* If TX = 1 and remoteTransfer = 1, nothing is sent. */
   if ( ((mir->CTRL & _CAN_MIR_CTRL_RMTEN_MASK) == 0)
-       || ((mir->ARB & _CAN_MIR_ARB_DIR_MASK) == CAN_MIR_ARB_DIR_RX)) {
+       || ((mir->ARB & _CAN_MIR_ARB_DIR_MASK) == _CAN_MIR_ARB_DIR_RX)) {
     mir->CTRL |= CAN_MIR_CTRL_TXRQST;
     /* DATAVALID is set only if it is not sending a remote message. */
     if ((mir->CTRL & _CAN_MIR_CTRL_RMTEN_MASK) == 0) {
@@ -634,15 +626,18 @@ void CAN_SendMessage(CAN_TypeDef *can,
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_ID_MASK);
     mir->ARB = (mir->ARB & ~_CAN_MIR_ARB_ID_MASK)
                | (message->id << _CAN_MIR_ARB_ID_SHIFT)
-               | CAN_MIR_ARB_MSGVAL
+               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT)
                | CAN_MIR_ARB_XTD_EXT;
   } else {
     EFM_ASSERT(message->id <= _CAN_MIR_ARB_STD_ID_MAX);
     mir->ARB = (mir->ARB & ~(_CAN_MIR_ARB_ID_MASK | _CAN_MIR_ARB_XTD_MASK))
-               | CAN_MIR_ARB_MSGVAL
+               | (0x1UL << _CAN_MIR_ARB_MSGVAL_SHIFT)
                | (message->id << _CAN_MIR_ARB_STD_ID_SHIFT)
                | CAN_MIR_ARB_XTD_STD;
   }
+
+  /* Set data. */
+  CAN_WriteData(can, interface, message);
 
   /* Send a writing request. */
   CAN_SendRequest(can, interface, message->msgNum, wait);
@@ -650,12 +645,11 @@ void CAN_SendMessage(CAN_TypeDef *can,
 
 /***************************************************************************//**
  * @brief
- *   Read data and ID from a Message Object in RAM and store it in a message.
+ *   Read data from a Message Object in RAM and store it in a message.
  *
  * @details
- *   Read the information from RAM on this Message Object. Data and
- *   the configuration of the Message Object is read. The information is only
- *   read if the message stored in the Message Object is new and valid.
+ *   Read the information from  RAM on this Message Object : data but
+ *   also the configuration of the other registers.
  *
  * @param[in] can
  *   A pointer to the CAN peripheral register block.
@@ -665,12 +659,8 @@ void CAN_SendMessage(CAN_TypeDef *can,
  *
  * @param[in] message
  *   A Message Object.
- *
- * @return
- *   True if the Message Object in RAM holds a new and valid message, which was
- *   not read earlier, false otherwise.
  ******************************************************************************/
-bool CAN_ReadMessage(CAN_TypeDef *can,
+void CAN_ReadMessage(CAN_TypeDef *can,
                      uint8_t interface,
                      CAN_MessageObject_TypeDef *message)
 {
@@ -695,10 +685,6 @@ bool CAN_ReadMessage(CAN_TypeDef *can,
 
   /* Send a reading request and wait (3 to 6 cpu cycle). */
   CAN_SendRequest(can, interface, message->msgNum, true);
-
-  if ((mir->CTRL & CAN_MIR_CTRL_DATAVALID) == 0) {
-    return false;
-  }
 
   /* Get dlc from the control register. */
   message->dlc = ((mir->CTRL & _CAN_MIR_CTRL_DLC_MASK) >> _CAN_MIR_CTRL_DLC_SHIFT);
@@ -726,8 +712,6 @@ bool CAN_ReadMessage(CAN_TypeDef *can,
       buffer = buffer >> 8;
     }
   }
-
-  return true;
 }
 
 /***************************************************************************//**

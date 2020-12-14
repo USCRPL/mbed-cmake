@@ -85,32 +85,11 @@
 #include <stdbool.h>
 #include "cy_result.h"
 #include "cyhal_hw_types.h"
+#include "cyhal_modules.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-/** \addtogroup group_hal_results
- *  \{ *//**
- *  \{ @name Timer Results
- */
-
-/** Bad argument. eg: null pointer */
-#define CYHAL_TIMER_RSLT_ERR_BAD_ARGUMENT               \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 0))
-/** Failed to initialize Timer clock */
-#define CYHAL_TIMER_RSLT_ERR_CLOCK_INIT                 \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 1))
-/** Failed to initialize Timer */
-#define CYHAL_TIMER_RSLT_ERR_INIT                       \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 2))
-/** Cannot change the timer frequency when a shared clock divider is in use */
-#define CYHAL_TIMER_RSLT_ERR_SHARED_CLOCK               \
-    (CYHAL_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 3))
-
-/**
- * \} \}
- */
 
 /*******************************************************************************
 *       Enumerations
@@ -149,7 +128,7 @@ typedef struct
     bool is_compare; //!< Is it in compare (true) or capture (false) mode
     uint32_t period; //!< Timer/counter period
     uint32_t compare_value; //!< Timer/counter comparison value
-    uint32_t value; //!< Default value of the timer/counter. \ref cyhal_timer_reset() will also change counter to this value when called.
+    uint32_t value; //!< Current value of the timer/counter
 } cyhal_timer_cfg_t;
 
 /*******************************************************************************
@@ -159,11 +138,16 @@ typedef struct
 /** Handler for timer events */
 typedef void(*cyhal_timer_event_callback_t)(void *callback_arg, cyhal_timer_event_t event);
 
-/*******************************************************************************
-*       Defines
-*******************************************************************************/
+/** Bad argument. eg: null pointer */
+#define CYHAL_TIMER_RSLT_ERR_BAD_ARGUMENT (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 0))
+/** Failed to initialize Timer clock */
+#define CYHAL_TIMER_RSLT_ERR_CLOCK_INIT (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 1))
+/** Failed to initialize Timer */
+#define CYHAL_TIMER_RSLT_ERR_INIT (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 2))
+/** Cannot change the timer frequency when a shared clock divider is in use */
+#define CYHAL_TIMER_RSLT_ERR_SHARED_CLOCK (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CYHAL_RSLT_MODULE_TIMER, 3))
 
-/** Default timer frequency, used when an existing clock divider is not provided to \ref cyhal_timer_init() */
+/** Default timer frequency, used when an existing clock divider is not provided to init */
 #define CYHAL_TIMER_DEFAULT_FREQ (1000000u)
 
 /*******************************************************************************
@@ -173,14 +157,13 @@ typedef void(*cyhal_timer_event_callback_t)(void *callback_arg, cyhal_timer_even
 /** Initialize the timer/counter peripheral and configure the pin. <br>
  * See \ref subsection_timer_snippet_1.
  *
- * @param[out] obj  Pointer to a timer/counter object. The caller must allocate the memory
- *  for this object but the init function will initialize its contents.
+ * @param[out] obj The timer/counter object to initialize
  * @param[in]  pin optional - The timer/counter compare/capture pin to initialize
  * @param[in]  clk optional - The shared clock to use, if not provided a new clock will be allocated
  *                  and the timer frequency will be set to CYHAL_TIMER_DEFAULT_FREQ
  * @return The status of the init request
  */
-cy_rslt_t cyhal_timer_init(cyhal_timer_t *obj, cyhal_gpio_t pin, const cyhal_clock_t *clk);
+cy_rslt_t cyhal_timer_init(cyhal_timer_t *obj, cyhal_gpio_t pin, const cyhal_clock_divider_t *clk);
 
 /** Deinitialize the timer/counter object
  *
@@ -188,8 +171,7 @@ cy_rslt_t cyhal_timer_init(cyhal_timer_t *obj, cyhal_gpio_t pin, const cyhal_clo
  */
 void cyhal_timer_free(cyhal_timer_t *obj);
 
-/** Updates the configuration and counter value of the timer/counter object. <br>
- * This function may temporary stop the timer if it is currently running.
+/** Updates the configuration of the timer/counter object <br>
  * See \ref subsection_timer_snippet_1.
  * @param[in] obj  The timer/counter object
  * @param[in] cfg  The configuration of the timer/counter
@@ -208,11 +190,7 @@ cy_rslt_t cyhal_timer_configure(cyhal_timer_t *obj, const cyhal_timer_cfg_t *cfg
  */
 cy_rslt_t cyhal_timer_set_frequency(cyhal_timer_t *obj, uint32_t hz);
 
-/** Starts the timer/counter with the pre-set configuration from \ref cyhal_timer_configure.
- * This does not reset the counter. The count value will start from the value that was
- * set by the last operation to modify it. See \ref cyhal_timer_configure, and \ref
- * cyhal_timer_reset for how the value can be changed. If none of these functions have
- * been called, it will start from 0.<br>
+/** Starts the timer/counter with the pre-set configuration <br>
  * See \ref subsection_timer_snippet_1.
  *
  * @param[in] obj     The timer/counter object
@@ -220,21 +198,13 @@ cy_rslt_t cyhal_timer_set_frequency(cyhal_timer_t *obj, uint32_t hz);
  */
 cy_rslt_t cyhal_timer_start(cyhal_timer_t *obj);
 
-/** Stops the timer/counter. Does not reset counter value. <br>
+/** Stops the timer/counter <br>
+ * See \ref subsection_timer_snippet_1.
  *
  * @param[in] obj     The timer/counter object
  * @return The status of the stop request
  */
 cy_rslt_t cyhal_timer_stop(cyhal_timer_t *obj);
-
-/** Reset the timer/counter value to the default value set from \ref cyhal_timer_configure.
- * If \ref cyhal_timer_configure was never called, this will reset timer/counter value to 0.
- * This function may temporary stop the timer. <br>
- *
- * @param[in] obj     The timer/counter object
- * @return The status of the reset request
- */
-cy_rslt_t cyhal_timer_reset(cyhal_timer_t *obj);
 
 /** Reads the current value from the timer/counter <br>
  * See \ref subsection_timer_snippet_1.
@@ -244,10 +214,7 @@ cy_rslt_t cyhal_timer_reset(cyhal_timer_t *obj);
  */
 uint32_t cyhal_timer_read(const cyhal_timer_t *obj);
 
-/** Register a timer/counter callback handler<br>
- *
- * This function will be called when one of the events enabled by \ref cyhal_timer_enable_event occurs.
- *
+/** The timer/counter callback handler registration <br>
  * See \ref subsection_timer_snippet_2.
  *
  * @param[in] obj          The timer/counter object
@@ -257,9 +224,6 @@ uint32_t cyhal_timer_read(const cyhal_timer_t *obj);
 void cyhal_timer_register_callback(cyhal_timer_t *obj, cyhal_timer_event_callback_t callback, void *callback_arg);
 
 /** Configure timer/counter event enablement <br>
- *
- * When an enabled event occurs, the function specified by \ref cyhal_timer_register_callback will be called.
- *
  * See \ref subsection_timer_snippet_2.
  *
  * @param[in] obj           The timer/counter object

@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2017-2017 ARM Limited
- * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,9 +28,6 @@
 
 #if MBED_CONF_RTOS_PRESENT
 
-using std::chrono::duration;
-using std::milli;
-
 namespace rtos {
 
 ConditionVariable::Waiter::Waiter(): sem(0), prev(nullptr), next(nullptr), in_list(false)
@@ -46,15 +42,10 @@ ConditionVariable::ConditionVariable(Mutex &mutex): _mutex(mutex), _wait_list(nu
 
 void ConditionVariable::wait()
 {
-    wait_for(Kernel::wait_for_u32_forever);
+    wait_for(osWaitForever);
 }
 
 bool ConditionVariable::wait_for(uint32_t millisec)
-{
-    return wait_for(duration<uint32_t, milli>(millisec)) == cv_status::timeout;
-}
-
-cv_status ConditionVariable::wait_for(Kernel::Clock::duration_u32 rel_time)
 {
     Waiter current_thread;
     MBED_ASSERT(_mutex.get_owner() == ThisThread::get_id());
@@ -63,7 +54,7 @@ cv_status ConditionVariable::wait_for(Kernel::Clock::duration_u32 rel_time)
 
     _mutex.unlock();
 
-    cv_status status = current_thread.sem.try_acquire_for(rel_time) ? cv_status::no_timeout : cv_status::timeout;
+    bool timeout = !current_thread.sem.try_acquire_for(millisec);
 
     _mutex.lock();
 
@@ -71,29 +62,24 @@ cv_status ConditionVariable::wait_for(Kernel::Clock::duration_u32 rel_time)
         _remove_wait_list(&_wait_list, &current_thread);
     }
 
-    return status;
+    return timeout;
 }
 
 bool ConditionVariable::wait_until(uint64_t millisec)
 {
-    return wait_until(Kernel::Clock::time_point(duration<uint64_t, milli>(millisec))) == cv_status::timeout;
-}
+    uint64_t now = Kernel::get_ms_count();
 
-cv_status ConditionVariable::wait_until(Kernel::Clock::time_point abs_time)
-{
-    Kernel::Clock::time_point now = Kernel::Clock::now();
-
-    if (now >= abs_time) {
+    if (now >= millisec) {
         // Time has already passed - standard behaviour is to
         // treat as a "try".
-        return wait_for(Kernel::Clock::duration_u32::zero());
-    } else if (abs_time - now > Kernel::wait_for_u32_max) {
+        return wait_for(0);
+    } else if (millisec - now >= osWaitForever) {
         // Exceeds maximum delay of underlying wait_for -
         // spuriously wake after 49 days, indicating no timeout.
-        wait_for(Kernel::wait_for_u32_max);
-        return cv_status::no_timeout;
+        wait_for(osWaitForever - 1);
+        return false;
     } else {
-        return wait_for(abs_time - now);
+        return wait_for(millisec - now);
     }
 }
 

@@ -1,12 +1,12 @@
 /***************************************************************************//**
 * \file system_psoc6_cm0plus.c
-* \version 2.90
+* \version 2.70
 *
 * The device system-source file.
 *
 ********************************************************************************
 * \copyright
-* Copyright 2016-2020 Cypress Semiconductor Corporation
+* Copyright 2016-2019 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,10 +39,6 @@
         #include "cy_flash.h"
     #endif /* defined(CY_DEVICE_PSOC6ABLE2) */
 #endif /* !defined(CY_IPC_DEFAULT_CFG_DISABLE) */
-
-#if defined(CY_DEVICE_SECURE)
-    #include "cy_pra.h"
-#endif /* defined(CY_DEVICE_SECURE) */
 
 
 /*******************************************************************************
@@ -130,7 +126,6 @@ uint32_t cy_delay32kMs    = CY_DELAY_MS_OVERFLOW_THRESHOLD *
 * - Unlocks and disables WDT.
 * - Calls Cy_PDL_Init() function to define the driver library.
 * - Calls the Cy_SystemInit() function, if compiled from PSoC Creator.
-* - Calls \ref Cy_PRA_Init() for PSoC 64 devices.
 * - Calls \ref SystemCoreClockUpdate().
 *
 *******************************************************************************/
@@ -224,11 +219,6 @@ void SystemInit(void)
 #endif /* defined(CY_DEVICE_PSOC6ABLE2) */
 
 #endif /* !defined(CY_IPC_DEFAULT_CFG_DISABLE) */
-
-    #if defined(CY_DEVICE_SECURE)
-        /* Initialize Protected Regsiter Access driver. */
-        Cy_PRA_Init();
-    #endif /* defined(CY_DEVICE_SECURE) */
 }
 
 
@@ -273,7 +263,7 @@ void SystemCoreClockUpdate (void)
         cy_Hfclk0FreqHz = locHf0Clock;
         cy_PeriClkFreqHz = locHf0Clock / (1UL + (uint32_t)Cy_SysClk_ClkPeriGetDivider());
         SystemCoreClock = cy_PeriClkFreqHz / (1UL + (uint32_t)Cy_SysClk_ClkSlowGetDivider());
-
+        
         /* Sets clock frequency for Delay API */
         cy_delayFreqMhz = (uint8_t)CY_SYSLIB_DIV_ROUNDUP(SystemCoreClock, CY_DELAY_1M_THRESHOLD);
         cy_delayFreqKhz = CY_SYSLIB_DIV_ROUNDUP(SystemCoreClock, CY_DELAY_1K_THRESHOLD);

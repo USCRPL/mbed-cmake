@@ -1,8 +1,5 @@
 /* mbed Microcontroller Library
- *
- * Copyright (C) 2019, Toshiba Electronic Device Solutions Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
+ * (C)Copyright TOSHIBA ELECTRONIC DEVICES & STORAGE CORPORATION 2018 All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -226,7 +223,7 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk, PinName ssel
     obj_s->p_obj.init.cnt1.trgen   = TSPI_TRGEN_DISABLE;        // Trigger disabled
     obj_s->p_obj.init.cnt1.trxe    = TSPI_DISABLE;              // Enable Communication
     obj_s->p_obj.init.cnt1.tspims  = TSPI_SPI_MODE;             // SPI mode
-    obj_s->p_obj.init.cnt1.mstr    = TSPI_MASTER_OPERATION;     // master mode operation
+    obj_s->p_obj.init.cnt1.mstr    = TSPI_MASTER_OPEARTION;     // master mode operation
     obj_s->p_obj.init.cnt1.tmmd    = TSPI_TWO_WAY;              // Full-duplex mode (Transmit/receive)
     obj_s->p_obj.init.cnt1.cssel   = TSPI_TSPIxCS0_ENABLE;      // Chip select of pin CS0 is valid
     obj_s->p_obj.init.cnt1.fc      = TSPI_TRANS_RANGE_SINGLE;   // transfer single frame at a time contineously
@@ -564,7 +561,6 @@ uint32_t spi_irq_handler_asynch(spi_t *obj)
         } else {
             //Receive complete - dummy read
             uint8_t dummy = p_obj->p_instance->DR;
-            (void)dummy;
         }
     }
     if((p_obj->p_instance->SR & TSPI_TX_DONE_FLAG) == TSPI_TX_DONE) {

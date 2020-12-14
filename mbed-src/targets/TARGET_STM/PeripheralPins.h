@@ -80,7 +80,6 @@ extern const PinMap PinMap_CAN_RD[];
 extern const PinMap PinMap_CAN_TD[];
 #endif
 
-//*** QSPI ***
 #if DEVICE_QSPI
 extern const PinMap PinMap_QSPI_DATA0[];
 extern const PinMap PinMap_QSPI_DATA1[];
@@ -90,30 +89,16 @@ extern const PinMap PinMap_QSPI_SCLK[];
 extern const PinMap PinMap_QSPI_SSEL[];
 #endif
 
-//*** OSPI ***
-#if DEVICE_OSPI
-extern const PinMap PinMap_OSPI_DATA0[];
-extern const PinMap PinMap_OSPI_DATA1[];
-extern const PinMap PinMap_OSPI_DATA2[];
-extern const PinMap PinMap_OSPI_DATA3[];
-extern const PinMap PinMap_OSPI_DATA4[];
-extern const PinMap PinMap_OSPI_DATA5[];
-extern const PinMap PinMap_OSPI_DATA6[];
-extern const PinMap PinMap_OSPI_DATA7[];
-extern const PinMap PinMap_OSPI_DQS[];
-extern const PinMap PinMap_OSPI_SCLK[];
-extern const PinMap PinMap_OSPI_SSEL[];
-#endif
+#if DEVICE_USBDEVICE
 
-//*** USB ***
 #define USE_USB_NO_OTG   0
 #define USE_USB_OTG_FS   1
 #define USE_USB_OTG_HS   2
 #define USE_USB_HS_IN_FS 3
 
-#if DEVICE_USBDEVICE
 extern const PinMap PinMap_USB_HS[];
 extern const PinMap PinMap_USB_FS[];
+
 #endif /* DEVICE_USBDEVICE */
 
 #endif

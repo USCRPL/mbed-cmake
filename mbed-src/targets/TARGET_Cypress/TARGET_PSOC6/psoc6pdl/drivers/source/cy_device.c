@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file cy_device.c
-* \version 2.30
+* \version 2.10
 *
 * This file provides the definitions for core and peripheral block HW base
 * addresses, versions, and parameters.
@@ -54,7 +54,7 @@ const cy_stc_device_t cy_deviceIpBlockCfgPSoC6_01 =
     /* cryptoVersion             */ 0x10U,
     /* dwVersion                 */ 0x10U,
     /* ipcVersion                */ 0x10U,
-    /* periVersion               */ 0x10U,
+    /* periVersion               */ 0x10U, 
     /* srssVersion               */ 0x10U,
 
     /* Parameters  */
@@ -69,7 +69,6 @@ const cy_stc_device_t cy_deviceIpBlockCfgPSoC6_01 =
     /* srssNumClkpath            */ 5U,
     /* srssNumPll                */ 1U,
     /* srssNumHfroot             */ 5U,
-    /* srssIsPiloPresent         */ 1U,
     /* periClockNr               */ 59U,
     /* smifDeviceNr              */ 4U,
     /* passSarChannels           */ 16U,
@@ -178,7 +177,6 @@ const cy_stc_device_t cy_deviceIpBlockCfgPSoC6_02 =
     /* srssNumClkpath            */ 6U,
     /* srssNumPll                */ 2U,
     /* srssNumHfroot             */ 6U,
-    /* srssIsPiloPresent         */ 0U,
     /* periClockNr               */ 54U,
     /* smifDeviceNr              */ 4U,
     /* passSarChannels           */ 16U,
@@ -286,7 +284,6 @@ const cy_stc_device_t cy_deviceIpBlockCfgPSoC6_03 =
     /* srssNumClkpath            */ 5U,
     /* srssNumPll                */ 1U,
     /* srssNumHfroot             */ 5U,
-    /* srssIsPiloPresent         */ 0U,
     /* periClockNr               */ 28U,
     /* smifDeviceNr              */ 3U,
     /* passSarChannels           */ 16U,
@@ -394,7 +391,6 @@ const cy_stc_device_t cy_deviceIpBlockCfgPSoC6_04 =
     /* srssNumClkpath            */ 5U,
     /* srssNumPll                */ 1U,
     /* srssNumHfroot             */ 4U,
-    /* srssIsPiloPresent         */ 0U,
     /* periClockNr               */ 28U,
     /* smifDeviceNr              */ 3U,
     /* passSarChannels           */ 16U,

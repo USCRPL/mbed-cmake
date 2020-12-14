@@ -468,7 +468,7 @@
                 </Mux>
             </Netlist>
         </Device>
-        <Device mpn="CYW43012C0WKWBG">
+        <Device mpn="CYW43012WKWBG">
             <BlockConfig/>
             <Netlist/>
         </Device>

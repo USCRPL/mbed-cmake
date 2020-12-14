@@ -1,12 +1,12 @@
 /***************************************************************************//**
 * \file cy_crypto.h
-* \version 2.30.4
+* \version 2.30.1
 *
 * \brief
 *  This file provides the public interface for the Crypto driver.
 *
 ********************************************************************************
-* Copyright 2016-2020 Cypress Semiconductor Corporation
+* Copyright 2016-2019 Cypress Semiconductor Corporation
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@
 *
 * The functions and other declarations used in this driver are in cy_crypto.h,
 * cy_crypto_core.h, and cy_crypto_server.h. You can also include cy_pdl.h
-* to get access to all functions and declarations in the PDL.
+* (ModusToolbox only) to get access to all functions and declarations in the PDL.
 *
 * The driver implements two usage models:
 * * \ref group_crypto_cli_srv
@@ -291,33 +291,6 @@
 * <table class="doxtable">
 *   <tr><th>Version</th><th>Changes</th><th>Reason for Change</th></tr>
 *   <tr>
-*     <td>2.30.4</td>
-*     <td>
-*         Updated code snippets for client-server usage model.
-*     </td>
-*     <td>
-*         Documentation enhancement.
-*     </td>
-*   </tr>
-*   <tr>
-*     <td>2.30.3</td>
-*     <td>
-*         Minor documentation updates.
-*     </td>
-*     <td>
-*         Documentation enhancement.
-*     </td>
-*   </tr>
-*   <tr>
-*     <td>2.30.2</td>
-*     <td>
-*         Code formatting cleanup, updated copyright date.
-*     </td>
-*     <td>
-*         PDL project update.
-*     </td>
-*   </tr>
-*   <tr>
 *     <td>2.30.1</td>
 *     <td>
 *         Added a C++ namespace guards.
@@ -331,7 +304,7 @@
 *     <td>
 *         <ul>
 *         <li>Added a multi-instance support for AES and SHA.</li>
-*         <li>Added a small chunks mode for SHA with any chunk size (from one
+*		  <li>Added a small chunks mode for SHA with any chunk size (from one
 *             byte).</li>
 *         <li>Added the operation memory buffer management (set a new address,
 *             get a size).</li>
@@ -467,7 +440,7 @@
 *
 *   The functions and other declarations used in this part of the driver are in
 *   cy_crypto.h and cy_crypto_server.h. You can also include cy_pdl.h
-*   to get access to all functions and declarations in the
+*   (ModusToolbox only) to get access to all functions and declarations in the
 *   PDL.
 *
 *   The firmware initializes and starts the Crypto server. The server can run on any

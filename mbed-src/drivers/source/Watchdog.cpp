@@ -34,6 +34,10 @@ bool Watchdog::start(uint32_t timeout)
     MBED_ASSERT(timeout > 0);
 
     core_util_critical_section_enter();
+    if (_running) {
+        core_util_critical_section_exit();
+        return false;
+    }
     watchdog_config_t config;
     config.timeout_ms = timeout;
     watchdog_status_t sts = hal_watchdog_init(&config);
@@ -41,7 +45,7 @@ bool Watchdog::start(uint32_t timeout)
         _running = true;
     }
     core_util_critical_section_exit();
-    return (sts == WATCHDOG_STATUS_OK);
+    return _running;
 }
 
 bool Watchdog::start()

@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file cy_syslib.c
-* \version 2.60.1
+* \version 2.50.1
 *
 *  Description:
 *   Provides system API implementation for the SysLib driver.
@@ -27,9 +27,6 @@
 #if !defined(NDEBUG)
     #include <string.h>
 #endif /* NDEBUG */
-#if defined(CY_DEVICE_SECURE)
-    #include "cy_pra.h"
-#endif /* defined(CY_DEVICE_SECURE) */
 
 /* Flash wait states (ULP mode at 0.9v) */
 #define CY_SYSLIB_FLASH_ULP_WS_0_FREQ_MAX    ( 16UL)
@@ -206,11 +203,7 @@ __WEAK void Cy_SysLib_AssertFailed(const char_t * file, uint32_t line)
 *******************************************************************************/
 void Cy_SysLib_ClearFlashCacheAndBuffer(void)
 {
-    #if CY_CPU_CORTEX_M4 && defined(CY_DEVICE_SECURE)
-        CY_PRA_REG32_SET(CY_PRA_INDX_FLASHC_FLASH_CMD, FLASHC_FLASH_CMD_INV_Msk);
-    #else
-        FLASHC_FLASH_CMD = FLASHC_FLASH_CMD_INV_Msk;
-    #endif /* CY_CPU_CORTEX_M4 && defined(CY_DEVICE_SECURE) */
+    FLASHC_FLASH_CMD = FLASHC_FLASH_CMD_INV_Msk;
 }
 
 
@@ -305,13 +298,10 @@ void Cy_SysLib_ClearResetReason(void)
     if(0U != _FLD2VAL(SRSS_PWR_HIBERNATE_TOKEN, SRSS_PWR_HIBERNATE))
     {
         /* Clears PWR_HIBERNATE token */
-        #if CY_CPU_CORTEX_M4 && defined(CY_DEVICE_SECURE)
-            CY_PRA_REG32_CLR_SET(CY_PRA_INDX_SRSS_PWR_HIBERNATE, SRSS_PWR_HIBERNATE_TOKEN, 0UL);
-        #else
-            SRSS_PWR_HIBERNATE &= ~SRSS_PWR_HIBERNATE_TOKEN_Msk;
-        #endif /* CY_CPU_CORTEX_M4 && defined(CY_DEVICE_SECURE) */       
+        SRSS_PWR_HIBERNATE &= ~SRSS_PWR_HIBERNATE_TOKEN_Msk;
     }
 }
+
 
 #if (CY_CPU_CORTEX_M0P) || defined(CY_DOXYGEN)
 /*******************************************************************************
@@ -533,7 +523,6 @@ __WEAK void Cy_SysLib_ProcessingFault(void)
 *******************************************************************************/
 void Cy_SysLib_SetWaitStates(bool ulpMode, uint32_t clkHfMHz)
 {
-#if !((CY_CPU_CORTEX_M4) && (defined(CY_DEVICE_SECURE)))
     uint32_t waitStates;
     uint32_t freqMax;
 
@@ -572,10 +561,6 @@ void Cy_SysLib_SetWaitStates(bool ulpMode, uint32_t clkHfMHz)
     }
 
     FLASHC_FLASH_CTL = _CLR_SET_FLD32U(FLASHC_FLASH_CTL, FLASHC_FLASH_CTL_MAIN_WS, waitStates);
-#else
-    (void) ulpMode;
-    (void) clkHfMHz;
-#endif /* !((CY_CPU_CORTEX_M4) && (defined(CY_DEVICE_SECURE))) */
 }
 
 

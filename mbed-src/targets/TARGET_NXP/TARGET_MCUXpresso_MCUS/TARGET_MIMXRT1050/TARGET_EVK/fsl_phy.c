@@ -1,9 +1,35 @@
 /*
+ * The Clear BSD License
  * Copyright (c) 2015, Freescale Semiconductor, Inc.
- * Copyright 2016-2018 NXP
+ * Copyright 2016-2017 NXP
  * All rights reserved.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted (subject to the limitations in the disclaimer below) provided
+ *  that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this list
+ *   of conditions and the following disclaimer.
+ *
+ * o Redistributions in binary form must reproduce the above copyright notice, this
+ *   list of conditions and the following disclaimer in the documentation and/or
+ *   other materials provided with the distribution.
+ *
+ * o Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from this
+ *   software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS LICENSE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "fsl_phy.h"
@@ -12,7 +38,7 @@
  ******************************************************************************/
 
 /*! @brief Defines the timeout macro. */
-#define PHY_TIMEOUT_COUNT 100000
+#define PHY_TIMEOUT_COUNT 0x3FFFFFFU
 
 /*******************************************************************************
  * Prototypes
@@ -56,7 +82,7 @@ status_t PHY_Init(ENET_Type *base, uint32_t phyAddr, uint32_t srcClock_Hz)
     while ((idReg != PHY_CONTROL_ID1) && (counter != 0))
     {
         PHY_Read(base, phyAddr, PHY_ID1_REG, &idReg);
-        counter--;
+        counter --;
     }
 
     if (!counter)
@@ -68,10 +94,11 @@ status_t PHY_Init(ENET_Type *base, uint32_t phyAddr, uint32_t srcClock_Hz)
     result = PHY_Write(base, phyAddr, PHY_BASICCONTROL_REG, PHY_BCTL_RESET_MASK);
     if (result == kStatus_Success)
     {
+
 #if defined(FSL_FEATURE_PHYKSZ8081_USE_RMII50M_MODE)
         uint32_t data = 0;
         result = PHY_Read(base, phyAddr, PHY_CONTROL2_REG, &data);
-        if (result != kStatus_Success)
+        if ( result != kStatus_Success)
         {
             return result;
         }
@@ -104,16 +131,16 @@ status_t PHY_AutoNegotiation(ENET_Type *base, uint32_t phyAddr)
         if (result == kStatus_Success)
         {
             /* Check auto negotiation complete. */
-            while (counter--)
+            while (counter --)
             {
                 result = PHY_Read(base, phyAddr, PHY_BASICSTATUS_REG, &bssReg);
-                if (result == kStatus_Success)
+                if ( result == kStatus_Success)
                 {
                     PHY_Read(base, phyAddr, PHY_CONTROL1_REG, &ctlReg);
                     if (((bssReg & PHY_BSTATUS_AUTONEGCOMP_MASK) != 0) && (ctlReg & PHY_LINK_READY_MASK))
                     {
                         /* Wait a moment for Phy status stable. */
-                        for (timeDelay = 0; timeDelay < PHY_TIMEOUT_COUNT; timeDelay++)
+                        for (timeDelay = 0; timeDelay < PHY_TIMEOUT_COUNT; timeDelay ++)
                         {
                             __ASM("nop");
                         }

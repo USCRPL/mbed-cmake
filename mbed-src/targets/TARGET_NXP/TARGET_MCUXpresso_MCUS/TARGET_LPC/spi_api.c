@@ -1,6 +1,5 @@
 /* mbed Microcontroller Library
  * Copyright (c) 2013 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,14 +90,10 @@ static void _spi_init_direct(spi_t *obj, const spi_pinmap_t *pinmap)
     }
 
     // pin out the spi pins
-    if (pinmap->mosi_pin != NC) {
-        pin_function(pinmap->mosi_pin, pinmap->mosi_function);
-        pin_mode(pinmap->mosi_pin, PullNone);
-    }
-    if (pinmap->miso_pin != NC) {
-        pin_function(pinmap->miso_pin, pinmap->miso_function);
-        pin_mode(pinmap->miso_pin, PullNone);
-    }
+    pin_function(pinmap->mosi_pin, pinmap->mosi_function);
+    pin_mode(pinmap->mosi_pin, PullNone);
+    pin_function(pinmap->miso_pin, pinmap->miso_function);
+    pin_mode(pinmap->miso_pin, PullNone);
     pin_function(pinmap->sclk_pin, pinmap->sclk_function);
     pin_mode(pinmap->sclk_pin, PullNone);
     if (pinmap->ssel_pin != NC) {
@@ -174,7 +169,7 @@ void spi_frequency(spi_t *obj, int hz)
     SPI_MasterSetBaud(spi_address[obj->instance], (uint32_t)hz, 12000000);
 }
 
-static inline int spi_readable(spi_t *obj)
+static inline int spi_readable(spi_t * obj)
 {
     return (SPI_GetStatusFlags(spi_address[obj->instance]) & kSPI_RxNotEmptyFlag);
 }
@@ -191,8 +186,7 @@ int spi_master_write(spi_t *obj, int value)
 }
 
 int spi_master_block_write(spi_t *obj, const char *tx_buffer, int tx_length,
-                           char *rx_buffer, int rx_length, char write_fill)
-{
+                           char *rx_buffer, int rx_length, char write_fill) {
     int total = (tx_length > rx_length) ? tx_length : rx_length;
 
     for (int i = 0; i < total; i++) {

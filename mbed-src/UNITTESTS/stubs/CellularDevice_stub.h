@@ -18,7 +18,6 @@
 #define CELLULARDEVICE_STUB_H_
 
 #include "CellularDevice.h"
-#include "ATHandler.h"
 
 namespace CellularDevice_stub {
 extern int connect_counter;

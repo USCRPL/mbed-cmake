@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2019 Arm Limited and affiliates.
- * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,11 +50,6 @@ void pwmout_period_us(pwmout_t *obj, int us)
 {
 }
 
-int pwmout_read_period_us(pwmout_t *obj)
-{
-    return 0;
-}
-
 void pwmout_pulsewidth(pwmout_t *obj, float seconds)
 {
 }
@@ -66,11 +60,6 @@ void pwmout_pulsewidth_ms(pwmout_t *obj, int ms)
 
 void pwmout_pulsewidth_us(pwmout_t *obj, int us)
 {
-}
-
-int pwmout_read_pulsewidth_us(pwmout_t *obj)
-{
-    return 0;
 }
 
 #endif // DEVICE_PWMOUT

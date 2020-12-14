@@ -3,18 +3,10 @@
  * @version  V1.00
  * @brief    SPI register definition header file
  *
- * SPDX-License-Identifier: Apache-2.0
- *
  * @copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __SPI_REG_H__
 #define __SPI_REG_H__
-
-/** @addtogroup REGISTER Control Register
-
-  @{
-
-*/
 
 /*---------------------- Serial Peripheral Interface Controller -------------------------*/
 /**
@@ -784,7 +776,6 @@ typedef struct
 
 /**@}*/ /* SPI_CONST */
 /**@}*/ /* end of SPI register group */
-/**@}*/ /* end of REGISTER group */
 
 
 #endif /* __SPI_REG_H__ */

@@ -18,7 +18,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include <cstddef>
-#include "netsocket/nsapi_types.h"
+#include "nsapi_types.h"
 #include "ATHandler.h"
 #include "FileHandle_stub.h"
 #include "Callback.h"
@@ -34,10 +34,12 @@ static const int kATHandler_urc_table_max_size = 10;
 static const int kATHandler_urc_string_max_size = 16;
 
 namespace ATHandler_stub {
+extern mbed::ATHandler *handler;
 extern nsapi_error_t nsapi_error_value;
 extern uint8_t nsapi_error_ok_counter;
 extern int int_value;
-extern mbed::chrono::milliseconds_u32 timeout;
+extern int ref_count;
+extern int timeout;
 extern bool default_timeout;
 extern bool debug_on;
 extern ssize_t ssize_value;

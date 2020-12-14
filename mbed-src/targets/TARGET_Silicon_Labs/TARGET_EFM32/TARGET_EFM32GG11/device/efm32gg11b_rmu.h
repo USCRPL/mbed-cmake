@@ -1,32 +1,34 @@
-/***************************************************************************//**
- * @file
+/**************************************************************************//**
+ * @file efm32gg11b_rmu.h
  * @brief EFM32GG11B_RMU register and bit field definitions
- *******************************************************************************
+ * @version 5.3.2
+ ******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
- *******************************************************************************
- *
- * SPDX-License-Identifier: Zlib
- *
- * The licensor of this software is Silicon Laboratories Inc.
- *
- * This software is provided 'as-is', without any express or implied
- * warranty. In no event will the authors be held liable for any damages
- * arising from the use of this software.
+ * <b>Copyright 2017 Silicon Laboratories, Inc. http://www.silabs.com</b>
+ ******************************************************************************
  *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
+ *    claim that you wrote the original software.@n
  * 2. Altered source versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.
+ *    misrepresented as being the original software.@n
  * 3. This notice may not be removed or altered from any source distribution.
  *
- ******************************************************************************/
+ * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Laboratories, Inc.
+ * has no obligation to support this Software. Silicon Laboratories, Inc. is
+ * providing the Software "AS IS", with no express or implied warranties of any
+ * kind, including, but not limited to, any implied warranties of
+ * merchantability or fitness for any particular purpose or warranties against
+ * infringement of any proprietary rights of a third party.
+ *
+ * Silicon Laboratories, Inc. will not be liable for any consequential,
+ * incidental, or special damages, or any other relief, or for any claim by
+ * any third party, arising from your use of this Software.
+ *
+ *****************************************************************************/
 
 #if defined(__ICCARM__)
 #pragma system_include       /* Treat file as system include file. */
@@ -34,15 +36,15 @@
 #pragma clang system_header  /* Treat file as system include file. */
 #endif
 
-/***************************************************************************//**
- * @addtogroup Parts
- * @{
- ******************************************************************************/
-/***************************************************************************//**
+/**************************************************************************//**
+* @addtogroup Parts
+* @{
+******************************************************************************/
+/**************************************************************************//**
  * @defgroup EFM32GG11B_RMU RMU
  * @{
  * @brief EFM32GG11B_RMU Register Declaration
- ******************************************************************************/
+ *****************************************************************************/
 /** RMU Register Declaration */
 typedef struct {
   __IOM uint32_t CTRL;     /**< Control Register  */
@@ -52,12 +54,12 @@ typedef struct {
   __IOM uint32_t LOCK;     /**< Configuration Lock Register  */
 } RMU_TypeDef;             /** @} */
 
-/***************************************************************************//**
+/**************************************************************************//**
  * @addtogroup EFM32GG11B_RMU
  * @{
  * @defgroup EFM32GG11B_RMU_BitFields  RMU Bit Fields
  * @{
- ******************************************************************************/
+ *****************************************************************************/
 
 /* Bit fields for RMU CTRL */
 #define _RMU_CTRL_RESETVALUE               0x00004204UL                          /**< Default value for RMU_CTRL */
@@ -118,7 +120,7 @@ typedef struct {
 /* Bit fields for RMU RSTCAUSE */
 #define _RMU_RSTCAUSE_RESETVALUE           0x00000000UL                            /**< Default value for RMU_RSTCAUSE */
 #define _RMU_RSTCAUSE_MASK                 0x00011F1DUL                            /**< Mask for RMU_RSTCAUSE */
-#define RMU_RSTCAUSE_PORST                 (0x1UL << 0)                            /**< Power on Reset */
+#define RMU_RSTCAUSE_PORST                 (0x1UL << 0)                            /**< Power On Reset */
 #define _RMU_RSTCAUSE_PORST_SHIFT          0                                       /**< Shift value for RMU_PORST */
 #define _RMU_RSTCAUSE_PORST_MASK           0x1UL                                   /**< Bit mask for RMU_PORST */
 #define _RMU_RSTCAUSE_PORST_DEFAULT        0x00000000UL                            /**< Mode DEFAULT for RMU_RSTCAUSE */

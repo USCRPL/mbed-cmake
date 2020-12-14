@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2018, Nuvoton Technology Corporation
- *
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +22,6 @@
 #include "cmsis.h"
 #include "pinmap.h"
 #include "PeripheralPins.h"
-#include "gpio_api.h"
 #include "nu_modutil.h"
 
 /* Maximum DAC modules */

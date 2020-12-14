@@ -1,30 +1,32 @@
 /***************************************************************************//**
- * @file
+ * @file em_vdac.c
  * @brief Digital to Analog Converter (VDAC) Peripheral API
+ * @version 5.3.3
  *******************************************************************************
  * # License
- * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2016 Silicon Laboratories, Inc. http://www.silabs.com</b>
  *******************************************************************************
- *
- * SPDX-License-Identifier: Zlib
- *
- * The licensor of this software is Silicon Laboratories Inc.
- *
- * This software is provided 'as-is', without any express or implied
- * warranty. In no event will the authors be held liable for any damages
- * arising from the use of this software.
  *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
+ *    claim that you wrote the original software.
  * 2. Altered source versions must be plainly marked as such, and must not be
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
+ *
+ * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Labs has no
+ * obligation to support this Software. Silicon Labs is providing the
+ * Software "AS IS", with no express or implied warranties of any kind,
+ * including, but not limited to, any implied warranties of merchantability
+ * or fitness for any particular purpose or warranties against infringement
+ * of any proprietary rights of a third party.
+ *
+ * Silicon Labs will not be liable for any consequential, incidental, or
+ * special damages, or any other relief, or for any claim by any third party,
+ * arising from your use of this Software.
  *
  ******************************************************************************/
 
@@ -48,13 +50,13 @@
 
 /** @cond DO_NOT_INCLUDE_WITH_DOXYGEN */
 
-/** Validation of the VDAC channel for assert statements. */
+/** Validation of VDAC channel for assert statements. */
 #define VDAC_CH_VALID(ch)    ((ch) <= 1)
 
-/** A maximum VDAC clock. */
+/** Max VDAC clock */
 #define VDAC_MAX_CLOCK            1000000
 
-/** The maximum clock frequency of the internal clock oscillator, 10 MHz + 20%. */
+/** Max clock frequency of internal clock oscillator, 10 MHz + 20%. */
 #define VDAC_INTERNAL_CLOCK_FREQ  12000000
 
 /** @endcond */
@@ -65,16 +67,16 @@
 
 /***************************************************************************//**
  * @brief
- *   Enable/disable the VDAC channel.
+ *   Enable/disable VDAC channel.
  *
  * @param[in] vdac
- *   A pointer to the VDAC peripheral register block.
+ *   Pointer to VDAC peripheral register block.
  *
  * @param[in] ch
- *   A channel to enable/disable.
+ *   Channel to enable/disable.
  *
  * @param[in] enable
- *   True to enable VDAC channel, false to disable.
+ *   true to enable VDAC channel, false to disable.
  ******************************************************************************/
 void VDAC_Enable(VDAC_TypeDef *vdac, unsigned int ch, bool enable)
 {
@@ -103,20 +105,20 @@ void VDAC_Enable(VDAC_TypeDef *vdac, unsigned int ch, bool enable)
  *   Initialize VDAC.
  *
  * @details
- *   Initializes the common parts for both channels. This function will also load
+ *   Initializes common parts for both channels. This function will also load
  *   calibration values from the Device Information (DI) page into the VDAC
  *   calibration register.
- *   To complete a VDAC setup, channel control configuration must also be done.
- *   See VDAC_InitChannel().
+ *   To complete a VDAC setup, channel control configuration must also be done,
+ *   please refer to VDAC_InitChannel().
  *
  * @note
  *   This function will disable both channels prior to configuration.
  *
  * @param[in] vdac
- *   A pointer to the VDAC peripheral register block.
+ *   Pointer to VDAC peripheral register block.
  *
  * @param[in] init
- *   A pointer to the VDAC initialization structure.
+ *   Pointer to VDAC initialization structure.
  ******************************************************************************/
 void VDAC_Init(VDAC_TypeDef *vdac, const VDAC_Init_TypeDef *init)
 {
@@ -129,7 +131,7 @@ void VDAC_Init(VDAC_TypeDef *vdac, const VDAC_Init_TypeDef *init)
   vdac->CMD = VDAC_CMD_CH0DIS | VDAC_CMD_CH1DIS;
   while (vdac->STATUS & (VDAC_STATUS_CH0ENS | VDAC_STATUS_CH1ENS)) ;
 
-  /* Get the OFFSETTRIM calibration value. */
+  /* Get OFFSETTRIM calibration value. */
   cal = ((DEVINFO->VDAC0CH1CAL & _DEVINFO_VDAC0CH1CAL_OFFSETTRIM_MASK)
          >> _DEVINFO_VDAC0CH1CAL_OFFSETTRIM_SHIFT)
         << _VDAC_CAL_OFFSETTRIM_SHIFT;
@@ -140,7 +142,7 @@ void VDAC_Init(VDAC_TypeDef *vdac, const VDAC_Init_TypeDef *init)
     calData = &DEVINFO->VDAC0ALTCAL;
   }
 
-  /* Get the correct GAINERRTRIM calibration value. */
+  /* Get correct GAINERRTRIM calibration value. */
   switch (init->reference) {
     case vdacRef1V25Ln:
       tmp = (*calData & _DEVINFO_VDAC0MAINCAL_GAINERRTRIM1V25LN_MASK)
@@ -169,27 +171,27 @@ void VDAC_Init(VDAC_TypeDef *vdac, const VDAC_Init_TypeDef *init)
       break;
   }
 
-  /* Set the sGAINERRTRIM calibration value. */
+  /* Set GAINERRTRIM calibration value. */
   cal |= tmp << _VDAC_CAL_GAINERRTRIM_SHIFT;
 
-  /* Get the GAINERRTRIMCH1 calibration value. */
+  /* Get GAINERRTRIMCH1 calibration value. */
   switch (init->reference) {
     case vdacRef1V25Ln:
     case vdacRef1V25:
     case vdacRefAvdd:
     case vdacRefExtPin:
-      tmp = (DEVINFO->VDAC0CH1CAL & _DEVINFO_VDAC0CH1CAL_GAINERRTRIMCH1A_MASK)
+      tmp = (DEVINFO->VDAC0CH1CAL && _DEVINFO_VDAC0CH1CAL_GAINERRTRIMCH1A_MASK)
             >> _DEVINFO_VDAC0CH1CAL_GAINERRTRIMCH1A_SHIFT;
       break;
 
     case vdacRef2V5Ln:
     case vdacRef2V5:
-      tmp = (DEVINFO->VDAC0CH1CAL & _DEVINFO_VDAC0CH1CAL_GAINERRTRIMCH1B_MASK)
+      tmp = (DEVINFO->VDAC0CH1CAL && _DEVINFO_VDAC0CH1CAL_GAINERRTRIMCH1B_MASK)
             >> _DEVINFO_VDAC0CH1CAL_GAINERRTRIMCH1B_SHIFT;
       break;
   }
 
-  /* Set the GAINERRTRIM calibration value. */
+  /* Set GAINERRTRIM calibration value. */
   cal |= tmp << _VDAC_CAL_GAINERRTRIMCH1_SHIFT;
 
   tmp = ((uint32_t)init->asyncClockMode << _VDAC_CTRL_DACCLKMODE_SHIFT)
@@ -213,13 +215,13 @@ void VDAC_Init(VDAC_TypeDef *vdac, const VDAC_Init_TypeDef *init)
  *   Initialize a VDAC channel.
  *
  * @param[in] vdac
- *   A pointer to the VDAC peripheral register block.
+ *   Pointer to VDAC peripheral register block.
  *
  * @param[in] init
- *   A pointer to the VDAC channel initialization structure.
+ *   Pointer to VDAC channel initialization structure.
  *
  * @param[in] ch
- *   A channel number to initialize.
+ *   Channel number to initialize.
  ******************************************************************************/
 void VDAC_InitChannel(VDAC_TypeDef *vdac,
                       const VDAC_InitChannel_TypeDef *init,
@@ -277,13 +279,13 @@ void VDAC_InitChannel(VDAC_TypeDef *vdac,
  *   to the corresponding CHnDATA register.
  *
  * @param[in] vdac
- *   A pointer to the VDAC peripheral register block.
+ *   Pointer to VDAC peripheral register block.
  *
  * @param[in] channel
- *   A channel number to set the output of.
+ *   Channel number to set output of.
  *
  * @param[in] value
- *   A value to write to the channel output register CHnDATA.
+ *   Value to write to the channel output register CHnDATA.
  ******************************************************************************/
 void VDAC_ChannelOutputSet(VDAC_TypeDef *vdac,
                            unsigned int channel,
@@ -304,41 +306,41 @@ void VDAC_ChannelOutputSet(VDAC_TypeDef *vdac,
 
 /***************************************************************************//**
  * @brief
- *   Calculate the prescaler value used to determine VDAC clock.
+ *   Calculate prescaler value used to determine VDAC clock.
  *
  * @details
- *   The VDAC clock is given by the input clock divided by the prescaler+1.
+ *   The VDAC clock is given by input clock divided by prescaler+1.
  *
  *     VDAC_CLK = IN_CLK / (prescale + 1)
  *
- *   The maximum VDAC clock is 1 MHz. The input clock is HFPERCLK/HFPERCCLK
- *   when VDAC synchronous mode is selected, or an internal oscillator of
- *   10 MHz +/- 20% when asynchronous mode is selected.
+ *   Maximum VDAC clock is 1 MHz. Input clock is HFPERCLK when VDAC synchronous
+ *   mode is selected, or an internal oscillator of 10 MHz +/- 20% when
+ *   asynchronous mode is selected.
  *
  * @note
- *   If the requested VDAC frequency is low and the maximum prescaler value can't
- *   adjust the actual VDAC frequency lower than requested, the maximum prescaler
- *   value is returned resulting in a higher VDAC frequency than requested.
+ *   If the requested VDAC frequency is low and the max prescaler value can not
+ *   adjust the actual VDAC frequency lower than requested, the max prescaler
+ *   value is returned, resulting in a higher VDAC frequency than requested.
  *
  * @param[in] vdacFreq VDAC frequency target. The frequency will automatically
- *   be adjusted to be below maximum allowed VDAC clock.
+ *   be adjusted to be below max allowed VDAC clock.
  *
  * @param[in] syncMode Set to true if you intend to use VDAC in synchronous
  *   mode.
  *
- * @param[in] hfperFreq Frequency in Hz of HFPERCLK/HFPERCCLK oscillator.
- *   Set to 0 to use the currently defined HFPERCLK/HFPERCCLK clock setting.
- *   This parameter is only used when syncMode is set to true.
+ * @param[in] hfperFreq Frequency in Hz of HFPERCLK oscillator. Set to 0 to
+ *   use currently defined HFPERCLK clock setting. This parameter is only used
+ *   when syncMode is set to true.
  *
  * @return
- *   A prescaler value to use for VDAC to achieve a clock value less than
+ *   Prescaler value to use for VDAC in order to achieve a clock value less than
  *   or equal to @p vdacFreq.
  ******************************************************************************/
 uint32_t VDAC_PrescaleCalc(uint32_t vdacFreq, bool syncMode, uint32_t hfperFreq)
 {
   uint32_t ret, refFreq;
 
-  /* Make sure that the selected VDAC clock is below the maximum value. */
+  /* Make sure selected VDAC clock is below max value */
   if (vdacFreq > VDAC_MAX_CLOCK) {
     vdacFreq = VDAC_MAX_CLOCK;
   }
@@ -349,12 +351,12 @@ uint32_t VDAC_PrescaleCalc(uint32_t vdacFreq, bool syncMode, uint32_t hfperFreq)
     if (hfperFreq) {
       refFreq = hfperFreq;
     } else {
-      refFreq = CMU_ClockFreqGet(cmuClock_VDAC0);
+      refFreq = CMU_ClockFreqGet(cmuClock_HFPER);
     }
   }
 
-  /* Iterate to determine the best prescaler value. Start with the lowest */
-  /* prescaler value to get the first equal or less VDAC         */
+  /* Iterate in order to determine best prescale value. Start with lowest */
+  /* prescaler value in order to get the first equal or less VDAC         */
   /* frequency value. */
   for (ret = 0; ret <= _VDAC_CTRL_PRESC_MASK >> _VDAC_CTRL_PRESC_SHIFT; ret++) {
     if ((refFreq / (ret + 1)) <= vdacFreq) {
@@ -362,8 +364,8 @@ uint32_t VDAC_PrescaleCalc(uint32_t vdacFreq, bool syncMode, uint32_t hfperFreq)
     }
   }
 
-  /* If ret is higher than the maximum prescaler value, make sure to return
-     the maximum value. */
+  /* If ret is higher than the max prescaler value, make sure to return
+     the max value. */
   if (ret > (_VDAC_CTRL_PRESC_MASK >> _VDAC_CTRL_PRESC_SHIFT)) {
     ret = _VDAC_CTRL_PRESC_MASK >> _VDAC_CTRL_PRESC_SHIFT;
   }
@@ -373,14 +375,14 @@ uint32_t VDAC_PrescaleCalc(uint32_t vdacFreq, bool syncMode, uint32_t hfperFreq)
 
 /***************************************************************************//**
  * @brief
- *   Reset VDAC to same state that it was in after a hardwares reset.
+ *   Reset VDAC to same state as after a HW reset.
  *
  * @param[in] vdac
- *   A pointer to the VDAC peripheral register block.
+ *   Pointer to VDAC peripheral register block.
  ******************************************************************************/
 void VDAC_Reset(VDAC_TypeDef *vdac)
 {
-  /* Disable channels before resetting other registers. */
+  /* Disable channels, before resetting other registers. */
   vdac->CMD     = VDAC_CMD_CH0DIS | VDAC_CMD_CH1DIS;
   while (vdac->STATUS & (VDAC_STATUS_CH0ENS | VDAC_STATUS_CH1ENS)) ;
   vdac->CH0CTRL = _VDAC_CH0CTRL_RESETVALUE;
