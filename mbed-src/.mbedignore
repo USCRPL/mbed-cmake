@@ -11,7 +11,8 @@ drivers/device_key/*
 !storage/blockdevice/*
 
 # Uncomment to disable RTOS
-# cmsis
+#cmsis/device/rtos/*
+#cmsis/CMSIS_5/CMSIS/RTOS2/*
 
 # Uncomment to disable USB 
 drivers/usb/*
