@@ -48,7 +48,7 @@ if(NOT DEFINED MBED_CMAKE_CONFIG_HEADERS_PATH)
 	set(MBED_CMAKE_CONFIG_HEADERS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config-headers)
 endif()
 
-if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MbedOSConfig.cmake)
+if(NOT EXISTS ${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/TargetList.cmake)
 	message(FATAL_ERROR "Mbed config files and headers do not exist!  You need to run mbed-cmake/configure_for_target.py from the top source dir!")
 endif()
 
@@ -56,11 +56,31 @@ endif()
 # -------------------------------------------------------------
 option(MBED_UNITTESTS "If true, compile for the local system and run unit tests" FALSE)
 
+# target config
+# -------------------------------------------------------------
+include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/TargetList.cmake)
+
+list(LENGTH MBED_TARGET_LIST NUM_TARGETS)
+
+if(NUM_TARGETS EQUAL 1)
+	# only one option
+	set(MBED_TARGET_NAME ${MBED_TARGET_LIST})
+else()
+	set(TARGET "" CACHE STRING "Mbed OS target name to build for.  Must be one of the targets that had been previously configured")
+
+	if(NOT "${TARGET}" IN_LIST MBED_TARGET_LIST)
+		list_to_space_separated(MBED_TARGET_LIST_SPC ${MBED_TARGET_LIST})
+		message(FATAL_ERROR "Please select a target to build for.  Configured targets in this build system: ${MBED_TARGET_LIST_SPC}")
+	endif()
+
+	set(MBED_TARGET_NAME ${TARGET})
+endif()
+
 # load compilers and flags
 # -------------------------------------------------------------
 
 # read flags from generated configuration file
-include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MbedOSConfig.cmake)
+include(${MBED_CMAKE_GENERATED_CONFIG_PATH}/cmake/MbedOSConfig-${MBED_TARGET_NAME}.cmake)
 
 # load toolchain
 if(MBED_UNITTESTS)
@@ -140,7 +160,7 @@ endif()
 # add Mbed OS source
 # -------------------------------------------------------------
 
-set(MBED_CMAKE_CONFIG_HEADERS_PATH ${MBED_CMAKE_GENERATED_CONFIG_PATH}/config-headers)
+set(MBED_CMAKE_CONFIG_HEADERS_PATH ${MBED_CMAKE_GENERATED_CONFIG_PATH}/config-headers/${MBED_TARGET_NAME})
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/mbed-src) #first get Mbed standard library
 
 # build report
@@ -151,6 +171,7 @@ function(mbed_cmake_print_build_report)
 
 	# build type
 	message(STATUS ">> Current Build Type: ${CMAKE_BUILD_TYPE}")
+	message(STATUS ">> Current Target: ${MBED_TARGET_NAME}")
 
 	# build flags
 	string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UCASE)
