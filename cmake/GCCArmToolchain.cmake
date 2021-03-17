@@ -3,9 +3,9 @@
 SET(CMAKE_SYSTEM_NAME Generic)
 SET(CMAKE_SYSTEM_VERSION 1)
 
-# specify the cross compiler
-set(CMAKE_C_COMPILER arm-none-eabi-gcc)
-set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
+# specify the cross compiler.  Use cache variables so that VS Code can detect the compiler from the cache.
+set(CMAKE_C_COMPILER arm-none-eabi-gcc CACHE FILEPATH "C Compiler")
+set(CMAKE_CXX_COMPILER arm-none-eabi-g++ CACHE FILEPATH "CXX Compiler")
 
 # remove some Mbed flags that shouldn't be in build commands (CMake will handle these)
 list(REMOVE_ITEM MCU_COMPILE_OPTIONS -c -MMD)

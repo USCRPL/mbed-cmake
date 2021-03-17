@@ -100,7 +100,9 @@ function(add_mbed_executable EXECUTABLE)
 
 		# Generate IDE debug config if supported
 		if(MBED_CMAKE_CLION)
-			gen_clion_run_configuration(${EXECUTABLE})
+			gen_clion_debug_configuration(${EXECUTABLE})
+		elseif(MBED_CMAKE_VS_CODE)
+			gen_vs_code_debug_configuration(${EXECUTABLE})
 		else()
 
 			# failing that, generate for command-line GDB

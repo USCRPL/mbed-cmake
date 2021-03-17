@@ -11,7 +11,7 @@ message(STATUS [==[\_/     \_/  \_____ /  \______) \___ /                   \___
 
 message(STATUS "")
 
-set(MBED_CMAKE_VERSION 1.5.1)
+set(MBED_CMAKE_VERSION 1.6.0)
 message(STATUS "mbed-cmake version ${MBED_CMAKE_VERSION}, running on CMake ${CMAKE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake ${CMAKE_CURRENT_LIST_DIR}/cmake/upload_methods)
@@ -40,6 +40,12 @@ if($ENV{CLION_IDE})
 	set(MBED_CMAKE_CLION TRUE)
 
 	include(CLionConfigGenerator)
+elseif(CMAKE_EXPORT_COMPILE_COMMANDS) # TODO: Is this actually a reliable way of detecting VS Code? Not sure if it will create false positives.
+	message(STATUS "Detected VS Code IDE, will generate VS Code debug configurations")
+	set(MBED_CMAKE_VS_CODE TRUE)
+
+	include(VSCodeConfigGenerator)
+
 endif()
 
 # check configuration files
@@ -171,6 +177,20 @@ endif()
 
 set(MBED_CMAKE_CONFIG_HEADERS_PATH ${MBED_CMAKE_GENERATED_CONFIG_PATH}/config-headers/${MBED_TARGET_NAME})
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/mbed-src) #first get Mbed standard library
+
+
+# finalizing function
+# -------------------------------------------------------------
+
+# The top-level buildscript must call this function after all targets have been added.
+function(mbed_cmake_finalize)
+
+	# if VS Code is in use, generate launch.json now
+	if(MBED_CMAKE_VS_CODE)
+		vs_code_writeout_configs()
+	endif()
+
+endfunction()
 
 # build report
 # -------------------------------------------------------------
