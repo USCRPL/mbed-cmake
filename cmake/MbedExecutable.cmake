@@ -97,12 +97,20 @@ function(add_mbed_executable EXECUTABLE)
 
 	# add debug target
 	if(UPLOAD_SUPPORTS_DEBUG)
-		add_custom_target(debug-${EXECUTABLE}
-			COMMENT "starting GDB to debug ${EXECUTABLE}..."
-			COMMAND arm-none-eabi-gdb
-			--command=${GDBINIT_PATH}
-			$<TARGET_FILE:${EXECUTABLE}>
-			USES_TERMINAL)
+
+		# Generate IDE debug config if supported
+		if(MBED_CMAKE_CLION)
+			gen_clion_run_configuration(${EXECUTABLE})
+		else()
+
+			# failing that, generate for command-line GDB
+			add_custom_target(debug-${EXECUTABLE}
+				COMMENT "starting GDB to debug ${EXECUTABLE}..."
+				COMMAND arm-none-eabi-gdb
+				--command=${GDBINIT_PATH}
+				$<TARGET_FILE:${EXECUTABLE}>
+				USES_TERMINAL)
+		endif()
 	endif()
 
 endfunction(add_mbed_executable)

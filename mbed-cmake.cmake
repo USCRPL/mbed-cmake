@@ -33,6 +33,15 @@ endif()
 # Allowed build types are Debug and Release
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release)
 
+# Detect IDEs
+# -------------------------------------------------------------
+if($ENV{CLION_IDE})
+	message(STATUS "Detected CLion IDE, will generate CLion debug configurations")
+	set(MBED_CMAKE_CLION TRUE)
+
+	include(CLionConfigGenerator)
+endif()
+
 # check configuration files
 # -------------------------------------------------------------
 
