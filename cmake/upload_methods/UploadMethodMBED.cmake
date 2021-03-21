@@ -12,7 +12,6 @@ set(UPLOAD_MBED_FOUND ${HAVE_MBED_OS_TOOLS})
 
 # Check in case the user did not upgrade their config file
 if(NOT DEFINED MBED_RESET_BAUDRATE)
-	message(WARNING "No MBED_RESET_BAUDRATE defined in upload method config file.  Using default of 9600")
 	set(MBED_RESET_BAUDRATE 9600)
 endif()
 
