@@ -3,9 +3,9 @@
 SET(CMAKE_SYSTEM_NAME Generic)
 SET(CMAKE_SYSTEM_VERSION 1)
 
-# specify the cross compiler
-set(CMAKE_C_COMPILER armclang)
-set(CMAKE_CXX_COMPILER armclang)
+# specify the cross compiler.  Use cache variables so that VS Code can detect the compiler from the cache.
+set(CMAKE_C_COMPILER armclang CACHE FILEPATH "C Compiler")
+set(CMAKE_CXX_COMPILER armclang CACHE FILEPATH "CXX Compiler")
 
 set(CMAKE_C_COMPILER_ID ARMClang)
 set(CMAKE_CXX_COMPILER_ID ARMClang)

@@ -32,8 +32,8 @@ elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(JLINK_PATH /usr/local/bin)
 endif()
 
-find_program(JLINK NAMES ${JLINK_EXE_NAME} PATHS ${JLINK_PATH} DOC "Path to the JLink flash executable")
-find_program(JLINK_GDBSERVER NAMES ${GDBSERVER_EXE_NAME} PATHS ${JLINK_PATH} DOC "Path to the JLink GDB server")
+find_program(JLINK NAMES ${JLINK_EXE_NAME} HINTS ${JLINK_PATH} DOC "Path to the JLink flash executable")
+find_program(JLINK_GDBSERVER NAMES ${GDBSERVER_EXE_NAME} HINTS ${JLINK_PATH} DOC "Path to the JLink GDB server")
 
 find_package_handle_standard_args(JLINK FOUND_VAR JLINK_FOUND REQUIRED_VARS JLINK JLINK_GDBSERVER)
 
