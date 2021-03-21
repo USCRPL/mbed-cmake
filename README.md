@@ -20,7 +20,7 @@ Mbed-cmake fixes this properly.  We've created an automatic scraper script that 
 
 ## Advantages 
 - **Completely expandable**: You can add any and all custom build options, commands, flags, and configurations in your CMake scripts.
-- **Multiple targets**: You can create multiple main programs in a single project, and selecting them is as easy as `make <program>`.
+- **Multiple programs**: You can create multiple main programs in a single project, and selecting them is as easy as `make <program>`.
 - **Custom flash logic**: Mbed-cmake includes an automatic code uploader similar to Mbed CLI.  However, since the logic is in CMake scripts inside the project, you can easily change it or add new upload methods to suit your project.
 - **IDE support**: Mbed-cmake lets you use any and all IDEs supported by CMake to develop your project.  This provides improved code-assist functionality and many other conveniences (and prevents wars between people with different IDE preferences).
 - **Automatic debugging**: Certain upload methods also provide debugging capability.  Mbed-cmake provides convenient build system targets to automatically start a GDB server and run GDB for a specific program.  This functionality gets even more powerful when paired with an IDE that provides a graphical debugger.
@@ -70,4 +70,4 @@ If you need a different version from those three, you should be able to use a di
 - The full range of Mbed CLI's upload methods are not supported yet.
 - LTO cannot be supported for GCC_ARM due to [a gcc bug](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83967)
 
-Mbed-cmake was designed for use with a single processor target per project, and this is the most convenient way to use it.  However, you can also create a project that builds for multiple processors as long as you're OK with a few extra steps each time you switch processors (see [the instructions](https://github.com/USCRPL/mbed-cmake/wiki/Project-Configuration)).
+Mbed-cmake was designed for use with a single processor target per build directory.  However, you can create multiple build directories, each configured for a different processor.  Especially if you use an IDE like CLion, developing on multiple processors is manageable.

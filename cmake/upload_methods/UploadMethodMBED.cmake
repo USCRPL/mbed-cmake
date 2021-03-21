@@ -24,8 +24,6 @@ set(UPLOAD_SCRIPT_PATH ${CMAKE_CURRENT_LIST_DIR}/install_bin_file.py)
 
 function(gen_upload_target TARGET_NAME BIN_FILE)
 
-	printvar(MBED_TARGET_UID)
-
 	add_custom_target(flash-${TARGET_NAME}
 		COMMAND ${Python3_EXECUTABLE} ${UPLOAD_SCRIPT_PATH}
 		${BIN_FILE}
