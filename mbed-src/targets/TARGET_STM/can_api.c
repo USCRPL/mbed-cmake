@@ -92,14 +92,14 @@ static void _can_init_freq_direct(can_t *obj, const can_pinmap_t *pinmap, int hz
     RCC_PeriphCLKInitTypeDef RCC_PeriphClkInit;
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
     RCC_PeriphClkInit.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL; // 10 MHz (RCC_OscInitStruct.PLL.PLLQ = 80)
-#if defined(DUAL_CORE)
+#if defined(DUAL_CORE) && (TARGET_STM32H7)
     while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
     }
 #endif /* DUAL_CORE */
     if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit) != HAL_OK) {
         error("HAL_RCCEx_PeriphCLKConfig error\n");
     }
-#if defined(DUAL_CORE)
+#if defined(DUAL_CORE) && (TARGET_STM32H7)
     LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
 #endif /* DUAL_CORE */
     // Configure CAN pins
@@ -132,8 +132,10 @@ static void _can_init_freq_direct(can_t *obj, const can_pinmap_t *pinmap, int hz
     int ntq = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN) / hz;
 #else
     // STM32H7 doesn't support yet HAL_RCCEx_GetPeriphCLKFreq for FDCAN
-    // Internal ST ticket 92465
-    int ntq = 10000000 / hz;
+    // We use PLL1.Q clock right now so get its frequency
+    PLL1_ClocksTypeDef pll1_clocks;
+    HAL_RCCEx_GetPLL1ClockFreq(&pll1_clocks);
+    int ntq = pll1_clocks.PLL1_Q_Frequency / hz;
 #endif
 
     int nominalPrescaler = 1;
@@ -245,13 +247,13 @@ void can_irq_free(can_t *obj)
 
 void can_free(can_t *obj)
 {
-#if defined(DUAL_CORE)
+#if defined(DUAL_CORE) && (TARGET_STM32H7)
     while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
     }
 #endif /* DUAL_CORE */
     __HAL_RCC_FDCAN_FORCE_RESET();
     __HAL_RCC_FDCAN_RELEASE_RESET();
-#if defined(DUAL_CORE)
+#if defined(DUAL_CORE) && (TARGET_STM32H7)
     LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
 #endif /* DUAL_CORE */
     __HAL_RCC_FDCAN_CLK_DISABLE();
@@ -287,8 +289,9 @@ int can_frequency(can_t *obj, int f)
     int ntq = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN) / f;
 #else
     // STM32H7 doesn't support yet HAL_RCCEx_GetPeriphCLKFreq for FDCAN
-    // Internal ST ticket 92465
-    int ntq = 10000000 / f;
+    PLL1_ClocksTypeDef pll1_clocks;
+    HAL_RCCEx_GetPLL1ClockFreq(&pll1_clocks);
+    int ntq = pll1_clocks.PLL1_Q_Frequency / f;
 #endif
 
     int nominalPrescaler = 1;
@@ -769,7 +772,7 @@ void can_irq_free(can_t *obj)
 void can_free(can_t *obj)
 {
     CANName can = (CANName) obj->CanHandle.Instance;
-#if defined(DUAL_CORE)
+#if defined(DUAL_CORE) && (TARGET_STM32H7)
     while (LL_HSEM_1StepLock(HSEM, CFG_HW_RCC_SEMID)) {
     }
 #endif /* DUAL_CORE */
@@ -793,7 +796,7 @@ void can_free(can_t *obj)
         __HAL_RCC_CAN3_CLK_DISABLE();
     }
 #endif
-#if defined(DUAL_CORE)
+#if defined(DUAL_CORE) && (TARGET_STM32H7)
     LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
 #endif /* DUAL_CORE */
 }

@@ -61,20 +61,21 @@ This table summarizes the STM32Cube versions currently used in Mbed OS master br
 
 | STM32 Serie | Cube version | Github source                                     |
 |-------------|--------------|---------------------------------------------------|
-| F0          |    1.9.0     | https://github.com/STMicroelectronics/STM32CubeF0 |
+| F0          |    1.11.2    | https://github.com/STMicroelectronics/STM32CubeF0 |
 | F1          |    1.8.0     | https://github.com/STMicroelectronics/STM32CubeF1 |
 | F2          |    1.6.0     | https://github.com/STMicroelectronics/STM32CubeF2 |
 | F3          |    1.9.0     | https://github.com/STMicroelectronics/STM32CubeF3 |
-| F4          |    1.25.0    | https://github.com/STMicroelectronics/STM32CubeF4 |
+| F4          |    1.26.0    | https://github.com/STMicroelectronics/STM32CubeF4 |
 | F7          |    1.16.0    | https://github.com/STMicroelectronics/STM32CubeF7 |
 | G0          |    1.3.0     | https://github.com/STMicroelectronics/STM32CubeG0 |
 | G4          |    1.1.0     | https://github.com/STMicroelectronics/STM32CubeG4 |
 | H7          |    1.8.0     | https://github.com/STMicroelectronics/STM32CubeH7 |
 | L0          |    1.11.3    | https://github.com/STMicroelectronics/STM32CubeL0 |
-| L1          |    1.8.1     | https://github.com/STMicroelectronics/STM32CubeL1 |
+| L1          |    1.10.2    | https://github.com/STMicroelectronics/STM32CubeL1 |
 | L4          |    1.16.0    | https://github.com/STMicroelectronics/STM32CubeL4 |
 | L5          |    1.3.0     | https://github.com/STMicroelectronics/STM32CubeL5 |
 | WB          |    1.8.0     | https://github.com/STMicroelectronics/STM32CubeWB |
+| WL          |    1.0.0     | https://github.com/STMicroelectronics/STM32CubeWL |
 
 In Mbed OS repository, we try to minimize the difference between "official" and copied files.
 
@@ -102,6 +103,10 @@ Tool is not used in Mbed OS, but it can be useful for you.
 ### STM32WB
 
 [STM32WB README](TARGET_STM32WB/README.md)
+
+### STM32WL
+
+[STM32WL README](TARGET_STM32WL/README.md)
 
 ### STM32H7
 
@@ -158,17 +163,20 @@ It is recommended to use a python script to generate those files
 
 https://github.com/ARMmbed/mbed-os/blob/master/targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py
 
-STM32CubeMX has to be installed first. Path has to be specified in the `cube_path.json` file.
+This script is using MCU database from https://github.com/STMicroelectronics/STM32_open_pin_data.git repo
 
 ```
 $ python targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py -h
 
-Script version 1.17
-usage: STM32_gen_PeripheralPins.py [-h] (-l | -b | -m xml | -t HW | -c CUSTOM)
+SScript version 1.19
 
-Script will generate PeripheralPins.c thanks to the xml files description available in
-STM32CubeMX directory defined in 'cube_path.json':
-        C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX
+Checking STM32_open_pin_data repo...
+*** git clone done
+
+usage: STM32_gen_PeripheralPins.py [-h] (-l | -b | -m xml | -t HW | -c CUSTOM)
+                                   [-g]
+
+Script will generate PeripheralPins.c thanks to the xml files description available in STM32_open_pin_data GitHub repo
 
 More information in targets/TARGET_STM/README.md
 
@@ -182,6 +190,7 @@ optional arguments:
                            Parameter can be a filter like L496 (only the first file found will be parsed).
   -c CUSTOM, --custom CUSTOM
                         specify a custom board .ioc file description to use (use double quotes).
+  -g, --gpio            Add GPIO PinMap table
 
 Once generated, you have to check and comment pins that can not be used (specific HW, internal ADC channels, remove PWM using us ticker timer, ...)
 
@@ -198,19 +207,22 @@ STM32F427Z(G-I)Tx.xml
 
 $ python targets/TARGET_STM/tools/STM32_gen_PeripheralPins.py -m "STM32F427V(G-I)Tx.xml"
 
-Script version 1.17
-CubeMX DB version DB.6.0.0
+Script version 1.19
+
+Checking STM32_open_pin_data repo...
+        Already up to date.
+
+STM32_open_pin_data DB version STM32CubeMX-DB.6.0.10
 
  * Output directory: targets_custom\TARGET_STM\TARGET_STM32F4\TARGET_STM32F427xG\TARGET_STM32F427VGT
- * Generating PeripheralPins.c and PinNames.h with 'C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\STM32F427V(G-I)Tx.xml'
- * GPIO file: C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\IP\GPIO-STM32F427_gpio_v1_0_Modes.xml
+ * Generating PeripheralPins.c and PinNames.h with 'STM32_open_pin_data\mcu\STM32F427V(G-I)Tx.xml'
+ * GPIO file: STM32_open_pin_data\mcu\IP\GPIO-STM32F427_gpio_v1_0_Modes.xml
  * I/O pins found: 135 connected: 0
 
  * Output directory: targets_custom\TARGET_STM\TARGET_STM32F4\TARGET_STM32F427xI\TARGET_STM32F427VIT
- * Generating PeripheralPins.c and PinNames.h with 'C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\STM32F427V(G-I)Tx.xml'
- * GPIO file: C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\db\mcu\IP\GPIO-STM32F427_gpio_v1_0_Modes.xml
+ * Generating PeripheralPins.c and PinNames.h with 'STM32_open_pin_data\mcu\STM32F427V(G-I)Tx.xml'
+ * GPIO file: STM32_open_pin_data\mcu\IP\GPIO-STM32F427_gpio_v1_0_Modes.xml
  * I/O pins found: 135 connected: 0
-
 ```
 
 ### Use of custom_targets.json
@@ -312,6 +324,56 @@ Ex:
 Sometimes, pin is explicitly removed by default to avoid issues (but you can uncomment the line for your custom board)
 ```
 //  {PB_4,       UART_2,  STM_PIN_DATA(STM_MODE_AF_PP, GPIO_PULLUP, GPIO_AF7_USART2)}, // Connected to same instance as STDIO 
+```
+
+### Clock selection
+
+#### System clock
+
+System Core Clock is based on an high-speed clock.
+
+- the HSI is the high-speed internal (MCU) clock with low accuracy
+- the HSE is the high-speed external clock with higher accuray
+
+For each target, a default choice has been made in the "clock_source" config settings in the targets.json file.
+
+For main targets, it is something like:
+
+```
+    "clock_source": {
+        "value": "USE_PLL_HSE_EXTC|USE_PLL_HSI",
+```
+
+Meaning that:
+- PLL with the external HSE clock is first configured
+- if it fails, PLL with HSI is then configured
+
+
+#### Low power clock
+
+Low power ticker and RTC are based on an low-speed clock.
+
+- the LSI is the low-speed internal clock with low accuracy
+- the LSE is the low-speed external clock connected to 32.768 kHz quartz crystal
+
+In targets.json file, it is supposed that a LSE is provided in the board
+
+```
+"config": {
+    "lse_available": {
+        "value": "1"
+```
+
+You can change this in you local mbed_app.json:
+```
+{
+    "target_overrides":
+    {
+        "XXXX": {
+            "target.lse_available": "0"
+        }
+    }
+}
 ```
 
 

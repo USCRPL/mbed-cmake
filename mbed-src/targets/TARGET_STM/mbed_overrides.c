@@ -1,30 +1,18 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2017, STMicroelectronics
+ * SPDX-License-Identifier: BSD-3-Clause
+ ******************************************************************************
+ *
+ * Copyright (c) 2015-2021 STMicroelectronics.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- * 3. Neither the name of STMicroelectronics nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ******************************************************************************
  */
+
 #include "cmsis.h"
 #include "objects.h"
 #include "platform/mbed_error.h"
@@ -42,7 +30,7 @@ extern void SetSysClock(void);
 #   if defined(MBED_CONF_TARGET_LSE_DRIVE_LOAD_LEVEL)
 #       define LSE_DRIVE_LOAD_LEVEL    MBED_CONF_TARGET_LSE_DRIVE_LOAD_LEVEL
 #   else
-#       if defined(RCC_LSE_HIGHDRIVE_MODE)
+#       if defined(RCC_LSE_HIGHDRIVE_MODE) // STM32F4
 #           define LSE_DRIVE_LOAD_LEVEL    RCC_LSE_LOWPOWER_MODE
 #       else
 #           define LSE_DRIVE_LOAD_LEVEL    RCC_LSEDRIVE_LOW
@@ -70,17 +58,6 @@ extern void SetSysClock(void);
  */
 
 static void LSEDriveConfig(void) {
-    // this config can be changed only when LSE is stopped
-    // LSE could be enabled before a reset and will remain running, disable first
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
-    RCC_OscInitStruct.LSEState = RCC_LSE_OFF;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
-        error("LSEDriveConfig : failed to disable LSE\n");
-    }
-
-   // set LSE drive level. Exception only for F4_g2 series
     HAL_PWR_EnableBkUpAccess();
     #if defined(__HAL_RCC_LSEDRIVE_CONFIG)
         __HAL_RCC_LSEDRIVE_CONFIG(LSE_DRIVE_LOAD_LEVEL);
@@ -105,6 +82,76 @@ MBED_WEAK void TargetBSP_Init(void) {
     /** Do nothing */
 }
 
+#ifndef MBED_DEBUG
+#if MBED_CONF_TARGET_GPIO_RESET_AT_INIT
+void GPIO_Full_Init(void) {
+    GPIO_InitTypeDef GPIO_InitStruct;
+
+    GPIO_InitStruct.Pin        = GPIO_PIN_All;
+    GPIO_InitStruct.Mode       = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Speed      = GPIO_SPEED_FREQ_LOW;
+#if !TARGET_STM32F1
+    GPIO_InitStruct.Pull       = GPIO_NOPULL;
+    GPIO_InitStruct.Alternate  = 0;
+#endif
+#if defined(GPIOA)
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    __HAL_RCC_GPIOA_CLK_DISABLE();
+#endif
+#if defined(GPIOB)
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    __HAL_RCC_GPIOB_CLK_DISABLE();
+#endif
+#if defined(GPIOC)
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    __HAL_RCC_GPIOC_CLK_DISABLE();
+#endif
+#if defined(GPIOD)
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+    __HAL_RCC_GPIOD_CLK_DISABLE();
+#endif
+#if defined(GPIOE)
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+    __HAL_RCC_GPIOE_CLK_DISABLE();
+#endif
+#if defined(GPIOF)
+    __HAL_RCC_GPIOF_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    __HAL_RCC_GPIOF_CLK_DISABLE();
+#endif
+#if defined(GPIOG)
+    __HAL_RCC_GPIOG_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+    __HAL_RCC_GPIOG_CLK_DISABLE();
+#endif
+#if defined(GPIOH)
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+    __HAL_RCC_GPIOH_CLK_DISABLE();
+#endif
+#if defined(GPIOI)
+    __HAL_RCC_GPIOI_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+    __HAL_RCC_GPIOI_CLK_DISABLE();
+#endif
+#if defined(GPIOJ)
+    __HAL_RCC_GPIOJ_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOJ, &GPIO_InitStruct);
+    __HAL_RCC_GPIOJ_CLK_DISABLE();
+#endif
+#if defined(GPIOK)
+    __HAL_RCC_GPIOK_CLK_ENABLE();
+    HAL_GPIO_Init(GPIOK, &GPIO_InitStruct);
+    __HAL_RCC_GPIOK_CLK_DISABLE();
+#endif
+}
+#endif
+#endif
 
 // This function is called after RAM initialization and before main.
 void mbed_sdk_init()
@@ -122,7 +169,7 @@ void mbed_sdk_init()
     }
 #endif /* __ICACHE_PRESENT */
 
-#if defined(DUAL_CORE)
+#if defined(DUAL_CORE) && (TARGET_STM32H7)
     /* HW semaphore Clock enable*/
     __HAL_RCC_HSEM_CLK_ENABLE();
 
@@ -180,13 +227,24 @@ void mbed_sdk_init()
     /* Configure the System clock source, PLL Multiplier and Divider factors,
        AHB/APBx prescalers and Flash settings */
 #if defined(LSE_CONFIG_AVAILABLE)
-    // LSE maybe used later, but crystal load drive setting is necessary before 
-    // enabling LSE
-    LSEDriveConfig();
+    // LSE oscillator drive capability set before LSE is started
+    if (!LL_RCC_LSE_IsReady()) {
+        LSEDriveConfig();
+    }
 #endif
+
+#if defined(MBED_CONF_TARGET_SYSTEM_POWER_SUPPLY)
+#if IS_PWR_SUPPLY(MBED_CONF_TARGET_SYSTEM_POWER_SUPPLY)
+    HAL_PWREx_ConfigSupply(MBED_CONF_TARGET_SYSTEM_POWER_SUPPLY);
+#else
+    #error system_power_supply not configured
+#endif
+#endif
+
     SetSysClock();
     SystemCoreClockUpdate();
 
+#ifndef CM4_BOOT_BY_APPLICATION
     /* Check wether CM4 boot in parallel with CM7. If CM4 was gated but CM7 trigger the CM4 boot. No need to wait for synchronization.
        otherwise CM7 should wakeup CM4 when system clocks initialization is done.  */
     if (READ_BIT(SYSCFG->UR1, SYSCFG_UR1_BCM4)) {
@@ -198,17 +256,29 @@ void mbed_sdk_init()
     }
     /* wait until CPU2 wakes up from stop mode */
     while (LL_RCC_D2CK_IsReady() == 0);
+#endif /* CM4_BOOT_BY_APPLICATION */
 #endif /* CORE_M4 */
+
 #else /* Single core */
     // Update the SystemCoreClock variable.
     SystemCoreClockUpdate();
     HAL_Init();
 
-    /* Configure the System clock source, PLL Multiplier and Divider factors,
-       AHB/APBx prescalers and Flash settings */
 #if defined(LSE_CONFIG_AVAILABLE)
-    LSEDriveConfig();
+    // LSE oscillator drive capability set before LSE is started
+    if (!LL_RCC_LSE_IsReady()) {
+        LSEDriveConfig();
+    }
 #endif
+
+#if defined(MBED_CONF_TARGET_SYSTEM_POWER_SUPPLY)
+#if IS_PWR_SUPPLY(MBED_CONF_TARGET_SYSTEM_POWER_SUPPLY)
+    HAL_PWREx_ConfigSupply(MBED_CONF_TARGET_SYSTEM_POWER_SUPPLY);
+#else
+    #error system_power_supply not configured
+#endif
+#endif
+
     SetSysClock();
     SystemCoreClockUpdate();
 #endif /* DUAL_CORE */
@@ -232,6 +302,13 @@ void mbed_sdk_init()
     }
 #endif /* ! MBED_CONF_TARGET_LSE_AVAILABLE */
 #endif /* DEVICE_RTC */
+
+#ifndef MBED_DEBUG
+#if MBED_CONF_TARGET_GPIO_RESET_AT_INIT
+    /* Reset all GPIO */
+    GPIO_Full_Init();
+#endif
+#endif
 
     /* BSP initialization hook (external RAM, etc) */
     TargetBSP_Init();

@@ -1,19 +1,26 @@
-# Copyright (c) 2020 ARM Limited. All rights reserved.
+# Copyright (c) 2020-2021 ARM Limited. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-if("FRDM" IN_LIST MBED_TARGET_LABELS)
-    add_subdirectory(TARGET_FRDM)
+add_subdirectory(TARGET_FRDM EXCLUDE_FROM_ALL)
+
+if(${MBED_TOOLCHAIN} STREQUAL "ARM")
+    set(LINKER_FILE device/TOOLCHAIN_ARM_STD/MK66FN2M0xxx18.sct)
+    set(STARTUP_FILE device/TOOLCHAIN_ARM_STD/startup_MK66F18.S)
+elseif(${MBED_TOOLCHAIN} STREQUAL "GCC_ARM")
+    set(LINKER_FILE device/TOOLCHAIN_GCC_ARM/MK66FN2M0xxx18.ld)
+    set(STARTUP_FILE device/TOOLCHAIN_GCC_ARM/startup_MK66F18.S)
 endif()
 
-add_subdirectory(device)
+add_library(mbed-k66f INTERFACE)
 
-target_include_directories(mbed-core
+target_include_directories(mbed-k66f
     INTERFACE
         .
+        device
         drivers
 )
 
-target_sources(mbed-core
+target_sources(mbed-k66f
     INTERFACE
         pwmout_api.c
         serial_api.c
@@ -64,4 +71,11 @@ target_sources(mbed-core
         drivers/fsl_uart_edma.c
         drivers/fsl_vref.c
         drivers/fsl_wdog.c
+
+        device/system_MK66F18.c
+        ${STARTUP_FILE}
 )
+
+mbed_set_linker_script(mbed-k66f ${CMAKE_CURRENT_SOURCE_DIR}/${LINKER_FILE})
+
+target_link_libraries(mbed-k66f INTERFACE mbed-mcuxpresso-mcus mbed-frdm-k66f)

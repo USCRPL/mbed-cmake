@@ -238,6 +238,13 @@
         "ARM_MUSCA_S1": {
             "stdio-convert-newlines": true,
             "stdio-baud-rate": 115200
+        },
+        "MTS_DRAGONFLY_L471QG": {
+            "crash-capture-enabled": true,
+            "fatal-error-auto-reboot-enabled": true
+        },
+        "CY8CKIT064B0S2_4343W": {
+            "stdio-baud-rate": 115200
         }
     }
 }

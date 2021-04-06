@@ -20,12 +20,15 @@
 #include <utility>
 #include "events/EventQueue.h"
 #include "platform/mbed_assert.h"
+#include "platform/mbed_error.h"
 
 namespace events {
 /** \defgroup events-public-api Events
  * \ingroup mbed-os-public
  * @{
  */
+
+static constexpr std::chrono::duration<int, std::milli> non_periodic{-1};
 
 /** Event
  *
@@ -67,7 +70,7 @@ public:
             _event->equeue = &q->_equeue;
             _event->id = 0;
             _event->delay = duration(0);
-            _event->period = duration(-1);
+            _event->period = non_periodic;
 
             _event->post = &Event::event_post<F>;
             _event->dtor = &Event::event_dtor<F>;
@@ -116,7 +119,8 @@ public:
 
     /** Configure the delay of an event
      *
-     *  @param d    Millisecond delay before dispatching the event
+     *  @param d    Delay (in milliseconds) before dispatching the event, expressed as a Chrono duration.
+     *              E.g. delay(50ms)
      */
     void delay(duration d)
     {
@@ -138,12 +142,24 @@ public:
 
     /** Configure the period of an event
      *
-     *  @param p   Millisecond period for repeatedly dispatching an event
+     *  @param p   Period (in milliseconds) for repeatedly dispatching an event, expressed as a Chrono
+     *             duration. Period must be either non_periodic or > 0ms. If an invalid period is supplied
+     *             then a default non_periodic value is used.
+     *             E.g. period(200ms)
      */
     void period(duration p)
     {
         if (_event) {
-            _event->period = p;
+            if (p > duration(0)) {
+                _event->period = p;
+
+            } else {
+                if (p != non_periodic) {
+                    MBED_WARNING(MBED_ERROR_INVALID_ARGUMENT,
+                                 "Invalid period specified, defaulting to non_periodic.");
+                }
+                _event->period = non_periodic;
+            }
         }
     }
 

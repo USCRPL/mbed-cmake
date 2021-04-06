@@ -1,28 +1,28 @@
-# Copyright (c) 2020 ARM Limited. All rights reserved.
+# Copyright (c) 2020-2021 ARM Limited. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 
-target_include_directories(mbed-core
+target_include_directories(mbed-sdk-15-0
     INTERFACE
-        ./libraries
-        ./libraries/atomic
-        ./libraries/atomic_fifo
-        ./libraries/balloc
-        ./libraries/delay
-        ./libraries/experimental_log
-        ./libraries/experimental_log/src
-        ./libraries/experimental_memobj
-        ./libraries/experimental_section_vars
-        ./libraries/fds
-        ./libraries/fstorage
-        ./libraries/queue
-        ./libraries/spi_mngr
-        ./libraries/strerror
-        ./libraries/twi_mngr
-        ./libraries/util
+        libraries
+        libraries/atomic
+        libraries/atomic_fifo
+        libraries/balloc
+        libraries/delay
+        libraries/experimental_log
+        libraries/experimental_log/src
+        libraries/experimental_memobj
+        libraries/experimental_section_vars
+        libraries/fds
+        libraries/fstorage
+        libraries/queue
+        libraries/spi_mngr
+        libraries/strerror
+        libraries/twi_mngr
+        libraries/util
 )
 
-target_sources(mbed-core
+target_sources(mbed-sdk-15-0
     INTERFACE
         libraries/atomic/nrf_atomic.c
 

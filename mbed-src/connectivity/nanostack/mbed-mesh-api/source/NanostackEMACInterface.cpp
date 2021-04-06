@@ -40,7 +40,7 @@ private:
     EMAC &emac;
     uint8_t mac_addr[6];
     int8_t device_id = -1;
-    phy_device_driver_s phy;
+    phy_device_driver_s phy = {};
 };
 
 // GAH! no handles on the callback. Force a single interface
@@ -222,7 +222,14 @@ nsapi_error_t Nanostack::add_ethernet_interface(EMAC &emac, bool default_if, Nan
     *interface_out = interface;
 
     return NSAPI_ERROR_OK;
+}
 
+nsapi_error_t Nanostack::add_ethernet_interface(EMAC &emac, bool default_if, OnboardNetworkStack::Interface **interface_out, const uint8_t *mac_addr)
+{
+    Nanostack::EthernetInterface *interface;
+    nsapi_error_t err = add_ethernet_interface(emac, default_if, &interface, mac_addr);
+    *interface_out = interface;
+    return err;
 }
 
 nsapi_error_t Nanostack::add_ethernet_interface(EMAC &emac, bool default_if, OnboardNetworkStack::Interface **interface_out)

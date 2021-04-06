@@ -1,12 +1,14 @@
-# Copyright (c) 2020 ARM Limited. All rights reserved.
+# Copyright (c) 2021 ARM Limited. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-target_include_directories(mbed-core
+add_library(mbed-frdm-k66f INTERFACE)
+
+target_include_directories(mbed-frdm-k66f
     INTERFACE
         .
 )
 
-target_sources(mbed-core
+target_sources(mbed-frdm-k66f
     INTERFACE
         PeripheralPins.c
         crc.c

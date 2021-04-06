@@ -1,22 +1,22 @@
-# Copyright (c) 2020 ARM Limited. All rights reserved.
+# Copyright (c) 2020-2021 ARM Limited. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-target_include_directories(mbed-core
+target_include_directories(mbed-sdk-15-0
     INTERFACE
         .
-        ./nrfx
-        ./nrfx/drivers
-        ./nrfx/drivers/include
-        ./nrfx/drivers/src
-        ./nrfx/drivers/src/prs
-        ./nrfx/hal
-        ./nrfx/mdk
-        ./nrfx/soc
-        ./softdevice
-        ./softdevice/common
+        nrfx
+        nrfx/drivers
+        nrfx/drivers/include
+        nrfx/drivers/src
+        nrfx/drivers/src/prs
+        nrfx/hal
+        nrfx/mdk
+        nrfx/soc
+        softdevice
+        softdevice/common
 )
 
-target_sources(mbed-core
+target_sources(mbed-sdk-15-0
     INTERFACE
         nrfx/drivers/src/nrfx_adc.c
         nrfx/drivers/src/nrfx_clock.c

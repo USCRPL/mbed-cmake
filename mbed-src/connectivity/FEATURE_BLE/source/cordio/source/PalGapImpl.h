@@ -401,30 +401,18 @@ private:
 
         static GapConnectionCompleteEvent convert(const hciLeConnCmplEvt_t *conn_evt)
         {
-            const bdAddr_t *peer_rpa = &conn_evt->peerRpa;
-            const bdAddr_t *peer_address = &conn_evt->peerAddr;
-
-#if defined(TARGET_MCU_STM32WB55xx)
-            const bdAddr_t invalidAddress = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-            if (conn_evt->addrType == DM_ADDR_RANDOM &&
-                memcmp(peer_address, invalidAddress, sizeof(invalidAddress)) == 0 &&
-                memcmp(peer_rpa, invalidAddress, sizeof(invalidAddress) != 0)
-            ) {
-                std::swap(peer_rpa, peer_address);
-            }
-#endif
             return GapConnectionCompleteEvent(
                 conn_evt->status,
                 // note the usage of the stack handle, not the HCI handle
                 conn_evt->hdr.param,
                 (connection_role_t::type) conn_evt->role,
                 (peer_address_type_t::type) conn_evt->addrType,
-                *peer_address,
+                conn_evt->peerAddr,
                 conn_evt->connInterval,
                 conn_evt->connLatency,
                 conn_evt->supTimeout,
                 conn_evt->localRpa,
-                *peer_rpa
+                conn_evt->peerRpa
             );
         }
     };
@@ -578,6 +566,10 @@ private:
     }
 
 private:
+#if BLE_FEATURE_PERIODIC_ADVERTISING && BLE_ROLE_OBSERVER
+    /* must be static because is needed in a static handler, there can only be one sync in progress */
+    static sync_handle_t _pending_periodic_sync_handle;
+#endif
     PalGapEventHandler *_pal_event_handler;
     address_t device_random_address;
     bool use_active_scanning;

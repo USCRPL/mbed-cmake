@@ -235,6 +235,8 @@ void USBPhyHw::init(USBPhyEvents *events)
 
     __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
     __HAL_RCC_USB_OTG_HS_ULPI_CLK_ENABLE();
+    __HAL_RCC_USB_OTG_HS_CLK_SLEEP_ENABLE();
+    __HAL_RCC_USB_OTG_HS_ULPI_CLK_SLEEP_ENABLE();
     map = PinMap_USB_HS;
 
 #elif (MBED_CONF_TARGET_USB_SPEED == USE_USB_HS_IN_FS)
@@ -247,6 +249,14 @@ void USBPhyHw::init(USBPhyEvents *events)
     hpcd.Init.use_external_vbus = DISABLE;
 
     __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
+
+    #ifdef __HAL_RCC_USB1_OTG_FS_ULPI_CLK_SLEEP_DISABLE
+        __HAL_RCC_USB1_OTG_FS_ULPI_CLK_SLEEP_DISABLE();
+    #endif
+    #ifdef __HAL_RCC_USB2_OTG_FS_ULPI_CLK_SLEEP_DISABLE
+        __HAL_RCC_USB2_OTG_FS_ULPI_CLK_SLEEP_DISABLE();
+    #endif
+     
     map = PinMap_USB_HS;
 
 #elif (MBED_CONF_TARGET_USB_SPEED == USE_USB_OTG_FS)
@@ -256,6 +266,14 @@ void USBPhyHw::init(USBPhyEvents *events)
     hpcd.Init.speed = PCD_SPEED_FULL;
 
     __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+
+    #ifdef __HAL_RCC_USB1_OTG_FS_ULPI_CLK_SLEEP_DISABLE
+        __HAL_RCC_USB1_OTG_FS_ULPI_CLK_SLEEP_DISABLE();
+    #endif
+    #ifdef __HAL_RCC_USB2_OTG_FS_ULPI_CLK_SLEEP_DISABLE
+        __HAL_RCC_USB2_OTG_FS_ULPI_CLK_SLEEP_DISABLE();
+    #endif
+     
     map = PinMap_USB_FS;
 
 #elif (MBED_CONF_TARGET_USB_SPEED == USE_USB_NO_OTG)
@@ -282,7 +300,9 @@ void USBPhyHw::init(USBPhyEvents *events)
         map++;
     }
 
+#if !defined(TARGET_STM32H7)
     __HAL_RCC_PWR_CLK_ENABLE();
+#endif
 
 #if !defined(TARGET_STM32WB)
     __HAL_RCC_SYSCFG_CLK_ENABLE();
@@ -594,11 +614,7 @@ bool USBPhyHw::endpoint_write(usb_ep_t endpoint, uint8_t *data, uint32_t size)
 
 void USBPhyHw::endpoint_abort(usb_ep_t endpoint)
 {
-#if (TARGET_STM32F2)
-    HAL_StatusTypeDef ret = HAL_PCD_EP_Abort(&hpcd, endpoint); // fix me: ST driver should not be modified
-#else
     HAL_StatusTypeDef ret = HAL_PCD_EP_Close(&hpcd, endpoint); // fix me: implementation not correct
-#endif
     MBED_ASSERT(ret == HAL_OK);
 }
 

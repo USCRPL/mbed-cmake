@@ -1,9 +1,0 @@
-{
-    "target_overrides": {
-        "*": {
-            "platform.stdio-baud-rate": 115200,
-            "target.printf_lib": "std",
-            "target.components_add" : ["SD", "I2CEE"]
-        }
-    }
-}

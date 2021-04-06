@@ -11,7 +11,7 @@ message(STATUS [==[\_/     \_/  \_____ /  \______) \___ /                   \___
 
 message(STATUS "")
 
-set(MBED_CMAKE_VERSION 1.6.0)
+set(MBED_CMAKE_VERSION 1.6.1)
 message(STATUS "mbed-cmake version ${MBED_CMAKE_VERSION}, running on CMake ${CMAKE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake ${CMAKE_CURRENT_LIST_DIR}/cmake/upload_methods)
@@ -82,7 +82,6 @@ if(NUM_TARGETS EQUAL 1)
 	set(MBED_TARGET_NAME ${MBED_TARGET_LIST})
 else()
 	set(TARGET "" CACHE STRING "Mbed OS target name to build for.  Must be one of the targets that had been previously configured")
-
 	if(NOT "${TARGET}" IN_LIST MBED_TARGET_LIST)
 		list_to_space_separated(MBED_TARGET_LIST_SPC ${MBED_TARGET_LIST})
 		message(FATAL_ERROR "Please select a target to build for.  Configured targets in this build system: ${MBED_TARGET_LIST_SPC}")

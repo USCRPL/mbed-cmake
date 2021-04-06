@@ -18,7 +18,7 @@
 #define MBED_QSPIF_BLOCK_DEVICE_H
 
 #include "drivers/QSPI.h"
-#include "drivers/internal/SFDP.h"
+#include "blockdevice/internal/SFDP.h"
 #include "blockdevice/BlockDevice.h"
 #include "platform/Callback.h"
 
@@ -53,7 +53,7 @@
  */
 enum qspif_bd_error {
     QSPIF_BD_ERROR_OK                    = 0,     /*!< no error */
-    QSPIF_BD_ERROR_DEVICE_ERROR          = BD_ERROR_DEVICE_ERROR, /*!< device specific error -4001 */
+    QSPIF_BD_ERROR_DEVICE_ERROR          = mbed::BD_ERROR_DEVICE_ERROR, /*!< device specific error -4001 */
     QSPIF_BD_ERROR_PARSING_FAILED        = -4002, /* SFDP Parsing failed */
     QSPIF_BD_ERROR_READY_FAILED          = -4003, /* Wait for Mem Ready failed */
     QSPIF_BD_ERROR_WREN_FAILED           = -4004, /* Write Enable Failed */
@@ -223,7 +223,7 @@ public:
      *  @return         Size of minimal erase sector size, in given address region, in bytes
      *  @note Must be a multiple of the program size
      */
-    virtual mbed::bd_size_t get_erase_size(mbed::bd_addr_t addr);
+    virtual mbed::bd_size_t get_erase_size(mbed::bd_addr_t addr) const;
 
     /** Get the value of storage byte after it was erased
      *
@@ -289,7 +289,7 @@ private:
     qspi_status_t _qspi_set_frequency(int freq);
 
     // Update the 4-byte addressing extension register with the MSB of the address if it is in use
-    qspi_status_t _qspi_update_4byte_ext_addr_reg(bd_addr_t addr);
+    qspi_status_t _qspi_update_4byte_ext_addr_reg(mbed::bd_addr_t addr);
 
     /*********************************/
     /* Flash Configuration Functions */

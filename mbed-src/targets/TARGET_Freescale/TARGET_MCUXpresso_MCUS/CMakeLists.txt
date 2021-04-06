@@ -1,13 +1,22 @@
-# Copyright (c) 2020 ARM Limited. All rights reserved.
+# Copyright (c) 2020-2021 ARM Limited. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-if("K66F" IN_LIST MBED_TARGET_LABELS)
-    add_subdirectory(TARGET_K66F)
-elseif("MCU_K64F" IN_LIST MBED_TARGET_LABELS)
-    add_subdirectory(TARGET_MCU_K64F)
-endif()
+add_subdirectory(TARGET_K66F EXCLUDE_FROM_ALL)
+add_subdirectory(TARGET_K82F EXCLUDE_FROM_ALL)
+add_subdirectory(TARGET_KL43Z EXCLUDE_FROM_ALL)
+add_subdirectory(TARGET_KW41Z EXCLUDE_FROM_ALL)
+add_subdirectory(TARGET_MCU_K22F EXCLUDE_FROM_ALL)
+add_subdirectory(TARGET_MCU_K64F EXCLUDE_FROM_ALL)
+add_subdirectory(middleware/wireless/TARGET_FRAMEWORK_5_3_3 EXCLUDE_FROM_ALL)
 
-target_sources(mbed-core
+add_library(mbed-mcuxpresso-mcus INTERFACE)
+
+target_include_directories(mbed-mcuxpresso-mcus
+    INTERFACE
+        api
+)
+
+target_sources(mbed-mcuxpresso-mcus
     INTERFACE
         fsl_common.c
 
@@ -26,7 +35,4 @@ target_sources(mbed-core
         api/sleep.c
 )
 
-target_include_directories(mbed-core
-    INTERFACE
-        api
-)
+target_link_libraries(mbed-mcuxpresso-mcus INTERFACE mbed-freescale)
