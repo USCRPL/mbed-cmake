@@ -542,7 +542,7 @@ class Resources(object):
 
 
     def scan_with_toolchain(self, src_paths, toolchain, dependencies_paths=None,
-                            inc_dirs=None, exclude=True):
+                            inc_dirs=None, exclude=True, mbedignore_path=None):
         """ Scan resources using initialized toolcain
 
         Positional arguments
@@ -559,6 +559,8 @@ class Resources(object):
         for path in src_paths:
             if exists(path):
                 into_path = relpath(path).strip(".\\/")
+                if mbedignore_path:
+                    self._ignoreset.add_mbedignore(".", mbedignore_path)
                 if exclude:
                     self.add_directory(
                         path,
