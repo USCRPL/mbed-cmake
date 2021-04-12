@@ -14,7 +14,7 @@ sys.path.append(mbed_os_dir)
 
 try:
     from tools import build_api, options
-    from tools.resources import Resources, FileType
+    from tools.resources import Resources, FileType, FileRef
     from tools.notifier.term import TerminalNotifier
     from tools.config import Config
     from tools.targets import Target
@@ -212,9 +212,33 @@ for target_name in target_names:
             profile_data = json.load(profile_file)
             profile_toolchain = build_api.prepare_toolchain(src_paths=[mbed_os_dir], build_dir=config_header_dir, target=target_name, toolchain_name=toolchain_name, build_profile=[profile_data], app_config=app_config_path)
             # each toolchain must then scan the mbed dir to pick up more configs
-            resources = Resources(notifier).scan_with_toolchain(src_paths=[mbed_os_dir], toolchain=profile_toolchain, exclude=True)
-            profile_toolchain.RESPONSE_FILES=False
 
+            resources = Resources(notifier).scan_with_toolchain(src_paths=[mbed_os_dir], toolchain=profile_toolchain, exclude=True)
+
+            is_custom_target = os.path.dirname(Target.get_json_target_data()[target_name]["_from_file"]) == custom_target_dir
+            if is_custom_target:
+                # Add the directory of the custom target
+                resources.add_directory(os.path.join(custom_target_dir, "TARGET_" + target_name))
+
+                # Filter out duplicate files (if a target overrides e.g. system_clock.c)
+                dupe_objects, dupe_headers = resources._collect_duplicates(dict(), dict())
+                duplicates = {**dupe_objects, **dupe_headers}
+                for filename, dupe_paths in duplicates.items():
+                    if len(dupe_paths) <= 1:
+                        # Not really a duplicate
+                        continue
+
+                    print("DUPLICATE found: File %s is not unique! It could be one of: %s" % (filename, " ".join(dupe_paths)))
+                    for dupe_path in dupe_paths:
+                        if os.path.commonpath([os.path.dirname(dupe_path), custom_target_dir]):
+                            # The file comes from the custom_target_dir - let it be
+                            continue
+                        print("\t-> Filtering out %s" % dupe_path)
+                        _, file_ext = os.path.splitext(dupe_path)
+                        file_type = resources._EXT.get(file_ext.lower())
+                        resources._file_refs[file_type].discard(FileRef(dupe_path, dupe_path))
+
+            profile_toolchain.RESPONSE_FILES = False
             profile_toolchains.append(profile_toolchain)
 
     # Profiles seem to only set flags, so for the remaining operations we can use any toolchain
