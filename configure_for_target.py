@@ -161,6 +161,8 @@ parser.add_argument('-x', '--custom-target-dir', default=None,
                     help="Load custom targets from custom_targets.json in the given directory.")
 parser.add_argument('-a', '--app-config', default=None,
                     help="Path to mbed_app.json.  If not supplied, mbed-app.json in the mbed-cmake folder will be used.")
+parser.add_argument('-i', '--mbedignore', default=None,
+                    help="Path to a global .mbedignore file. See the USCRPL/mbed-cmake-example-project for a template.")
 args = parser.parse_args()
 
 target_names=args.targets
@@ -171,6 +173,7 @@ generated_rpath = args.generated_path
 generated_path = os.path.join(project_root_dir, generated_rpath)
 custom_target_dir = args.custom_target_dir
 app_config_path = args.app_config
+mbedignore_file = args.mbedignore
 
 pathlib.Path(generated_path).mkdir(parents=True, exist_ok=True)
 with open(os.path.join(generated_path, "do-not-modify.txt"), 'w') as do_not_modify:
@@ -213,7 +216,7 @@ for target_name in target_names:
             profile_toolchain = build_api.prepare_toolchain(src_paths=[mbed_os_dir], build_dir=config_header_dir, target=target_name, toolchain_name=toolchain_name, build_profile=[profile_data], app_config=app_config_path)
             # each toolchain must then scan the mbed dir to pick up more configs
 
-            resources = Resources(notifier).scan_with_toolchain(src_paths=[mbed_os_dir], toolchain=profile_toolchain, exclude=True)
+            resources = Resources(notifier).scan_with_toolchain(src_paths=[mbed_os_dir], toolchain=profile_toolchain, exclude=True, mbedignore_path=mbedignore_file)
 
             is_custom_target = os.path.dirname(Target.get_json_target_data()[target_name]["_from_file"]) == custom_target_dir
             if is_custom_target:
