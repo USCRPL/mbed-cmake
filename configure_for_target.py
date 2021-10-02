@@ -221,7 +221,8 @@ for target_name in target_names:
             is_custom_target = os.path.dirname(Target.get_json_target_data()[target_name]["_from_file"]) == custom_target_dir
             if is_custom_target:
                 # Add the directory of the custom target
-                resources.add_directory(os.path.join(custom_target_dir, "TARGET_" + target_name))
+                specific_custom_target_dir = os.path.join(custom_target_dir, "TARGET_" + target_name)
+                resources.add_directory(specific_custom_target_dir)
 
                 # Filter out duplicate files (if a target overrides e.g. system_clock.c)
                 dupe_objects, dupe_headers = resources._collect_duplicates(dict(), dict())
@@ -233,7 +234,8 @@ for target_name in target_names:
 
                     print("DUPLICATE found: File %s is not unique! It could be one of: %s" % (filename, " ".join(dupe_paths)))
                     for dupe_path in dupe_paths:
-                        if os.path.commonpath([os.path.dirname(dupe_path), custom_target_dir]):
+                        # note: in experimentation, the abspath() calls are needed to get consistent results here.
+                        if os.path.commonpath([os.path.abspath(os.path.dirname(dupe_path)), os.path.abspath(specific_custom_target_dir)]) == os.path.abspath(specific_custom_target_dir):
                             # The file comes from the custom_target_dir - let it be
                             continue
                         print("\t-> Filtering out %s" % dupe_path)
