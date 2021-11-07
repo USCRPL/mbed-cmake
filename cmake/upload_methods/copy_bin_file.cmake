@@ -23,6 +23,14 @@ endforeach()
 
 # now copy the new bin file in place
 message(STATUS "Installing to mbed (${MBED_PATH}): ${BIN_FILE}")
-# file(COPY "${BIN_FILE}" DESTINATION "${MBED_PATH}")
-# file(COPY "${BIN_FILE}" DESTINATION "/mnt/d")
-execute_process(COMMAND cp "${BIN_FILE}" "${MBED_PATH}")
+
+# if we have the cp program, use that because it seems to have better behavior on Windows and WSL
+# with mounted paths (see mbed-cmake#32).  This may require people to install cp manually
+# on Windows if they have issues.
+find_program(CP_COMMAND NAMES cp)
+if(CP_COMMAND)
+	message("${CP_COMMAND} \"${BIN_FILE}\" \"${MBED_PATH}\"")
+	execute_process(COMMAND ${CP_COMMAND} "${BIN_FILE}" "${MBED_PATH}")
+else()
+	file(COPY "${BIN_FILE}" DESTINATION "${MBED_PATH}")
+endif()

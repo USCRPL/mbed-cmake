@@ -2,7 +2,7 @@
 # This method needs the following parameters:
 # MBED_RESET_BAUDRATE - Serial baudrate to connect to the target at when resetting it.
 # This method creates the following options:
-# MBED_TARGET_UID - Probe UID to pass to pyOCD commands. You can get the UIDs from `python -m pyocd list`.
+# MBED_TARGET_UID - Board UID to upload to. You can get the UIDs from `python -m pyocd list`.
 
 set(UPLOAD_SUPPORTS_DEBUG FALSE)
 
