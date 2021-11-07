@@ -4,10 +4,11 @@
 # needed for memory map script
 check_python_package(intelhex HAVE_INTELHEX)
 check_python_package(prettytable HAVE_PRETTYTABLE)
+check_python_package(future HAVE_FUTURE)
 
 set(CAN_RUN_MEMAP TRUE)
-if(NOT (HAVE_INTELHEX AND HAVE_PRETTYTABLE))
-	message(WARNING "Unable to run the memory mapper due to missing Python dependencies.")
+if(NOT (HAVE_INTELHEX AND HAVE_PRETTYTABLE AND HAVE_FUTURE))
+	message(WARNING "Unable to run the memory mapper due to missing Python dependencies (intelhex, prettytable, and future must be installed).")
 	set(CAN_RUN_MEMAP FALSE)
 endif()
 
