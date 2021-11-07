@@ -9,15 +9,18 @@ set(LINKER_SCRIPT_EXT ".ld")
 
 set(PREPROCESSED_LINKER_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/${LINKER_SCRIPT_FILENAME}_preprocessed${LINKER_SCRIPT_EXT})
 
+# convert CMAKE_EXE_LINKER_FLAGS from a string to a list of arguments so it can be passed to add_custom_command
+separate_arguments(CMAKE_EXE_LINKER_FLAGS_LIST "${CMAKE_EXE_LINKER_FLAGS}" NATIVE_COMMAND)
+
 # NOTE: clearly the linker script is not assembly!  We give -x assembler-with-cpp to force GCC to try and compile the file
 # as if it was assembly.  It only gets to the preprocessor stage because of -E, and everything works fine.
-set(PREPROCESS_ONLY_FLAGS -x assembler-with-cpp -E -Wp,-P ${CMAKE_EXE_LINKER_FLAGS})
+set(PREPROCESS_ONLY_FLAGS -x assembler-with-cpp -E -Wp,-P )
 
-# This is kind of a hack, but without it we would have to have a seperate facility for finding the preprocessor executable.
+# This is kind of a hack, but without it we would have to have a separate facility for finding the preprocessor executable.
 # We also needed to pass the linker flags because they can include defines needed in the linker script
 add_custom_command(
 	OUTPUT ${PREPROCESSED_LINKER_SCRIPT}
-	COMMAND ${CMAKE_CXX_COMPILER} ${PREPROCESS_ONLY_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/${MBED_LINKER_SCRIPT} -o ${PREPROCESSED_LINKER_SCRIPT}
+	COMMAND ${CMAKE_CXX_COMPILER} ${PREPROCESS_ONLY_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_LIST} ${CMAKE_CURRENT_SOURCE_DIR}/${MBED_LINKER_SCRIPT} -o ${PREPROCESSED_LINKER_SCRIPT}
 	MAIN_DEPENDENCY ${MBED_LINKER_SCRIPT}
 	COMMENT "Preprocessing linker script ${MBED_LINKER_SCRIPT} -> ${PREPROCESSED_LINKER_SCRIPT}"
 	VERBATIM)
