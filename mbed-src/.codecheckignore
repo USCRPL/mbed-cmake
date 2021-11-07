@@ -6,6 +6,7 @@
 ^connectivity/libraries/ppp
 ^connectivity/drivers/emac
 ^connectivity/drivers/mbedtls
+^connectivity/drivers/wifi/COMPONENT_WHD
 ^connectivity/mbedtls
 ^features/frameworks
 ^connectivity/lwipstack/lwip
@@ -19,11 +20,13 @@
 ^hal/storage_abstraction
 ^hal/tests/TESTS/mbed_hal/trng/pithy
 ^hal/tests/TESTS/mbed_hal/trng/pithy
+^hal/tests/pinvalidate
 ^platform/cxxsupport
 ^platform/FEATURE_EXPERIMENTAL_API/FEATURE_PSA/TARGET_MBED_PSA_SRV
 ^platform/FEATURE_EXPERIMENTAL_API/FEATURE_PSA/TARGET_TFM
 ^platform/mbed-trace
 ^platform/randlib
+^platform/source/newlib_nano_malloc_workaround.c
 ^platform/tests/UNITTESTS
 ^events/tests/UNITTESTS
 ^rtos/source/TARGET_CORTEX/rtx4
@@ -33,4 +36,3 @@
 ^UNITTESTS
 ^storage/blockdevice/tests/UNITTESTS
 ^storage/kvstore/tests/UNITTESTS
-^drivers/tests/UNITTESTS

@@ -16,6 +16,7 @@
  */
 
 #include "netsocket/TCPSocket.h"
+#include <new>
 #include "Timer.h"
 #include "mbed_assert.h"
 
@@ -172,6 +173,15 @@ nsapi_size_or_error_t TCPSocket::sendto(const SocketAddress &address, const void
     return send(data, size);
 }
 
+nsapi_size_or_error_t TCPSocket::sendto_control(const SocketAddress &address, const void *data, nsapi_size_t size,
+                                                nsapi_msghdr_t *control, nsapi_size_t control_size)
+{
+    if (control) {
+        return NSAPI_ERROR_UNSUPPORTED;
+    }
+    return sendto(address, data, size);
+}
+
 nsapi_size_or_error_t TCPSocket::recv(void *data, nsapi_size_t size)
 {
     _lock.lock();
@@ -228,6 +238,15 @@ nsapi_size_or_error_t TCPSocket::recvfrom(SocketAddress *address, void *data, ns
     return recv(data, size);
 }
 
+nsapi_size_or_error_t TCPSocket::recvfrom_control(SocketAddress *address, void *data, nsapi_size_t size,
+                                                  nsapi_msghdr_t *control, nsapi_size_t control_size)
+{
+    if (control) {
+        return NSAPI_ERROR_UNSUPPORTED;
+    }
+    return recvfrom(address, data, size);
+}
+
 nsapi_error_t TCPSocket::listen(int backlog)
 {
     _lock.lock();
@@ -266,7 +285,12 @@ TCPSocket *TCPSocket::accept(nsapi_error_t *error)
         ret = _stack->socket_accept(_socket, &socket, &address);
 
         if (0 == ret) {
-            connection = new TCPSocket(this, socket, address);
+            connection = new (std::nothrow) TCPSocket(this, socket, address);
+            if (!connection) {
+                ret = NSAPI_ERROR_NO_MEMORY;
+                break;
+            }
+
             _socket_stats.stats_update_peer(connection, address);
             _socket_stats.stats_update_socket_state(connection, SOCK_CONNECTED);
             break;

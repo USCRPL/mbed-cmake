@@ -3,13 +3,13 @@
 
 add_library(mbed-nuvoton INTERFACE)
 
-add_subdirectory(TARGET_M2351 EXCLUDE_FROM_ALL)
 add_subdirectory(TARGET_M251 EXCLUDE_FROM_ALL)
 add_subdirectory(TARGET_M261 EXCLUDE_FROM_ALL)
 add_subdirectory(TARGET_M451 EXCLUDE_FROM_ALL)
 add_subdirectory(TARGET_M480 EXCLUDE_FROM_ALL)
 add_subdirectory(TARGET_NANO100 EXCLUDE_FROM_ALL)
 add_subdirectory(TARGET_NUC472 EXCLUDE_FROM_ALL)
+add_subdirectory(TARGET_M2354 EXCLUDE_FROM_ALL)
 
 target_include_directories(mbed-nuvoton
     INTERFACE

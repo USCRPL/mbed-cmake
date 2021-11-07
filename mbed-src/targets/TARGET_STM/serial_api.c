@@ -205,10 +205,10 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
 
     uint8_t stdio_config = false;
 
-    if ((tx == STDIO_UART_TX) || (rx == STDIO_UART_RX)) {
+    if ((tx == CONSOLE_TX) || (rx == CONSOLE_RX)) {
         stdio_config = true;
     } else {
-        if (uart_tx == pinmap_peripheral(STDIO_UART_TX, PinMap_UART_TX)) {
+        if (uart_tx == pinmap_peripheral(CONSOLE_TX, PinMap_UART_TX)) {
             error("Error: new serial object is using same UART as STDIO");
         }
     }
@@ -350,17 +350,15 @@ void serial_free(serial_t *obj)
     LL_HSEM_ReleaseLock(HSEM, CFG_HW_RCC_SEMID, HSEM_CR_COREID_CURRENT);
 #endif /* DUAL_CORE */
 
-    // Configure GPIOs
-    pin_function(obj_s->pin_tx, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
-
-    pin_function(obj_s->pin_rx, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
-
+    // Configure GPIOs back to reset value
+    pin_function(obj_s->pin_tx, STM_PIN_DATA(STM_MODE_ANALOG, GPIO_NOPULL, 0));
+    pin_function(obj_s->pin_rx, STM_PIN_DATA(STM_MODE_ANALOG, GPIO_NOPULL, 0));
 #if DEVICE_SERIAL_FC
-    if ( (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS) || (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS_CTS) ) {
-        pin_function(obj_s->pin_rts, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
+    if ((obj_s->hw_flow_ctl == UART_HWCONTROL_RTS) || (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS_CTS)) {
+        pin_function(obj_s->pin_rts, STM_PIN_DATA(STM_MODE_ANALOG, GPIO_NOPULL, 0));
     }
-    if ( (obj_s->hw_flow_ctl == UART_HWCONTROL_CTS) || (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS_CTS) ) {
-        pin_function(obj_s->pin_cts, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
+    if ((obj_s->hw_flow_ctl == UART_HWCONTROL_CTS) || (obj_s->hw_flow_ctl == UART_HWCONTROL_RTS_CTS)) {
+        pin_function(obj_s->pin_cts, STM_PIN_DATA(STM_MODE_ANALOG, GPIO_NOPULL, 0));
     }
 #endif
 
@@ -414,6 +412,13 @@ void serial_baud(serial_t *obj, int baudrate)
 #endif
 #if ((MBED_CONF_TARGET_LPUART_CLOCK_SOURCE) & USE_LPUART_CLK_PCLK1)
         PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
+        HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
+        if (init_uart(obj) == HAL_OK) {
+            return;
+        }
+#endif
+#if ((MBED_CONF_TARGET_LPUART_CLOCK_SOURCE) & USE_LPUART_CLK_PCLK3)
+        PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK3;
         HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
         if (init_uart(obj) == HAL_OK) {
             return;

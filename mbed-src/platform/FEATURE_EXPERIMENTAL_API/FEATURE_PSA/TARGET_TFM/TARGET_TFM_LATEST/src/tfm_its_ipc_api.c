@@ -1,17 +1,14 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#include "psa/internal_trusted_storage.h"
-#include "tfm_api.h"
-
 #include "psa/client.h"
+#include "psa/internal_trusted_storage.h"
 #include "psa_manifest/sid.h"
-
-#define IOVEC_LEN(x) (sizeof(x)/sizeof(x[0]))
+#include "tfm_api.h"
 
 psa_status_t psa_its_set(psa_storage_uid_t uid,
                          size_t data_length,
@@ -35,10 +32,6 @@ psa_status_t psa_its_set(psa_storage_uid_t uid,
     status = psa_call(handle, PSA_IPC_CALL, in_vec, IOVEC_LEN(in_vec), NULL, 0);
 
     psa_close(handle);
-
-    if (status == (psa_status_t)TFM_ERROR_INVALID_PARAMETER) {
-        return PSA_ERROR_INVALID_ARGUMENT;
-    }
 
     return status;
 }
@@ -75,10 +68,6 @@ psa_status_t psa_its_get(psa_storage_uid_t uid,
 
     psa_close(handle);
 
-    if (status == (psa_status_t)TFM_ERROR_INVALID_PARAMETER) {
-        return PSA_ERROR_INVALID_ARGUMENT;
-    }
-
     *p_data_length = out_vec[0].len;
 
     return status;
@@ -107,10 +96,6 @@ psa_status_t psa_its_get_info(psa_storage_uid_t uid,
                       IOVEC_LEN(out_vec));
 
     psa_close(handle);
-
-    if (status == (psa_status_t)TFM_ERROR_INVALID_PARAMETER) {
-        return PSA_ERROR_INVALID_ARGUMENT;
-    }
 
     return status;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -39,6 +39,7 @@ extern "C" {
 /******** TFM_SP_CRYPTO ********/
 #define TFM_CRYPTO_SID                                             (0x00000080U)
 #define TFM_CRYPTO_VERSION                                         (1U)
+#define TFM_CRYPTO_HANDLE                                          (0x40000100U)
 
 /******** TFM_SP_PLATFORM ********/
 #define TFM_SP_PLATFORM_SYSTEM_RESET_SID                           (0x00000040U)
@@ -53,8 +54,6 @@ extern "C" {
 #define TFM_ATTEST_GET_TOKEN_VERSION                               (1U)
 #define TFM_ATTEST_GET_TOKEN_SIZE_SID                              (0x00000021U)
 #define TFM_ATTEST_GET_TOKEN_SIZE_VERSION                          (1U)
-#define TFM_ATTEST_GET_PUBLIC_KEY_SID                              (0x00000022U)
-#define TFM_ATTEST_GET_PUBLIC_KEY_VERSION                          (1U)
 
 /******** TFM_SP_CORE_TEST ********/
 #define SPM_CORE_TEST_INIT_SUCCESS_SID                             (0x0000F020U)
@@ -87,10 +86,6 @@ extern "C" {
 #define SPM_CORE_TEST_2_GET_EVERY_SECOND_BYTE_VERSION              (1U)
 #define SPM_CORE_TEST_2_INVERT_SID                                 (0x0000F043U)
 #define SPM_CORE_TEST_2_INVERT_VERSION                             (1U)
-#define SPM_CORE_TEST_2_PREPARE_TEST_SCENARIO_SID                  (0x0000F044U)
-#define SPM_CORE_TEST_2_PREPARE_TEST_SCENARIO_VERSION              (1U)
-#define SPM_CORE_TEST_2_EXECUTE_TEST_SCENARIO_SID                  (0x0000F045U)
-#define SPM_CORE_TEST_2_EXECUTE_TEST_SCENARIO_VERSION              (1U)
 
 /******** TFM_SP_SECURE_TEST_PARTITION ********/
 #define TFM_SECURE_CLIENT_SFN_RUN_TESTS_SID                        (0x0000F000U)
@@ -119,12 +114,8 @@ extern "C" {
 #define IPC_CLIENT_TEST_APP_ACCESS_PSA_MEM_VERSION                 (1U)
 #define IPC_CLIENT_TEST_MEM_CHECK_SID                              (0x0000F064U)
 #define IPC_CLIENT_TEST_MEM_CHECK_VERSION                          (1U)
-
-/******** TFM_IRQ_TEST_1 ********/
-#define SPM_CORE_IRQ_TEST_1_PREPARE_TEST_SCENARIO_SID              (0x0000F0A0U)
-#define SPM_CORE_IRQ_TEST_1_PREPARE_TEST_SCENARIO_VERSION          (1U)
-#define SPM_CORE_IRQ_TEST_1_EXECUTE_TEST_SCENARIO_SID              (0x0000F0A1U)
-#define SPM_CORE_IRQ_TEST_1_EXECUTE_TEST_SCENARIO_VERSION          (1U)
+#define IPC_CLIENT_TEST_RETRIEVE_APP_MEM_SID                       (0x0000F065U)
+#define IPC_CLIENT_TEST_RETRIEVE_APP_MEM_VERSION                   (1U)
 
 /******** TFM_SP_PS_TEST ********/
 #define TFM_PS_TEST_PREPARE_SID                                    (0x0000F0C0U)
@@ -133,6 +124,45 @@ extern "C" {
 /******** TFM_SP_SECURE_CLIENT_2 ********/
 #define TFM_SECURE_CLIENT_2_SID                                    (0x0000F0E0U)
 #define TFM_SECURE_CLIENT_2_VERSION                                (1U)
+
+/******** TFM_SP_FWU ********/
+#define TFM_FWU_WRITE_SID                                          (0x000000A0U)
+#define TFM_FWU_WRITE_VERSION                                      (1U)
+#define TFM_FWU_INSTALL_SID                                        (0x000000A1U)
+#define TFM_FWU_INSTALL_VERSION                                    (1U)
+#define TFM_FWU_ABORT_SID                                          (0x000000A2U)
+#define TFM_FWU_ABORT_VERSION                                      (1U)
+#define TFM_FWU_QUERY_SID                                          (0x000000A3U)
+#define TFM_FWU_QUERY_VERSION                                      (1U)
+#define TFM_FWU_REQUEST_REBOOT_SID                                 (0x000000A4U)
+#define TFM_FWU_REQUEST_REBOOT_VERSION                             (1U)
+#define TFM_FWU_ACCEPT_SID                                         (0x000000A5U)
+#define TFM_FWU_ACCEPT_VERSION                                     (1U)
+
+/******** TFM_SP_FFM11 ********/
+#define TFM_FFM11_SERVICE1_SID                                     (0x0000F120U)
+#define TFM_FFM11_SERVICE1_VERSION                                 (1U)
+#define TFM_FFM11_SERVICE1_HANDLE                                  (0x40000103U)
+#define TFM_FFM11_SERVICE2_SID                                     (0x0000F121U)
+#define TFM_FFM11_SERVICE2_VERSION                                 (1U)
+#define TFM_FFM11_SERVICE2_HANDLE                                  (0x40000101U)
+#define TFM_FFM11_SERVICE3_SID                                     (0x0000F122U)
+#define TFM_FFM11_SERVICE3_VERSION                                 (1U)
+#define TFM_FFM11_SERVICE3_HANDLE                                  (0x40000102U)
+
+/******** TFM_SP_ATTEST_TEST ********/
+#define TFM_ATTEST_TEST_GET_PUBLIC_KEY_SID                         (0x0000F140U)
+#define TFM_ATTEST_TEST_GET_PUBLIC_KEY_VERSION                     (1U)
+
+/******** TFM_SP_SLIH_TEST ********/
+#define TFM_SLIH_TEST_CASE_SID                                     (0x0000F0A0U)
+#define TFM_SLIH_TEST_CASE_VERSION                                 (1U)
+#define TFM_SLIH_TEST_CASE_HANDLE                                  (0x40000104U)
+
+/******** TFM_SP_FLIH_TEST ********/
+#define TFM_FLIH_TEST_CASE_SID                                     (0x0000F0B0U)
+#define TFM_FLIH_TEST_CASE_VERSION                                 (1U)
+#define TFM_FLIH_TEST_CASE_HANDLE                                  (0x40000105U)
 
 #ifdef __cplusplus
 }

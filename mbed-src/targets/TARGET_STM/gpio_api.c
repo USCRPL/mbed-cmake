@@ -32,6 +32,7 @@
 #include "pinmap.h"
 #include "mbed_error.h"
 #include "pin_device.h"
+#include "PeripheralPins.h"
 
 extern const uint32_t ll_pin_defines[16];
 
@@ -74,7 +75,7 @@ GPIO_TypeDef *Set_GPIO_Clock(uint32_t port_idx)
 #endif
 #if defined GPIOG_BASE
         case PortG:
-#if defined PWR_CR2_IOSV /* TARGET_STM32L4 / TARGET_STM32L5 */
+#if defined PWR_CR2_IOSV /* TARGET_STM32L4 - TARGET_STM32L5 - TARGET_STM32G0 */ || defined PWR_SVMCR_IO2VMEN /* TARGET_STM32U5 */
             __HAL_RCC_PWR_CLK_ENABLE();
             HAL_PWREx_EnableVddIO2();
 #endif
@@ -135,21 +136,6 @@ void gpio_init(gpio_t *obj, PinName pin)
     // Enable GPIO clock
     GPIO_TypeDef *gpio = Set_GPIO_Clock(port_index);
 
-#if defined(ALTC)
-    if (pin == PA_0C) {
-        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA0, SYSCFG_SWITCH_PA0_CLOSE);
-    }
-    if (pin == PA_1C) {
-        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA1, SYSCFG_SWITCH_PA1_CLOSE);
-    }
-    if (pin == PC_2C) {
-        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC2, SYSCFG_SWITCH_PC2_CLOSE);
-    }
-    if (pin == PC_3C) {
-        HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC3, SYSCFG_SWITCH_PC3_CLOSE);
-    }
-#endif /* ALTC */
-
     // Fill GPIO object structure for future use
     obj->mask    = gpio_set(pin);
     obj->gpio    = gpio;
@@ -186,3 +172,35 @@ inline void gpio_dir(gpio_t *obj, PinDirection direction)
 #endif /* DUAL_CORE */
 }
 
+#if GPIO_PINMAP_READY
+/* If this macro is defined, then PinMap_GPIO is present in PeripheralPins.c */
+const PinMap *gpio_pinmap()
+{
+    return PinMap_GPIO;
+}
+
+
+void gpio_get_capabilities(gpio_t *obj, gpio_capabilities_t *cap)
+{
+    switch (pinmap_find_function(obj->pin, PinMap_GPIO)) {
+        case GPIO_NOPULL:
+            cap->pull_none = 1;
+            cap->pull_down = 1;
+            cap->pull_up = 1;
+            break;
+        case GPIO_PULLUP:
+            cap->pull_none = 1;
+            cap->pull_down = 0;
+            cap->pull_up = 1;
+            break;
+        case GPIO_PULLDOWN:
+            cap->pull_none = 1;
+            cap->pull_down = 1;
+            cap->pull_up = 0;
+            break;
+        default:
+            break;
+    }
+}
+
+#endif

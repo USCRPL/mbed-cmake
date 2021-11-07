@@ -57,6 +57,10 @@
          "msgqueue-data-size": {
             "help": "The total memory available for all CMSIS-RTOSv2 object-pool message queues combined",
             "value": 0
+         },
+         "enable-all-rtx-events": {
+            "help": "Enables all of the RTX events which are disabled by default for optimization",
+            "value": false
          }
     },
     "macros": ["_RTE_"],
@@ -85,11 +89,11 @@
         "MCU_PSOC6_M4": {
             "target.macros_add": ["CY_RTOS_AWARE"]
         },
+        "ARM_MUSCA_B1": {
+            "mutex-num": 4
+        },
         "ARM_MUSCA_S1": {
-            "mutex-num": 4,
-            "semaphore-num": 4,
-            "thread-num": 9,
-            "thread-user-stack-size": 8096
+            "mutex-num": 4
         }
     }
 }

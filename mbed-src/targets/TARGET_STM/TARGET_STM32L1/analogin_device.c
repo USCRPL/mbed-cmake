@@ -62,7 +62,6 @@ void analogin_init(analogin_t *obj, PinName pin)
     obj->handle.Init.EOCSelection          = EOC_SINGLE_CONV;               // On STM32L1xx ADC, overrun detection is enabled only if EOC selection is set to each conversion (or transfer by DMA enabled, this is not the case in this example).
     obj->handle.Init.LowPowerAutoWait      = ADC_AUTOWAIT_UNTIL_DATA_READ;  // Enable the dynamic low power Auto Delay: new conversion start only when the previous conversion (for regular group) or previous sequence (for injected group) has been treated by user software.
     obj->handle.Init.LowPowerAutoPowerOff  = ADC_AUTOPOWEROFF_IDLE_PHASE;   // Enable the auto-off mode: the ADC automatically powers-off after a conversion and automatically wakes-up when a new conversion is triggered (with startup time between trigger and start of sampling).
-    obj->handle.Init.ChannelsBank          = ADC_CHANNELS_BANK_A;
     obj->handle.Init.ContinuousConvMode    = DISABLE;                       // Continuous mode disabled to have only 1 conversion at each conversion trig
     obj->handle.Init.NbrOfConversion       = 1;                             // Parameter discarded because sequencer is disabled
     obj->handle.Init.DiscontinuousConvMode = DISABLE;                       // Parameter discarded because sequencer is disabled
@@ -71,11 +70,26 @@ void analogin_init(analogin_t *obj, PinName pin)
     obj->handle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
     obj->handle.Init.DMAContinuousRequests = DISABLE;
 
+#if defined ADC_CHANNELS_BANK_B
+    if (STM_PIN_ANALOG_CHANNEL_BANK_B(function)) {
+        obj->handle.Init.ChannelsBank = ADC_CHANNELS_BANK_B;
+    } else {
+        obj->handle.Init.ChannelsBank = ADC_CHANNELS_BANK_A;
+    }
+#else
+    obj->handle.Init.ChannelsBank = ADC_CHANNELS_BANK_A;
+#endif
+
     __HAL_RCC_ADC1_CLK_ENABLE();
 
     if (HAL_ADC_Init(&obj->handle) != HAL_OK) {
         error("Cannot initialize ADC");
     }
+}
+
+uint16_t adc_read(analogin_t *obj)
+{
+    ADC_ChannelConfTypeDef sConfig = {0};
 
     if (!__HAL_RCC_GET_FLAG(RCC_FLAG_HSIRDY)) {
         // Enable the HSI (to clock the ADC)
@@ -86,11 +100,6 @@ void analogin_init(analogin_t *obj, PinName pin)
         RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
         HAL_RCC_OscConfig(&RCC_OscInitStruct);
     }
-}
-
-uint16_t adc_read(analogin_t *obj)
-{
-    ADC_ChannelConfTypeDef sConfig = {0};
 
     // Configure ADC channel
     sConfig.Rank         = ADC_REGULAR_RANK_1;

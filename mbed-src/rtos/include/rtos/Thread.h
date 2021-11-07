@@ -33,7 +33,7 @@
 #include "rtos/Semaphore.h"
 #include "rtos/Mutex.h"
 
-#if MBED_CONF_RTOS_PRESENT || defined(DOXYGEN_ONLY) || defined(UNITTEST)
+#if MBED_CONF_RTOS_PRESENT || defined(DOXYGEN_ONLY)
 
 namespace rtos {
 /** \addtogroup rtos-public-api */
@@ -131,7 +131,8 @@ public:
 
     /** Starts a thread executing the specified function.
       @param   task           function to be executed by this thread.
-      @return  status code that indicates the execution status of the function.
+      @return  status code that indicates the execution status of the function,
+               or osErrorNoMemory if stack allocation failed.
       @note a thread can only be started once
 
       @note You cannot call this function ISR context.

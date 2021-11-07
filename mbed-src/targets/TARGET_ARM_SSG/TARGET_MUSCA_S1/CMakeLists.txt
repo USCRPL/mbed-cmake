@@ -1,7 +1,16 @@
 # Copyright (c) 2020-2021 ARM Limited. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-include(${MBED_PATH}/platform/FEATURE_EXPERIMENTAL_API/FEATURE_PSA/TARGET_TFM/TARGET_TFM_LATEST/scripts/mbed_set_post_build_tfm.cmake)
+if("TFM" IN_LIST MBED_TARGET_LABELS)
+    include(mbed_set_post_build_tfm)
+
+    mbed_post_build_tfm_sign_image(
+        ARM_MUSCA_S1
+        musca_s1
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tfm_s.bin
+    )
+endif()
 
 add_library(mbed-arm-musca-s1 INTERFACE)
 
@@ -36,6 +45,7 @@ target_sources(mbed-arm-musca-s1
         serial_api.c
         sleep_api.c
         tfm_ioctl_ns_api.c
+        tfm_ns_interface.c
         us_ticker.c
 
         device/device_definition.c
@@ -59,11 +69,4 @@ target_link_libraries(mbed-arm-musca-s1
     INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/s_veneers.o
         mbed-arm-ssg
-)
-
-mbed_post_build_tfm_sign_image(
-    ARM_MUSCA_S1
-    musca_s1
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/tfm_s.bin
 )

@@ -16,6 +16,7 @@
  */
 
 #include "netsocket/TLSSocketWrapper.h"
+#include <new>
 #include "platform/Callback.h"
 #include "drivers/Timer.h"
 #include "events/mbed_events.h"
@@ -26,6 +27,10 @@
 #include "mbedtls/platform.h"
 #include "mbed_error.h"
 #include "rtos/Kernel.h"
+
+#if defined(MBEDTLS_USE_PSA_CRYPTO)
+#include "psa/crypto.h"
+#endif
 
 // This class requires Mbed TLS SSL/TLS client code
 #if defined(MBEDTLS_SSL_CLI_C)
@@ -40,6 +45,16 @@ TLSSocketWrapper::TLSSocketWrapper(Socket *transport, const char *hostname, cont
     _clicert_allocated(false),
     _ssl_conf_allocated(false)
 {
+#if defined(MBEDTLS_USE_PSA_CRYPTO)
+    // It is safe to call psa_crypto_init() any number of times as
+    // defined by the PSA Crypto API. There is no standard "deinit"
+    // function.
+    psa_status_t status = psa_crypto_init();
+    if (status != PSA_SUCCESS) {
+        tr_err("psa_crypto_init() failed (" PRIu32 ")", status);
+    }
+#endif /* MBEDTLS_USE_PSA_CRYPTO */
+
 #if defined(MBEDTLS_PLATFORM_C)
     int ret = mbedtls_platform_setup(nullptr);
     if (ret != 0) {
@@ -134,7 +149,10 @@ nsapi_error_t TLSSocketWrapper::set_client_cert_key(const void *client_cert, siz
 #else
 
     int ret;
-    mbedtls_x509_crt *crt = new mbedtls_x509_crt;
+    mbedtls_x509_crt *crt = new (std::nothrow) mbedtls_x509_crt;
+    if (!crt) {
+        return NSAPI_ERROR_NO_MEMORY;
+    }
     mbedtls_x509_crt_init(crt);
     if ((ret = mbedtls_x509_crt_parse(crt, static_cast<const unsigned char *>(client_cert),
                                       client_cert_len)) != 0) {
@@ -268,10 +286,10 @@ nsapi_error_t TLSSocketWrapper::continue_handshake()
     }
 
     if (ret < 0) {
-        print_mbedtls_error("mbedtls_ssl_handshake", ret);
         if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
             return NSAPI_ERROR_ALREADY;
         } else {
+            print_mbedtls_error("mbedtls_ssl_handshake", ret);
             return NSAPI_ERROR_AUTH_FAILURE;
         }
     }
@@ -286,7 +304,11 @@ nsapi_error_t TLSSocketWrapper::continue_handshake()
 #if defined(MBEDTLS_X509_CRT_PARSE_C) && defined(FEA_TRACE_SUPPORT) && !defined(MBEDTLS_X509_REMOVE_INFO)
     /* Prints the server certificate and verify it. */
     const size_t buf_size = 1024;
-    char *buf = new char[buf_size];
+    char *buf = new (std::nothrow) char[buf_size];
+    if (!buf) {
+        print_mbedtls_error("new (std::nothrow) char[buf_size] failed in continue_handshake", NSAPI_ERROR_NO_MEMORY);
+        return NSAPI_ERROR_NO_MEMORY;
+    }
     mbedtls_x509_crt_info(buf, buf_size, "\r    ",
                           mbedtls_ssl_get_peer_cert(&_ssl));
     tr_debug("Server certificate:\r\n%s\r\n", buf);
@@ -363,6 +385,13 @@ nsapi_size_or_error_t TLSSocketWrapper::sendto(const SocketAddress &, const void
     return send(data, size);
 }
 
+nsapi_size_or_error_t TLSSocketWrapper::sendto_control(const SocketAddress &address, const void *data,
+                                                       nsapi_size_t size, nsapi_msghdr_t *control,
+                                                       nsapi_size_t control_size)
+{
+    return sendto(address, data, size);
+}
+
 nsapi_size_or_error_t TLSSocketWrapper::recv(void *data, nsapi_size_t size)
 {
     int ret;
@@ -423,14 +452,19 @@ nsapi_size_or_error_t TLSSocketWrapper::recvfrom(SocketAddress *address, void *d
     return recv(data, size);
 }
 
+nsapi_size_or_error_t TLSSocketWrapper::recvfrom_control(SocketAddress *address, void *data, nsapi_size_t size,
+                                                         nsapi_msghdr_t *control, nsapi_size_t control_size)
+{
+    return recvfrom(address, data, size);
+}
+
 void TLSSocketWrapper::print_mbedtls_error(MBED_UNUSED const char *name, MBED_UNUSED int err)
 {
 // Avoid pulling in mbedtls_strerror when trace is not enabled
 #if defined FEA_TRACE_SUPPORT && defined MBEDTLS_ERROR_C
-    char *buf = new char[128];
+    char buf[128];
     mbedtls_strerror(err, buf, 128);
     tr_err("%s() failed: -0x%04x (%d): %s", name, -err, err, buf);
-    delete[] buf;
 #else
     tr_err("%s() failed: -0x%04x (%d)", name, -err, err);
 #endif
@@ -569,7 +603,10 @@ mbedtls_ssl_config *TLSSocketWrapper::get_ssl_config()
 {
     if (!_ssl_conf) {
         int ret;
-        _ssl_conf = new mbedtls_ssl_config;
+        _ssl_conf = new (std::nothrow) mbedtls_ssl_config;
+        if (!_ssl_conf) {
+            return nullptr;
+        }
         mbedtls_ssl_config_init(_ssl_conf);
         _ssl_conf_allocated = true;
 
