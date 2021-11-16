@@ -58,7 +58,7 @@ target_link_libraries(max31856 mbed-os)
 ```
 
 ## Bundled Mbed
-This repository includes Mbed OS 6.5.0 stable in the master branch. 
+This repository includes Mbed OS 6.15.0 stable in the master branch. 
 
 If you need an older OS version, Mbed 5.15.6 is available in the "retro" branch of this project, and Mbed 2 r163 is available by pulling the "paleo" branch.
 
@@ -67,7 +67,6 @@ If you need a different version from those three, you should be able to use a di
 ## Limitations
 - Currently Mbed-cmake only supports the GNU Arm Embedded (`-t GCC_ARM`) and ARMClang (`-t ARMC6`) toolchains.  
 - CLion does not work with ARMClang -- the IDE is not able to scan compiler options so the project doesn't load.  It seems to be a CLion bug.
-- The full range of Mbed CLI's upload methods are not supported yet.
-- LTO cannot be supported for GCC_ARM due to [a gcc bug](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83967)
+- LTO cannot be supported for GCC_ARM &lt; 2020 Q4 due to [a gcc bug](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83967)
 
 Mbed-cmake was designed for use with a single processor target per build directory.  However, you can create multiple build directories, each configured for a different processor.  Especially if you use an IDE like CLion, developing on multiple processors is manageable.
