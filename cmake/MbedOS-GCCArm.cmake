@@ -10,7 +10,7 @@ set(LINKER_SCRIPT_EXT ".ld")
 set(PREPROCESSED_LINKER_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/${LINKER_SCRIPT_FILENAME}_preprocessed${LINKER_SCRIPT_EXT})
 
 # convert CMAKE_EXE_LINKER_FLAGS from a string to a list of arguments so it can be passed to add_custom_command
-separate_arguments(CMAKE_EXE_LINKER_FLAGS_LIST "${CMAKE_EXE_LINKER_FLAGS}" NATIVE_COMMAND)
+separate_arguments(CMAKE_EXE_LINKER_FLAGS_LIST NATIVE_COMMAND "${CMAKE_EXE_LINKER_FLAGS}")
 
 # NOTE: clearly the linker script is not assembly!  We give -x assembler-with-cpp to force GCC to try and compile the file
 # as if it was assembly.  It only gets to the preprocessor stage because of -E, and everything works fine.
