@@ -14,15 +14,24 @@
 
 # first try to locate STM32Cube IDE in its default location
 set(STM32CUBE_IDE_LINUX_HINTS "")
+set(STM32CUBE_IDE_WINDOWS_HINTS "")
 if(EXISTS "/opt/st")
     # Linux directory has version number
     file(GLOB STM32CUBE_IDE_LINUX_HINTS LIST_DIRECTORIES TRUE "/opt/st/*")
+endif()
+if(EXISTS "C:/ST/")
+    # On Windows, STM32CubeIDE by default is installed into a subdirectory of
+    # C:\ST\STM32CubeIDE_<version>\STM32CubeIDE, but may also be installed into
+    # C:\ST\STM32CubeIDE directly
+
+    # Identify all the subdirectories and sub-subdirectories of C:\ST
+    file(GLOB STM32CUBE_IDE_WINDOWS_HINTS LIST_DIRECTORIES TRUE "C:/ST/*/*" "C:/ST/*")
 endif()
 find_path(STM32CUBE_IDE_PATH
     NAMES stm32cubeide.ini
     DOC "Path to STM32Cube IDE.  Used to find the ST-Link Tools"
     PATHS
-        C:/ST/STM32CubeIDE # default Windows path
+        ${STM32CUBE_IDE_WINDOWS_HINTS} # Windows
         ${STM32CUBE_IDE_LINUX_HINTS} # Linux
         /Applications/STM32CubeIDE.app/Contents/Eclipse # OS X
         )
@@ -96,5 +105,3 @@ if(EXISTS "${STLINK_gdbserver_PATH}")
 endif()
 
 find_package_handle_standard_args(STLINKTools REQUIRED_VARS ${STLINKTools_REQUIRED_VARS})
-
-
