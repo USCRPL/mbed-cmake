@@ -241,7 +241,7 @@ for target_name in target_names:
                         print("\t-> Filtering out %s" % dupe_path)
                         _, file_ext = os.path.splitext(dupe_path)
                         file_type = resources._EXT.get(file_ext.lower())
-                        resources._file_refs[file_type].discard(FileRef(dupe_path, dupe_path))
+                        resources._file_refs[file_type].discard(FileRef(dupe_path, os.path.abspath(dupe_path)))
 
             profile_toolchain.RESPONSE_FILES = False
             profile_toolchains.append(profile_toolchain)
