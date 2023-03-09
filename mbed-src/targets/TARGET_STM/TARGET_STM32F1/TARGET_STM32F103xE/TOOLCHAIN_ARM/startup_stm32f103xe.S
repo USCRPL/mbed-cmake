@@ -24,29 +24,6 @@
 ;*
 ;******************************************************************************
 
-; Amount of memory (in bytes) allocated for Stack
-; Tailor this value to your application needs
-; <h> Stack Configuration
-;   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
-; </h>
-
-Stack_Size      EQU     0x00000400
-
-                AREA    STACK, NOINIT, READWRITE, ALIGN=3
-Stack_Mem       SPACE   Stack_Size
-__initial_sp
-                                                  
-; <h> Heap Configuration
-;   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
-; </h>
-
-Heap_Size       EQU     0x00000200
-
-                AREA    HEAP, NOINIT, READWRITE, ALIGN=3
-__heap_base
-Heap_Mem        SPACE   Heap_Size
-__heap_limit
-
                 PRESERVE8
                 THUMB
 
@@ -57,7 +34,8 @@ __heap_limit
                 EXPORT  __Vectors_End
                 EXPORT  __Vectors_Size
 
-__Vectors       DCD     __initial_sp               ; Top of Stack
+                IMPORT  |Image$$ARM_LIB_STACK$$ZI$$Limit|
+__Vectors       DCD     |Image$$ARM_LIB_STACK$$ZI$$Limit|               ; Top of Stack
                 DCD     Reset_Handler              ; Reset Handler
                 DCD     NMI_Handler                ; NMI Handler
                 DCD     HardFault_Handler          ; Hard Fault Handler

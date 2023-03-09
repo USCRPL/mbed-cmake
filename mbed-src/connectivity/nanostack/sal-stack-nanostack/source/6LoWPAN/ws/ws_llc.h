@@ -49,13 +49,15 @@ typedef struct wh_ie_sub_list_s {
  * @brief wp_nested_ie_sub_list_t ws asynch Nested Payload sub IE element request list
  */
 typedef struct wp_nested_ie_sub_list_s {
-    bool us_ie: 1;          /**< Unicast Schedule information */
-    bool bs_ie: 1;          /**< Broadcast Schedule information */
-    bool vp_ie: 1;          /**< Vendor Payload information */
-    bool pan_ie: 1;         /**< PAN Information */
-    bool net_name_ie: 1;    /**< Network Name information */
-    bool pan_version_ie: 1; /**< Pan configuration version */
-    bool gtkhash_ie: 1;     /**< GTK Hash information */
+    bool us_ie: 1;                  /**< Unicast Schedule information */
+    bool bs_ie: 1;                  /**< Broadcast Schedule information */
+    bool vp_ie: 1;                  /**< Vendor Payload information */
+    bool pan_ie: 1;                 /**< PAN Information */
+    bool net_name_ie: 1;            /**< Network Name information */
+    bool pan_version_ie: 1;         /**< Pan configuration version */
+    bool gtkhash_ie: 1;             /**< GTK Hash information */
+    bool lfn_gtk_version_ie: 1;     /**<  LFN Version & GTK Hash */
+    bool phy_cap_ie: 1;             /** < Phy Cap information for MDR */
 } wp_nested_ie_sub_list_t;
 
 /**
@@ -115,7 +117,7 @@ typedef void ws_asynch_ind(struct protocol_interface_info_entry *interface, cons
 typedef void ws_asynch_confirm(struct protocol_interface_info_entry *interface, uint8_t asynch_message);
 
 /**
- * @brief ws_asynch_confirm ws asynch data confirmation to asynch message request
+ * @brief ws_neighbor_info_request neighbor info request
  * @param interface The interface pointer
  * @param mac_64 Neighbor 64-bit address
  * @param neighbor_buffer Buffer where neighbor infor is buffered
@@ -124,17 +126,33 @@ typedef void ws_asynch_confirm(struct protocol_interface_info_entry *interface, 
  * @return true when neighbor info is available
  * @return false when no neighbor info
  */
-typedef bool ws_neighbor_info_request(struct protocol_interface_info_entry *interface, const uint8_t *mac_64, llc_neighbour_req_t *neighbor_buffer, bool request_new);
+typedef bool ws_neighbor_info_request(struct protocol_interface_info_entry *interface, const uint8_t *mac_64, struct llc_neighbour_req *neighbor_buffer, bool request_new);
+
+/**
+ * @brief ws_eapol_relay_active_check check if eapol relay is active
+ * @param interface The interface pointer
+ *
+ * @return true eapol relay is active
+ * @return false eapol relay is not active
+ */
+typedef bool ws_eapol_relay_active_check(struct protocol_interface_info_entry *cur);
 
 /**
  * @brief ws_llc_create ws LLC module create
  * @param interface Interface pointer
  * @param asynch_ind_cb Asynch indication
+ * @param asynch_cnf_cb Asynch confirm
+ * @param ws_neighbor_info_request_cb neighbor info request
+ * @param eapol_relay_active_cb check if eapol relay is active
+ *
  * @param ie_ext Information element list
  *
  * Function allocate and init LLC class and init it 2 supported 2 API: ws asynch and MPX user are internally registered.
+ *
+ * @return 0 on success
+ * @return < 0 on failure
  */
-int8_t ws_llc_create(struct protocol_interface_info_entry *interface, ws_asynch_ind *asynch_ind_cb, ws_asynch_confirm *asynch_cnf_cb, ws_neighbor_info_request *ws_neighbor_info_request_cb);
+int8_t ws_llc_create(struct protocol_interface_info_entry *interface, ws_asynch_ind *asynch_ind_cb, ws_asynch_confirm *asynch_cnf_cb, ws_neighbor_info_request *ws_neighbor_info_request_cb, ws_eapol_relay_active_check *eapol_relay_active_cb);
 
 /**
  * @brief ws_llc_reset Reset ws LLC parametrs and clean messages

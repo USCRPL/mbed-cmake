@@ -320,7 +320,7 @@ static void client_tls_sec_prot_state_machine(sec_prot_t *prot)
             sec_prot_state_set(prot, &data->common, TLS_STATE_CREATE_REQ);
             prot->timer_start(prot);
             // Set default timeout for the total maximum length of the negotiation
-            sec_prot_default_timeout_set(&data->common);
+            sec_prot_timeout_set(&data->common, prot->sec_cfg->prot_cfg.sec_prot_retry_timeout);
             break;
 
         // Wait KMP-CREATE.request
@@ -354,6 +354,8 @@ static void client_tls_sec_prot_state_machine(sec_prot_t *prot)
             } else {
                 data->calculating = false;
             }
+
+            sec_prot_timeout_set(&data->common, prot->sec_cfg->prot_cfg.sec_prot_retry_timeout);
 
             if (data->tls_send.data) {
                 prot->send(prot, data->tls_send.data, data->tls_send.handled_len);
@@ -415,7 +417,7 @@ static void server_tls_sec_prot_state_machine(sec_prot_t *prot)
             sec_prot_state_set(prot, &data->common, TLS_STATE_CLIENT_HELLO);
             prot->timer_start(prot);
             // Set default timeout for the total maximum length of the negotiation
-            sec_prot_default_timeout_set(&data->common);
+            sec_prot_timeout_set(&data->common, prot->sec_cfg->prot_cfg.sec_prot_retry_timeout);
             break;
 
         // Wait EAP request, Identity (starts handshake on supplicant)
@@ -473,6 +475,8 @@ static void server_tls_sec_prot_state_machine(sec_prot_t *prot)
             } else {
                 data->calculating = false;
             }
+
+            sec_prot_timeout_set(&data->common, prot->sec_cfg->prot_cfg.sec_prot_retry_timeout);
 
             if (data->tls_send.data) {
                 prot->send(prot, data->tls_send.data, data->tls_send.handled_len);
@@ -595,7 +599,7 @@ static void tls_sec_prot_tls_export_keys(void *handle, const uint8_t *master_sec
     const uint8_t *print_data = eap_tls_key_material;
     uint16_t print_data_len = 128;
     while (true) {
-        tr_debug("EAP-TLS key material %s\n", trace_array(print_data, print_data_len > 32 ? 32 : print_data_len));
+        tr_debug("EAP-TLS key material %s", trace_array(print_data, print_data_len > 32 ? 32 : print_data_len));
         if (print_data_len > 32) {
             print_data_len -= 32;
             print_data += 32;

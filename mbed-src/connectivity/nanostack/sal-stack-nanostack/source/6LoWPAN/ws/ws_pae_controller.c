@@ -26,6 +26,7 @@
 #include "ws_management_api.h"
 #include "ws_bbr_api.h"
 #include "Service_Libs/utils/ns_file.h"
+#include "Service_Libs/utils/ns_time.h"
 #include "NWK_INTERFACE/Include/protocol.h"
 #include "6LoWPAN/ws/ws_config.h"
 #include "6LoWPAN/ws/ws_cfg_settings.h"
@@ -51,7 +52,7 @@ typedef void ws_pae_timer(uint16_t ticks);
 typedef int8_t ws_pae_br_addr_write(protocol_interface_info_entry_t *interface_ptr, const uint8_t *eui_64);
 typedef int8_t ws_pae_br_addr_read(protocol_interface_info_entry_t *interface_ptr, uint8_t *eui_64);
 typedef void ws_pae_gtks_updated(protocol_interface_info_entry_t *interface_ptr);
-typedef int8_t ws_pae_gtk_hash_update(protocol_interface_info_entry_t *interface_ptr, uint8_t *gtkhash);
+typedef int8_t ws_pae_gtk_hash_update(protocol_interface_info_entry_t *interface_ptr, uint8_t *gtkhash, bool del_gtk_on_mismatch);
 typedef int8_t ws_pae_nw_key_index_update(protocol_interface_info_entry_t *interface_ptr, uint8_t index);
 typedef int8_t ws_pae_nw_info_set(protocol_interface_info_entry_t *interface_ptr, uint16_t pan_id, char *network_name, bool updated);
 
@@ -63,11 +64,15 @@ typedef struct {
 
 typedef struct {
     ns_list_link_t link;                                             /**< Link */
+#ifdef HAVE_PAE_SUPP
     uint8_t target_eui_64[8];                                        /**< EAPOL target */
     uint16_t target_pan_id;                                          /**< EAPOL target PAN ID */
+#endif
     uint8_t br_eui_64[8];                                            /**< Border router EUI-64 */
     sec_prot_gtk_keys_t gtks;                                        /**< GTKs */
+#ifdef HAVE_PAE_AUTH
     sec_prot_gtk_keys_t next_gtks;                                   /**< Next GTKs */
+#endif
     sec_prot_keys_nw_info_t sec_keys_nw_info;                        /**< Security keys network information */
     int8_t gtk_index;                                                /**< GTK index */
     uint8_t gtkhash[32];                                             /**< GTK hashes */
@@ -79,17 +84,21 @@ typedef struct {
     sec_cfg_t sec_cfg;                                               /**< Security configuration (configuration set values) */
     uint32_t restart_cnt;                                            /**< Re-start counter */
     protocol_interface_info_entry_t *interface_ptr;                  /**< List link entry */
-    ws_pae_controller_auth_completed *auth_completed;                /**< Authentication completed callback, continue bootstrap */
     ws_pae_controller_nw_key_set *nw_key_set;                        /**< Key set callback */
     ws_pae_controller_nw_key_clear *nw_key_clear;                    /**< Key clear callback */
     ws_pae_controller_nw_send_key_index_set *nw_send_key_index_set;  /**< Send key index set callback */
     ws_pae_controller_nw_frame_counter_set *nw_frame_counter_set;    /**< Frame counter set callback */
     ws_pae_controller_nw_frame_counter_read *nw_frame_counter_read;  /**< Frame counter read callback */
+#ifdef HAVE_PAE_SUPP
+    ws_pae_controller_auth_completed *auth_completed;                /**< Authentication completed callback, continue bootstrap */
+    ws_pae_controller_auth_next_target *auth_next_target;            /**< Authentication next target callback */
+#endif
+#ifdef HAVE_PAE_AUTH
     ws_pae_controller_pan_ver_increment *pan_ver_increment;          /**< PAN version increment callback */
     ws_pae_controller_nw_info_updated *nw_info_updated;              /**< Network information updated callback */
-    ws_pae_controller_auth_next_target *auth_next_target;            /**< Authentication next target callback */
     ws_pae_controller_congestion_get *congestion_get;                /**< Congestion get callback */
     ws_pae_controller_ip_addr_get *ip_addr_get;                      /**< IP address get callback */
+#endif
     ws_pae_delete *pae_delete;                                       /**< PAE delete callback */
     ws_pae_timer *pae_fast_timer;                                    /**< PAE fast timer callback */
     ws_pae_timer *pae_slow_timer;                                    /**< PAE slow timer callback */
@@ -119,6 +128,7 @@ static void ws_pae_controller_nw_info_updated_check(protocol_interface_info_entr
 #ifdef HAVE_PAE_AUTH
 static void ws_pae_controller_auth_ip_addr_get(protocol_interface_info_entry_t *interface_ptr, uint8_t *address);
 static bool ws_pae_controller_auth_congestion_get(protocol_interface_info_entry_t *interface_ptr, uint16_t active_supp);
+static int8_t  ws_pae_controller_auth_nw_frame_counter_read(protocol_interface_info_entry_t *interface_ptr, uint32_t *counter, uint8_t gtk_index);
 #endif
 static pae_controller_t *ws_pae_controller_get(protocol_interface_info_entry_t *interface_ptr);
 static void ws_pae_controller_frame_counter_timer(uint16_t seconds, pae_controller_t *entry);
@@ -126,10 +136,14 @@ static void ws_pae_controller_frame_counter_store(pae_controller_t *entry, bool 
 static void ws_pae_controller_nvm_frame_counter_write(frame_cnt_nvm_tlv_t *tlv_entry);
 static int8_t ws_pae_controller_nvm_frame_counter_read(uint32_t *restart_cnt, uint64_t *stored_time, uint16_t *pan_version, frame_counters_t *counters);
 static pae_controller_t *ws_pae_controller_get_or_create(int8_t interface_id);
+#ifdef HAVE_PAE_AUTH
 static void ws_pae_controller_gtk_hash_set(protocol_interface_info_entry_t *interface_ptr, uint8_t *gtkhash);
+#endif
 static int8_t ws_pae_controller_nw_key_check_and_insert(protocol_interface_info_entry_t *interface_ptr, sec_prot_gtk_keys_t *gtks, bool force_install);
 static void ws_pae_controller_active_nw_key_clear(nw_key_t *nw_key);
+#ifdef HAVE_PAE_SUPP
 static void ws_pae_controller_active_nw_key_set(protocol_interface_info_entry_t *cur, uint8_t index);
+#endif
 static int8_t ws_pae_controller_gak_from_gtk(uint8_t *gak, uint8_t *gtk, char *network_name);
 static void ws_pae_controller_frame_counter_store_and_nw_keys_remove(protocol_interface_info_entry_t *interface_ptr, pae_controller_t *controller, bool use_threshold);
 #ifdef HAVE_PAE_AUTH
@@ -140,8 +154,8 @@ static int8_t ws_pae_controller_frame_counter_read(pae_controller_t *controller)
 static void ws_pae_controller_frame_counter_reset(frame_counters_t *frame_counters);
 static void ws_pae_controller_frame_counter_index_reset(frame_counters_t *frame_counters, uint8_t index);
 static int8_t ws_pae_controller_nw_info_read(pae_controller_t *controller, sec_prot_gtk_keys_t *gtks);
-static int8_t ws_pae_controller_nvm_nw_info_write(protocol_interface_info_entry_t *interface_ptr, uint16_t pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks);
-static int8_t ws_pae_controller_nvm_nw_info_read(protocol_interface_info_entry_t *interface_ptr, uint16_t *pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks);
+static int8_t ws_pae_controller_nvm_nw_info_write(protocol_interface_info_entry_t *interface_ptr, uint16_t pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks, uint64_t stored_time, uint8_t time_changed);
+static int8_t ws_pae_controller_nvm_nw_info_read(protocol_interface_info_entry_t *interface_ptr, uint16_t *pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks, uint64_t current_time, uint8_t *time_changed);
 
 
 static const char *FRAME_COUNTER_FILE = FRAME_COUNTER_FILE_NAME;
@@ -196,7 +210,7 @@ int8_t ws_pae_controller_bootstrap_done(protocol_interface_info_entry_t *interfa
 
     /* Trigger GTK hash update to supplicant, so it can check whether keys have been updated
        during bootstrap. Does nothing if GTKs are up to date. */
-    ws_pae_supp_gtk_hash_update(interface_ptr, controller->gtkhash);
+    ws_pae_supp_gtk_hash_update(interface_ptr, controller->gtkhash, false);
 #endif
 
     return 0;
@@ -239,7 +253,7 @@ int8_t ws_pae_controller_authenticator_start(protocol_interface_info_entry_t *in
         ws_pae_auth_node_limit_set(controller->interface_ptr, pae_controller_config.node_limit);
     }
 
-    ws_pae_auth_cb_register(interface_ptr, ws_pae_controller_gtk_hash_set, ws_pae_controller_nw_key_check_and_insert, ws_pae_controller_nw_key_index_check_and_set, ws_pae_controller_nw_info_updated_check, ws_pae_controller_auth_ip_addr_get, ws_pae_controller_auth_congestion_get);
+    ws_pae_auth_cb_register(interface_ptr, ws_pae_controller_gtk_hash_set, ws_pae_controller_nw_key_check_and_insert, ws_pae_controller_nw_key_index_check_and_set, ws_pae_controller_nw_info_updated_check, ws_pae_controller_auth_ip_addr_get, ws_pae_controller_auth_congestion_get, ws_pae_controller_auth_nw_frame_counter_read);
 
     controller->auth_started = true;
 
@@ -248,8 +262,28 @@ int8_t ws_pae_controller_authenticator_start(protocol_interface_info_entry_t *in
     return 0;
 }
 
-int8_t ws_pae_controller_cb_register(protocol_interface_info_entry_t *interface_ptr, ws_pae_controller_auth_completed *completed, ws_pae_controller_auth_next_target *auth_next_target, ws_pae_controller_nw_key_set *nw_key_set, ws_pae_controller_nw_key_clear *nw_key_clear, ws_pae_controller_nw_send_key_index_set *nw_send_key_index_set, ws_pae_controller_nw_frame_counter_set *nw_frame_counter_set, ws_pae_controller_nw_frame_counter_read *nw_frame_counter_read, ws_pae_controller_pan_ver_increment *pan_ver_increment, ws_pae_controller_nw_info_updated *nw_info_updated, ws_pae_controller_congestion_get *congestion_get)
+int8_t ws_pae_controller_nw_key_cb_register(protocol_interface_info_entry_t *interface_ptr, ws_pae_controller_nw_key_set *nw_key_set, ws_pae_controller_nw_key_clear *nw_key_clear, ws_pae_controller_nw_send_key_index_set *nw_send_key_index_set, ws_pae_controller_nw_frame_counter_set *nw_frame_counter_set, ws_pae_controller_nw_frame_counter_read *nw_frame_counter_read)
 {
+    if (!interface_ptr) {
+        return -1;
+    }
+
+    pae_controller_t *controller = ws_pae_controller_get(interface_ptr);
+    if (!controller) {
+        return -1;
+    }
+
+    controller->nw_key_set = nw_key_set;
+    controller->nw_key_clear = nw_key_clear;
+    controller->nw_send_key_index_set = nw_send_key_index_set;
+    controller->nw_frame_counter_set = nw_frame_counter_set;
+    controller->nw_frame_counter_read = nw_frame_counter_read;
+    return 0;
+}
+
+int8_t ws_pae_controller_authentication_cb_register(protocol_interface_info_entry_t *interface_ptr, ws_pae_controller_auth_completed *completed, ws_pae_controller_auth_next_target *auth_next_target)
+{
+#ifdef HAVE_PAE_SUPP
     if (!interface_ptr) {
         return -1;
     }
@@ -260,20 +294,19 @@ int8_t ws_pae_controller_cb_register(protocol_interface_info_entry_t *interface_
     }
 
     controller->auth_completed = completed;
-    controller->nw_key_set = nw_key_set;
-    controller->nw_key_clear = nw_key_clear;
-    controller->nw_send_key_index_set = nw_send_key_index_set;
-    controller->nw_frame_counter_set = nw_frame_counter_set;
-    controller->nw_frame_counter_read = nw_frame_counter_read;
-    controller->pan_ver_increment = pan_ver_increment;
-    controller->nw_info_updated = nw_info_updated;
     controller->auth_next_target = auth_next_target;
-    controller->congestion_get = congestion_get;
     return 0;
+#else
+    (void) interface_ptr;
+    (void) completed;
+    (void) auth_next_target;
+    return 0;
+#endif
 }
 
-int8_t ws_pae_controller_auth_cb_register(protocol_interface_info_entry_t *interface_ptr, ws_pae_controller_ip_addr_get *ip_addr_get)
+int8_t ws_pae_controller_information_cb_register(protocol_interface_info_entry_t *interface_ptr, ws_pae_controller_ip_addr_get *ip_addr_get, ws_pae_controller_nw_info_updated *nw_info_updated, ws_pae_controller_congestion_get *congestion_get)
 {
+#ifdef HAVE_PAE_AUTH
     if (!interface_ptr) {
         return -1;
     }
@@ -284,11 +317,42 @@ int8_t ws_pae_controller_auth_cb_register(protocol_interface_info_entry_t *inter
     }
 
     controller->ip_addr_get = ip_addr_get;
+    controller->nw_info_updated = nw_info_updated;
+    controller->congestion_get = congestion_get;
     return 0;
+#else
+    (void) interface_ptr;
+    (void) ip_addr_get;
+    (void) nw_info_updated;
+    (void) congestion_get;
+    return 0;
+#endif
+}
+
+int8_t ws_pae_controller_pan_version_cb_register(protocol_interface_info_entry_t *interface_ptr, ws_pae_controller_pan_ver_increment *pan_ver_increment)
+{
+#ifdef HAVE_PAE_AUTH
+    if (!interface_ptr) {
+        return -1;
+    }
+
+    pae_controller_t *controller = ws_pae_controller_get(interface_ptr);
+    if (!controller) {
+        return -1;
+    }
+
+    controller->pan_ver_increment = pan_ver_increment;
+    return 0;
+#else
+    (void) interface_ptr;
+    (void) pan_ver_increment;
+    return 0;
+#endif
 }
 
 int8_t ws_pae_controller_set_target(protocol_interface_info_entry_t *interface_ptr, uint16_t target_pan_id, uint8_t *target_eui_64)
 {
+#ifdef HAVE_PAE_SUPP
     if (!interface_ptr) {
         return -1;
     }
@@ -302,6 +366,12 @@ int8_t ws_pae_controller_set_target(protocol_interface_info_entry_t *interface_p
     memcpy(controller->target_eui_64, target_eui_64, 8);
 
     return 0;
+#else
+    (void) interface_ptr;
+    (void) target_pan_id;
+    (void) target_eui_64;
+    return -1;
+#endif
 }
 
 static void ws_pae_controller_keys_nw_info_init(sec_prot_keys_nw_info_t *sec_keys_nw_info, sec_prot_gtk_keys_t *gtks)
@@ -376,7 +446,8 @@ static void ws_pae_controller_nw_info_updated_check(protocol_interface_info_entr
         if (arm_nwk_mac_address_read(interface_ptr->id, &mac_params) >= 0) {
             memcpy(gtk_eui64, mac_params.mac_long, 8);
         }
-        ws_pae_controller_nvm_nw_info_write(interface_ptr, controller->sec_keys_nw_info.key_pan_id, controller->sec_keys_nw_info.network_name, gtk_eui64, controller->sec_keys_nw_info.gtks);
+        uint64_t system_time = ws_pae_current_time_get();
+        ws_pae_controller_nvm_nw_info_write(interface_ptr, controller->sec_keys_nw_info.key_pan_id, controller->sec_keys_nw_info.network_name, gtk_eui64, controller->sec_keys_nw_info.gtks, system_time, controller->sec_keys_nw_info.system_time_changed);
         controller->sec_keys_nw_info.updated = false;
         sec_prot_keys_gtks_updated_reset(controller->sec_keys_nw_info.gtks);
     }
@@ -410,10 +481,27 @@ static bool ws_pae_controller_auth_congestion_get(protocol_interface_info_entry_
 
     return controller->congestion_get(interface_ptr, active_supp);
 }
+
+static int8_t ws_pae_controller_auth_nw_frame_counter_read(protocol_interface_info_entry_t *interface_ptr, uint32_t *counter, uint8_t gtk_index)
+{
+    if (!interface_ptr) {
+        return -1;
+    }
+
+    pae_controller_t *controller = ws_pae_controller_get(interface_ptr);
+    if (!controller) {
+        return -1;
+    }
+
+    controller->nw_frame_counter_read(interface_ptr, counter, gtk_index);
+    return 0;
+}
 #endif
 
 int8_t ws_pae_controller_nw_key_valid(protocol_interface_info_entry_t *interface_ptr, uint8_t *br_iid)
 {
+    (void) br_iid;
+
     if (!interface_ptr) {
         return -1;
     }
@@ -546,19 +634,31 @@ static int8_t ws_pae_controller_gak_from_gtk(uint8_t *gak, uint8_t *gtk, char *n
 
     mbedtls_sha256_init(&ctx);
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_starts(&ctx, 0) != 0) {
+#else
     if (mbedtls_sha256_starts_ret(&ctx, 0) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_update(&ctx, input, network_name_len + GTK_LEN) != 0) {
+#else
     if (mbedtls_sha256_update_ret(&ctx, input, network_name_len + GTK_LEN) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
 
     uint8_t output[32];
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_finish(&ctx, output) != 0) {
+#else
     if (mbedtls_sha256_finish_ret(&ctx, output) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
@@ -653,6 +753,7 @@ static void ws_pae_controller_nw_key_index_check_and_set(protocol_interface_info
 }
 #endif
 
+#ifdef HAVE_PAE_SUPP
 static void ws_pae_controller_active_nw_key_set(protocol_interface_info_entry_t *cur, uint8_t index)
 {
     pae_controller_t *controller = ws_pae_controller_get(cur);
@@ -671,6 +772,7 @@ static void ws_pae_controller_active_nw_key_set(protocol_interface_info_entry_t 
 
     }
 }
+#endif
 
 int8_t ws_pae_controller_init(protocol_interface_info_entry_t *interface_ptr)
 {
@@ -690,15 +792,21 @@ int8_t ws_pae_controller_init(protocol_interface_info_entry_t *interface_ptr)
     }
 
     controller->interface_ptr = interface_ptr;
-    controller->auth_completed = NULL;
     controller->nw_key_set = NULL;
     controller->nw_key_clear = NULL;
     controller->nw_send_key_index_set = NULL;
     controller->nw_frame_counter_set = NULL;
+    controller->nw_frame_counter_read = NULL;
+#ifdef HAVE_PAE_SUPP
+    controller->auth_completed = NULL;
+    controller->auth_next_target = NULL;
+#endif
+#ifdef HAVE_PAE_AUTH
     controller->pan_ver_increment = NULL;
     controller->nw_info_updated = NULL;
-    controller->auth_next_target = NULL;
     controller->congestion_get = NULL;
+    controller->ip_addr_get = NULL;
+#endif
 
     memset(&controller->sec_cfg, 0, sizeof(sec_cfg_t));
 
@@ -743,7 +851,9 @@ int8_t ws_pae_controller_configure(protocol_interface_info_entry_t *interface_pt
 
 static void ws_pae_controller_data_init(pae_controller_t *controller)
 {
+#ifdef HAVE_PAE_SUPP
     memset(controller->target_eui_64, 0, 8);
+#endif
     memset(controller->br_eui_64, 0, 8);
     memset(controller->gtkhash, 0, 32);
 
@@ -752,7 +862,9 @@ static void ws_pae_controller_data_init(pae_controller_t *controller)
     ws_pae_controller_active_nw_key_clear(&controller->nw_key[2]);
     ws_pae_controller_active_nw_key_clear(&controller->nw_key[3]);
 
+#ifdef HAVE_PAE_SUPP
     controller->target_pan_id = 0xffff;
+#endif
     controller->pae_delete = NULL;
     controller->pae_fast_timer = NULL;
     controller->pae_slow_timer = NULL;
@@ -773,7 +885,9 @@ static void ws_pae_controller_data_init(pae_controller_t *controller)
     controller->auth_started = false;
     ws_pae_controller_frame_counter_reset(&controller->frame_counters);
     sec_prot_keys_gtks_init(&controller->gtks);
+#ifdef HAVE_PAE_AUTH
     sec_prot_keys_gtks_init(&controller->next_gtks);
+#endif
     sec_prot_certs_init(&controller->certs);
     sec_prot_certs_ext_certificate_validation_set(&controller->certs, pae_controller_config.ext_cert_valid_enabled);
     ws_pae_controller_keys_nw_info_init(&controller->sec_keys_nw_info, &controller->gtks);
@@ -792,8 +906,8 @@ static int8_t ws_pae_controller_frame_counter_read(pae_controller_t *controller)
 
     // Read frame counters
     if (ws_pae_controller_nvm_frame_counter_read(&controller->restart_cnt, &stored_time, &controller->sec_keys_nw_info.pan_version, &controller->frame_counters) >= 0) {
-        // Current time is not valid
-        if (ws_pae_current_time_set(stored_time) < 0) {
+        // Check if stored time is not valid
+        if (ws_pae_stored_time_check_and_set(stored_time) < 0) {
             ret_value = -1;
         }
         // This is used to ensure that PMK replay counters are fresh after each re-start.
@@ -837,15 +951,22 @@ static void ws_pae_controller_frame_counter_index_reset(frame_counters_t *frame_
     memset(frame_counters->counter[index].gtk, 0, GTK_LEN);
     frame_counters->counter[index].frame_counter = 0;
     frame_counters->counter[index].stored_frame_counter = 0;
+    frame_counters->counter[index].max_frame_counter_chg = 0;
     frame_counters->counter[index].set = false;
 }
 
 static int8_t ws_pae_controller_nw_info_read(pae_controller_t *controller, sec_prot_gtk_keys_t *gtks)
 {
     uint8_t nvm_gtk_eui64[8];
-    if (ws_pae_controller_nvm_nw_info_read(controller->interface_ptr, &controller->sec_keys_nw_info.key_pan_id, controller->sec_keys_nw_info.network_name, nvm_gtk_eui64, gtks) < 0) {
+    uint64_t system_time = ws_pae_current_time_get();
+
+    uint8_t system_time_changed = controller->sec_keys_nw_info.system_time_changed;
+    if (ws_pae_controller_nvm_nw_info_read(controller->interface_ptr, &controller->sec_keys_nw_info.key_pan_id, controller->sec_keys_nw_info.network_name, nvm_gtk_eui64, gtks, system_time, &controller->sec_keys_nw_info.system_time_changed) < 0) {
         // If no stored GTKs and network info (pan_id and network name) exits
         return -1;
+    }
+    if (system_time_changed != controller->sec_keys_nw_info.system_time_changed) {
+        controller->sec_keys_nw_info.updated = true;
     }
 
     /* Get own EUI-64 and compare to the one read from the NVM. In case of mismatch delete GTKs and make
@@ -867,21 +988,21 @@ static int8_t ws_pae_controller_nw_info_read(pae_controller_t *controller, sec_p
     return 0;
 }
 
-static int8_t ws_pae_controller_nvm_nw_info_write(protocol_interface_info_entry_t *interface_ptr, uint16_t pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks)
+static int8_t ws_pae_controller_nvm_nw_info_write(protocol_interface_info_entry_t *interface_ptr, uint16_t pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks, uint64_t stored_time, uint8_t time_changed)
 {
     nw_info_nvm_tlv_t *tlv = (nw_info_nvm_tlv_t *) ws_pae_controller_nvm_tlv_get(interface_ptr);
     if (!tlv) {
         return -1;
     }
 
-    ws_pae_nvm_store_nw_info_tlv_create(tlv, pan_id, network_name, gtk_eui64, gtks);
+    ws_pae_nvm_store_nw_info_tlv_create(tlv, pan_id, network_name, gtk_eui64, gtks, stored_time, time_changed);
 
     ws_pae_nvm_store_tlv_file_write(NW_INFO_FILE, (nvm_tlv_t *) tlv);
 
     return 0;
 }
 
-static int8_t ws_pae_controller_nvm_nw_info_read(protocol_interface_info_entry_t *interface_ptr, uint16_t *pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks)
+static int8_t ws_pae_controller_nvm_nw_info_read(protocol_interface_info_entry_t *interface_ptr, uint16_t *pan_id, char *network_name, uint8_t *gtk_eui64, sec_prot_gtk_keys_t *gtks, uint64_t current_time, uint8_t *time_changed)
 {
     nw_info_nvm_tlv_t *tlv_entry = (nw_info_nvm_tlv_t *) ws_pae_controller_nvm_tlv_get(interface_ptr);
     if (!tlv_entry) {
@@ -894,7 +1015,7 @@ static int8_t ws_pae_controller_nvm_nw_info_read(protocol_interface_info_entry_t
         return -1;
     }
 
-    if (ws_pae_nvm_store_nw_info_tlv_read(tlv_entry, pan_id, network_name, gtk_eui64, gtks) < 0) {
+    if (ws_pae_nvm_store_nw_info_tlv_read(tlv_entry, pan_id, network_name, gtk_eui64, gtks, current_time, time_changed) < 0) {
         return -1;
     }
 
@@ -939,9 +1060,12 @@ int8_t ws_pae_controller_auth_init(protocol_interface_info_entry_t *interface_pt
         return -1;
     }
 
-    if (ws_pae_auth_init(controller->interface_ptr, &controller->next_gtks, &controller->certs, &controller->sec_cfg, &controller->sec_keys_nw_info) < 0) {
+    if (ws_pae_auth_init(controller->interface_ptr, &controller->next_gtks, &controller->certs, &controller->sec_cfg, &controller->sec_keys_nw_info, &controller->frame_counters) < 0) {
         return -1;
     }
+
+    // For Border Router enable the time acquired as default
+    ns_time_system_time_acquired_set();
 
     controller->pae_delete = ws_pae_auth_delete;
     controller->pae_fast_timer = ws_pae_auth_fast_timer;
@@ -966,22 +1090,22 @@ int8_t ws_pae_controller_auth_init(protocol_interface_info_entry_t *interface_pt
         }
         sec_prot_keys_gtks_updated_reset(&controller->gtks);
     }
-#endif
-
-    if (ws_pae_controller_nw_info_read(controller, read_gtks_to) >= 0) {
+    if (read_gtks_to && ws_pae_controller_nw_info_read(controller, read_gtks_to) >= 0) {
         /* If network information i.e pan_id and network name exists updates bootstrap with it,
            (in case already configured by application then no changes are made) */
         if (controller->nw_info_updated) {
             controller->nw_info_updated(interface_ptr, controller->sec_keys_nw_info.key_pan_id, controller->sec_keys_nw_info.pan_version, controller->sec_keys_nw_info.network_name);
         }
-        if (!read_gtks_to || sec_prot_keys_gtk_count(read_gtks_to) == 0) {
+        if (sec_prot_keys_gtk_count(read_gtks_to) == 0) {
             // Key material invalid or GTKs are expired, delete GTKs from NVM
             uint8_t gtk_eui64[8] = {0}; // Set GTK EUI-64 to zero
-            ws_pae_controller_nvm_nw_info_write(controller->interface_ptr, controller->sec_keys_nw_info.key_pan_id, controller->sec_keys_nw_info.network_name, gtk_eui64, NULL);
+            uint64_t system_time = ws_pae_current_time_get();
+            ws_pae_controller_nvm_nw_info_write(controller->interface_ptr, controller->sec_keys_nw_info.key_pan_id, controller->sec_keys_nw_info.network_name, gtk_eui64, NULL, system_time, controller->sec_keys_nw_info.system_time_changed);
         }
     }
-
+#endif
     ws_pae_key_storage_init();
+
     if (read_gtks_to) {
         ws_pae_key_storage_read(controller->restart_cnt);
     } else {
@@ -1499,6 +1623,7 @@ int8_t ws_pae_controller_gtk_update(int8_t interface_id, uint8_t *gtk[GTK_NUM])
 
 int8_t ws_pae_controller_next_gtk_update(int8_t interface_id, uint8_t *gtk[GTK_NUM])
 {
+#ifdef HAVE_PAE_AUTH
     if (!gtk) {
         return -1;
     }
@@ -1518,6 +1643,11 @@ int8_t ws_pae_controller_next_gtk_update(int8_t interface_id, uint8_t *gtk[GTK_N
     }
 
     return 0;
+#else
+    (void) interface_id;
+    (void) gtk;
+    return -1;
+#endif
 }
 
 int8_t ws_pae_controller_active_key_update(int8_t interface_id, uint8_t index)
@@ -1617,6 +1747,7 @@ void ws_pae_controller_forced_gc(bool full_gc)
     }
 }
 
+#ifdef HAVE_PAE_AUTH
 static void ws_pae_controller_gtk_hash_set(protocol_interface_info_entry_t *interface_ptr, uint8_t *gtkhash)
 {
     pae_controller_t *controller = ws_pae_controller_get(interface_ptr);
@@ -1641,6 +1772,7 @@ static void ws_pae_controller_gtk_hash_set(protocol_interface_info_entry_t *inte
         controller->gtkhash_set = true;
     }
 }
+#endif
 
 uint8_t *ws_pae_controller_gtk_hash_ptr_get(protocol_interface_info_entry_t *interface_ptr)
 {
@@ -1662,7 +1794,7 @@ int8_t ws_pae_controller_gtk_hash_update(protocol_interface_info_entry_t *interf
     memcpy(controller->gtkhash, gtkhash, 32);
 
     if (controller->pae_gtk_hash_update) {
-        return controller->pae_gtk_hash_update(interface_ptr, controller->gtkhash);
+        return controller->pae_gtk_hash_update(interface_ptr, controller->gtkhash, true);
     }
 
     return 0;
@@ -1731,9 +1863,12 @@ static void ws_pae_controller_frame_counter_store(pae_controller_t *entry, bool 
                 }
                 uint32_t frame_counter = entry->frame_counters.counter[i].frame_counter;
 
-                // If threshold check is disabled or frame counter has advanced for the threshold value, stores the new value
-                if (!use_threshold ||
-                        frame_counter > entry->frame_counters.counter[i].stored_frame_counter + FRAME_COUNTER_STORE_THRESHOLD) {
+                /* If threshold check is disabled or frame counter has advanced for the threshold value, stores the new value.
+                   If frame counter is at maximum at storage, do not initiate storing */
+                if (!use_threshold || (
+                            (frame_counter > entry->frame_counters.counter[i].stored_frame_counter + FRAME_COUNTER_STORE_THRESHOLD) &&
+                            !(entry->frame_counters.counter[i].stored_frame_counter == UINT32_MAX &&
+                              frame_counter >= UINT32_MAX - FRAME_COUNTER_STORE_THRESHOLD))) {
                     entry->frame_counters.counter[i].stored_frame_counter = frame_counter;
                     update_needed = true;
                     tr_debug("Stored updated frame counter: index %i value %"PRIu32"", i, frame_counter);
@@ -1761,8 +1896,9 @@ static void ws_pae_controller_frame_counter_store(pae_controller_t *entry, bool 
 
     if (update_needed || entry->frame_cnt_store_force_timer == 0) {
         tr_debug("Write frame counters: system time %"PRIu32"", protocol_core_monotonic_time / 10);
+        uint64_t system_time = ws_pae_current_time_get();
         // Writes modified frame counters
-        ws_pae_nvm_store_frame_counter_tlv_create((frame_cnt_nvm_tlv_t *) &entry->pae_nvm_buffer, entry->restart_cnt, entry->sec_keys_nw_info.pan_version, &entry->frame_counters);
+        ws_pae_nvm_store_frame_counter_tlv_create((frame_cnt_nvm_tlv_t *) &entry->pae_nvm_buffer, entry->restart_cnt, entry->sec_keys_nw_info.pan_version, &entry->frame_counters, system_time);
         ws_pae_controller_nvm_frame_counter_write((frame_cnt_nvm_tlv_t *) &entry->pae_nvm_buffer);
 
         // Reset force interval when ever values are stored

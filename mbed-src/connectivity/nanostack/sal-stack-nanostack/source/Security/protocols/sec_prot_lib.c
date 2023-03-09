@@ -174,9 +174,9 @@ bool sec_prot_result_ok_check(sec_prot_common_t *data)
     return false;
 }
 
-void sec_prot_default_timeout_set(sec_prot_common_t *data)
+void sec_prot_timeout_set(sec_prot_common_t *data, uint16_t ticks)
 {
-    data->ticks = SEC_TOTAL_TIMEOUT;
+    data->ticks = ticks;
 }
 
 void sec_prot_lib_nonce_generate(uint8_t *nonce)
@@ -514,19 +514,31 @@ int8_t sec_prot_lib_gtkhash_generate(uint8_t *gtk, uint8_t *gtk_hash)
 
     mbedtls_sha256_init(&ctx);
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_starts(&ctx, 0) != 0) {
+#else
     if (mbedtls_sha256_starts_ret(&ctx, 0) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_update(&ctx, gtk, 16) != 0) {
+#else
     if (mbedtls_sha256_update_ret(&ctx, gtk, 16) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
 
     uint8_t output[32];
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_finish(&ctx, output) != 0) {
+#else
     if (mbedtls_sha256_finish_ret(&ctx, output) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }

@@ -97,39 +97,6 @@ struct serial_s {
 #endif
 };
 
-struct i2c_s {
-    /*  The 1st 2 members I2CName i2c
-     *  and I2C_HandleTypeDef handle should
-     *  be kept as the first members of this struct
-     *  to ensure i2c_get_obj to work as expected
-     */
-    I2CName  i2c;
-    I2C_HandleTypeDef handle;
-    uint8_t index;
-    int hz;
-    PinName sda;
-    PinName scl;
-    IRQn_Type event_i2cIRQ;
-    IRQn_Type error_i2cIRQ;
-    uint32_t XferOperation;
-    volatile uint8_t event;
-    volatile int pending_start;
-    int current_hz;
-#if DEVICE_I2CSLAVE
-    uint8_t slave;
-    volatile uint8_t pending_slave_tx_master_rx;
-    volatile uint8_t pending_slave_rx_maxter_tx;
-    uint8_t *slave_rx_buffer;
-    volatile uint8_t slave_rx_buffer_size;
-    volatile uint8_t slave_rx_count;
-#endif
-#if DEVICE_I2C_ASYNCH
-    uint32_t address;
-    uint8_t stop;
-    uint8_t available_events;
-#endif
-};
-
 struct flash_s {
     /*  nothing to be stored for now */
     uint32_t dummy;
@@ -154,10 +121,9 @@ struct dac_s {
 
 #if DEVICE_CAN
 struct can_s {
-    CAN_HandleTypeDef CanHandle;
+    FDCAN_HandleTypeDef CanHandle;
     int index;
     int hz;
-    int rxIrqEnabled;
 };
 #endif
 

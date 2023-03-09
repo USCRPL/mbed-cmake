@@ -122,7 +122,7 @@ protected:
      *  NSAPI_ERROR_NO_SOCKET is returned if no socket is available.
      *
      *  @param handle   Destination for the handle to a newly created socket
-     *  @param proto    Protocol of socket to open, NSAPI_TCP or NSAPI_UDP
+     *  @param proto    Protocol of socket to open, NSAPI_TCP, NSAPI_UDP or NSAPI_ICMP
      *  @return         0 on success, negative error code on failure
      */
     nsapi_error_t socket_open(void **handle, nsapi_protocol_t proto) override;
@@ -301,20 +301,6 @@ protected:
      *  @return         0 on success, negative error code on failure
      */
     nsapi_error_t getsockopt(void *handle, int level, int optname, void *optval, unsigned *optlen) override;
-
-    nsapi_size_or_error_t socket_sendto_control(nsapi_socket_t handle, const SocketAddress &address,
-                                                const void *data, nsapi_size_t size,
-                                                nsapi_msghdr_t *control, nsapi_size_t control_size) override
-    {
-        return NSAPI_ERROR_UNSUPPORTED;
-    }
-
-    nsapi_size_or_error_t socket_recvfrom_control(nsapi_socket_t handle, SocketAddress *address,
-                                                  void *data, nsapi_size_t size,
-                                                  nsapi_msghdr_t *control, nsapi_size_t control_size) override
-    {
-        return NSAPI_ERROR_UNSUPPORTED;
-    }
 
 private:
 

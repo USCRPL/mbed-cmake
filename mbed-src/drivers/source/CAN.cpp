@@ -19,6 +19,7 @@
 #if DEVICE_CAN
 
 #include "platform/mbed_power_mgmt.h"
+#include "platform/mbed_error.h"
 
 namespace mbed {
 
@@ -26,28 +27,28 @@ CAN::CAN(PinName rd, PinName td) : _can(), _irq()
 {
     // No lock needed in constructor
     can_init(&_can, rd, td);
-    can_irq_init(&_can, (&CAN::_irq_handler), (uint32_t)this);
+    can_irq_init(&_can, (&CAN::_irq_handler), reinterpret_cast<uintptr_t>(this));
 }
 
 CAN::CAN(PinName rd, PinName td, int hz) : _can(), _irq()
 {
     // No lock needed in constructor
     can_init_freq(&_can, rd, td, hz);
-    can_irq_init(&_can, (&CAN::_irq_handler), (uint32_t)this);
+    can_irq_init(&_can, (&CAN::_irq_handler), reinterpret_cast<uintptr_t>(this));
 }
 
 CAN::CAN(const can_pinmap_t &pinmap) : _can(), _irq()
 {
     // No lock needed in constructor
     can_init_direct(&_can, &pinmap);
-    can_irq_init(&_can, (&CAN::_irq_handler), (uint32_t)this);
+    can_irq_init(&_can, (&CAN::_irq_handler), reinterpret_cast<uintptr_t>(this));
 }
 
 CAN::CAN(const can_pinmap_t &pinmap, int hz) : _can(), _irq()
 {
     // No lock needed in constructor
     can_init_freq_direct(&_can, &pinmap, hz);
-    can_irq_init(&_can, (&CAN::_irq_handler), (uint32_t)this);
+    can_irq_init(&_can, (&CAN::_irq_handler), reinterpret_cast<uintptr_t>(this));
 }
 
 CAN::~CAN()
@@ -82,6 +83,9 @@ int CAN::read(CANMessage &msg, int handle)
 {
     lock();
     int ret = can_read(&_can, &msg, handle);
+    if (msg.len > 8) {
+        MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER_CAN, MBED_ERROR_CODE_READ_FAILED), "Read tried to write more than 8 bytes");
+    }
     unlock();
     return ret;
 }
@@ -153,9 +157,9 @@ void CAN::attach(Callback<void()> func, IrqType type)
     unlock();
 }
 
-void CAN::_irq_handler(uint32_t id, CanIrqType type)
+void CAN::_irq_handler(uintptr_t context, CanIrqType type)
 {
-    CAN *handler = (CAN *)id;
+    CAN *handler = reinterpret_cast<CAN *>(context);
     if (handler->_irq[type]) {
         handler->_irq[type].call();
     }

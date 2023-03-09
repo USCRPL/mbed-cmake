@@ -34,6 +34,32 @@
 #include "pinmap.h"
 #include "PeripheralNames.h"
 
+#if TARGET_STM32F1
+#define AFIO_NONE                 0
+#define AFIO_REMAP_SPI1_ENABLE    1
+#define AFIO_REMAP_I2C1_ENABLE    2
+#define AFIO_REMAP_USART1_ENABLE  3
+#define AFIO_REMAP_USART2_ENABLE  4
+#define AFIO_REMAP_USART3_PARTIAL 5
+#define AFIO_REMAP_TIM1_PARTIAL   6
+#define AFIO_REMAP_TIM3_PARTIAL   7
+#define AFIO_REMAP_TIM2_ENABLE    8
+#define AFIO_REMAP_TIM3_ENABLE    9
+#define AFIO_REMAP_CAN1_2         10
+#define AFIO_REMAP_TIM1_ENABLE    11
+#define AFIO_REMAP_USART3_ENABLE  12
+#define AFIO_REMAP_CAN1_3         13
+#define AFIO_REMAP_TIM2_PARTIAL_1 14
+#define AFIO_REMAP_TIM2_PARTIAL_2 15
+#define AFIO_REMAP_TIM4_ENABLE    16
+#define AFIO_REMAP_TIM9_ENABLE    17
+#define AFIO_REMAP_TIM10_ENABLE   18
+#define AFIO_REMAP_TIM11_ENABLE   19
+#define AFIO_REMAP_TIM13_ENABLE   20
+#define AFIO_REMAP_TIM14_ENABLE   21
+#endif
+
+
 //*** GPIO ***
 #if GPIO_PINMAP_READY
 /* If this macro is defined, then PinMap_GPIO is present in PeripheralPins.c */
