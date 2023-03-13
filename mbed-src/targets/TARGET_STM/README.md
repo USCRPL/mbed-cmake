@@ -109,7 +109,7 @@ This table summarizes the STM32Cube versions currently used in Mbed OS master br
 | F3          |    1.11.2    | https://github.com/STMicroelectronics/STM32CubeF3 |
 | F4          |    1.26.1    | https://github.com/STMicroelectronics/STM32CubeF4 |
 | F7          |    1.16.1    | https://github.com/STMicroelectronics/STM32CubeF7 |
-| G0          |    1.4.1     | https://github.com/STMicroelectronics/STM32CubeG0 |
+| G0          |    1.5.0     | https://github.com/STMicroelectronics/STM32CubeG0 |
 | G4          |    1.4.0     | https://github.com/STMicroelectronics/STM32CubeG4 |
 | H7          |    1.9.0     | https://github.com/STMicroelectronics/STM32CubeH7 |
 | L0          |    1.12.0    | https://github.com/STMicroelectronics/STM32CubeL0 |
@@ -118,7 +118,7 @@ This table summarizes the STM32Cube versions currently used in Mbed OS master br
 | L5          |    1.4.0     | https://github.com/STMicroelectronics/STM32CubeL5 |
 | U5          |    1.0.0     | https://github.com/STMicroelectronics/STM32CubeU5 |
 | WB          |    1.11.1    | https://github.com/STMicroelectronics/STM32CubeWB |
-| WL          |    1.0.0     | https://github.com/STMicroelectronics/STM32CubeWL |
+| WL          |    1.1.0     | https://github.com/STMicroelectronics/STM32CubeWL |
 
 In Mbed OS repository, we try to minimize the difference between "official" and copied files.
 
@@ -181,8 +181,8 @@ But also each STM32 Part Number with different FLASH size : STM32F401xC / STM32F
 Mbed OS porting layer specific for this family are placed here.
 
 Example in TARGET_STM32G0:
-- TARGET_STM32G031xx
-- TARGET_STM32G071xx
+- TARGET_STM32G031x8
+- TARGET_STM32G071xB
 - ...
 
 Each STM32 sub-family contains:
@@ -474,6 +474,14 @@ Detailed sleep Mbed OS description : https://os.mbed.com/docs/mbed-os/latest/api
 - debug profile is disabling deepsleep
 - deepsleep can also be disabled by application or drivers using sleep_manager_lock_deep_sleep()
 - deep-sleep-latency value is configured to 4 by default for STM32
+- trace with MBED_SLEEP_TRACING_ENABLED macro is set by default with low verbosity
+```
+    "target_overrides": {
+        "*": {
+            "platform.deepsleep-stats-enabled": true,
+            "platform.deepsleep-stats-verbose": false
+        },
+```
 
 
 ### WiFi configuration
@@ -578,6 +586,7 @@ the CAN interface.
 While using RxInterrupt with the CAN object the receive ISR callback registered should defer read to thread context.
 A simple example is as shown below:
 
+```
 #include "mbed.h"
 
 Ticker ticker;
@@ -621,6 +630,7 @@ int main() {
     while(1) {
     }
 }
+```
 
 
 ## Mbed OS Wiki pages

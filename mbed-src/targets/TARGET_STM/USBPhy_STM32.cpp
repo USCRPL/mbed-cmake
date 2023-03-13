@@ -192,9 +192,9 @@ USBPhyHw::~USBPhyHw()
 
 }
 
-#if defined(TARGET_STM32F1) || defined(SYSCFG_PMC_USB_PU)
+#if defined(TARGET_STM32F1) || defined(TARGET_STM32F3) || defined(SYSCFG_PMC_USB_PU)
 
-#include "drivers/DigitalOut.h"
+#include "drivers/DigitalInOut.h"
 
 void USB_reenumerate()
 {
@@ -203,10 +203,16 @@ void USB_reenumerate()
     LL_SYSCFG_DisableUSBPullUp();
     wait_us(10000); // 10ms
     LL_SYSCFG_EnableUSBPullUp();
+#elif defined(USB_PULLUP_CONTROL)
+    mbed::DigitalInOut usb_dp_pin(USB_PULLUP_CONTROL, PIN_OUTPUT, PullNone, 0);
+    wait_us(1000);
+    usb_dp_pin = 1;
+    wait_us(1000);
 #else
     // Force USB_DP pin (with external pull up) to 0
-    mbed::DigitalOut usb_dp_pin(USB_DP, 0) ;
+    mbed::DigitalInOut usb_dp_pin(USB_DP, PIN_OUTPUT, PullNone, 0);
     wait_us(10000); // 10ms
+    usb_dp_pin.input(); // revert as input
 #endif
 }
 #endif
@@ -258,8 +264,17 @@ void USBPhyHw::init(USBPhyEvents *events)
     hpcd.Init.vbus_sensing_enable = DISABLE;
     hpcd.Init.use_external_vbus = DISABLE;
 
+#ifdef __HAL_RCC_OTGPHYC_CLK_ENABLE
+    __HAL_RCC_OTGPHYC_CLK_ENABLE();
+#endif
     __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
 
+#ifdef __HAL_RCC_USB1_OTG_HS_ULPI_CLK_SLEEP_DISABLE
+    __HAL_RCC_USB1_OTG_HS_ULPI_CLK_SLEEP_DISABLE();
+#endif
+#ifdef __HAL_RCC_USB2_OTG_HS_ULPI_CLK_SLEEP_DISABLE
+    __HAL_RCC_USB2_OTG_HS_ULPI_CLK_SLEEP_DISABLE();
+#endif
 #ifdef __HAL_RCC_USB1_OTG_FS_ULPI_CLK_SLEEP_DISABLE
     __HAL_RCC_USB1_OTG_FS_ULPI_CLK_SLEEP_DISABLE();
 #endif
@@ -295,7 +310,7 @@ void USBPhyHw::init(USBPhyEvents *events)
 
     map = PinMap_USB_FS;
 
-#if defined(TARGET_STM32F1) || defined(SYSCFG_PMC_USB_PU)
+#if defined(TARGET_STM32F1) || defined(TARGET_STM32F3) || defined(SYSCFG_PMC_USB_PU)
     // USB_DevConnect is empty
     USB_reenumerate();
 #endif
@@ -418,7 +433,7 @@ void USBPhyHw::connect()
     // Initializes the USB controller registers
     USB_DevInit(hpcd.Instance, hpcd.Init); // hpcd.Init not used
 
-#if defined(TARGET_STM32F1) || defined(SYSCFG_PMC_USB_PU)
+#if defined(TARGET_STM32F1) || defined(TARGET_STM32F3) || defined(SYSCFG_PMC_USB_PU)
     // USB_DevConnect is empty
     USB_reenumerate();
 #endif

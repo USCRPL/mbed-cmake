@@ -1,4 +1,4 @@
-# Copyright (c) 2020 ARM Limited. All rights reserved.
+# Copyright (c) 2020-2021, Pelion and affiliates.
 # SPDX-License-Identifier: Apache-2.0
 
 target_include_directories(mbed-nanostack-sal_stack
@@ -19,6 +19,7 @@ target_sources(mbed-nanostack-sal_stack
         IEEE802_15_4/mac_indirect_data.c
         IEEE802_15_4/mac_mcps_sap.c
         IEEE802_15_4/mac_mlme.c
+        IEEE802_15_4/mac_mode_switch.c
         IEEE802_15_4/mac_pd_sap.c
         IEEE802_15_4/mac_security_mib.c
         IEEE802_15_4/mac_timer.c

@@ -786,19 +786,31 @@ static int8_t radius_client_sec_prot_eui_64_hash_generate(uint8_t *eui_64, uint8
 
     mbedtls_sha256_init(&ctx);
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_starts(&ctx, 0) != 0) {
+#else
     if (mbedtls_sha256_starts_ret(&ctx, 0) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_update(&ctx, hashed_string, 24) != 0) {
+#else
     if (mbedtls_sha256_update_ret(&ctx, hashed_string, 24) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
 
     uint8_t output[32];
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_sha256_finish(&ctx, output) != 0) {
+#else
     if (mbedtls_sha256_finish_ret(&ctx, output) != 0) {
+#endif
         ret_val = -1;
         goto error;
     }
@@ -872,19 +884,35 @@ static int8_t radius_client_sec_prot_response_authenticator_calc(sec_prot_t *pro
 
     mbedtls_md5_init(&ctx);
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_md5_starts(&ctx) != 0) {
+#else
     if (mbedtls_md5_starts_ret(&ctx) != 0) {
+#endif
         goto end;
     }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_md5_update(&ctx, msg_ptr, msg_len) != 0) {
+#else
     if (mbedtls_md5_update_ret(&ctx, msg_ptr, msg_len) != 0) {
+#endif
         goto end;
     }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_md5_update(&ctx, key, key_len) != 0) {
+#else
     if (mbedtls_md5_update_ret(&ctx, key, key_len) != 0) {
+#endif
         goto end;
     }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+    if (mbedtls_md5_finish(&ctx, auth_ptr) != 0) {
+#else
     if (mbedtls_md5_finish_ret(&ctx, auth_ptr) != 0) {
+#endif
         goto end;
     }
 
@@ -940,35 +968,59 @@ static int8_t radius_client_sec_prot_ms_mppe_recv_key_pmk_decrypt(sec_prot_t *pr
     while (cipher_text_len >= MS_MPPE_RECV_KEY_BLOCK_LEN) {
         mbedtls_md5_init(&ctx);
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+        if (mbedtls_md5_starts(&ctx) != 0) {
+#else
         if (mbedtls_md5_starts_ret(&ctx) != 0) {
+#endif
             md5_failed = true;
             break;
         }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+        if (mbedtls_md5_update(&ctx, key, key_len) != 0) {
+#else
         if (mbedtls_md5_update_ret(&ctx, key, key_len) != 0) {
+#endif
             md5_failed = true;
             break;
         }
 
         if (first_interm_b_value) {
             // b(1) = MD5(secret + request-authenticator + salt)
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+            if (mbedtls_md5_update(&ctx, request_authenticator, MS_MPPE_RECV_KEY_BLOCK_LEN) != 0) {
+#else
             if (mbedtls_md5_update_ret(&ctx, request_authenticator, MS_MPPE_RECV_KEY_BLOCK_LEN) != 0) {
+#endif
                 md5_failed = true;
                 break;
             }
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+            if (mbedtls_md5_update(&ctx, salt_ptr, MS_MPPE_RECV_KEY_SALT_LEN) != 0) {
+#else
             if (mbedtls_md5_update_ret(&ctx, salt_ptr, MS_MPPE_RECV_KEY_SALT_LEN) != 0) {
+#endif
                 md5_failed = true;
                 break;
             }
         } else {
             // b(i) = MD5(secret + cipher_text(i - 1))
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+            if (mbedtls_md5_update(&ctx, cipher_text_ptr - MS_MPPE_RECV_KEY_BLOCK_LEN, MS_MPPE_RECV_KEY_BLOCK_LEN) != 0) {
+#else
             if (mbedtls_md5_update_ret(&ctx, cipher_text_ptr - MS_MPPE_RECV_KEY_BLOCK_LEN, MS_MPPE_RECV_KEY_BLOCK_LEN) != 0) {
+#endif
                 md5_failed = true;
                 break;
             }
         }
 
+#if (MBEDTLS_VERSION_MAJOR >= 3)
+        if (mbedtls_md5_finish(&ctx, interm_b_val) != 0) {
+#else
         if (mbedtls_md5_finish_ret(&ctx, interm_b_val) != 0) {
+#endif
             md5_failed = true;
             break;
         }
@@ -1037,7 +1089,7 @@ static void radius_client_sec_prot_state_machine(sec_prot_t *prot)
             tr_info("Radius: start, eui-64: %s", trace_array(sec_prot_remote_eui_64_addr_get(prot), 8));
 
             // Set default timeout for the total maximum length of the negotiation
-            sec_prot_default_timeout_set(&data->common);
+            sec_prot_timeout_set(&data->common, SEC_PROT_RETRYING_PROTOCOL_TIMEOUT);
 
             sec_prot_state_set(prot, &data->common, RADIUS_STATE_CREATE_RESP);
 
@@ -1096,7 +1148,7 @@ static void radius_client_sec_prot_state_machine(sec_prot_t *prot)
             sec_prot_timer_trickle_stop(&data->common);
 
             // Set timeout to wait for EAP-TLS to continue
-            data->common.ticks = prot->sec_cfg->prot_cfg.sec_prot_retry_timeout;
+            sec_prot_timeout_set(&data->common, prot->sec_cfg->prot_cfg.sec_prot_retry_timeout);
 
             // Send to radius EAP-TLS
             if (data->radius_eap_tls_send && data->radius_eap_tls_prot && data->recv_eap_msg && data->recv_eap_msg_len > 0) {
